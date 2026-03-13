@@ -55,6 +55,7 @@ export function createApp(options: AppOptions = {}): App {
 
   const server = Bun.serve({
     port,
+    idleTimeout: 255, // max value — prevents SSE connections from being killed
     routes: {
       "/": homepage,
     },
