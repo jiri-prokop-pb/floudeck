@@ -13,9 +13,34 @@ I reviewed the current implementation, read the unit and E2E tests, and ran the 
 
 After installing dependencies with `bun install`, the repository still does not reach a clean green state. The findings below are based on the current code and on those command results.
 
+## Status Update
+
+Update date: 2026-03-13
+
+The highest-priority "Green First" fixes from this review have now been implemented:
+
+- `175e25d` `Ensure default SQLite path is created on startup`
+- `75eeee0` `Discard stale runs and rerun blocks after in-flight edits`
+- `ba42955` `Use allocated ports in server integration tests`
+- `3729fb8` `Run Playwright E2E on an allocated port`
+
+Current command status after those fixes:
+
+- `bun run test` passes
+- `bun run e2e` passes via the new dynamic-port wrapper
+- `bun run check` passes, but still prints the pre-existing `noNonNullAssertion` warning backlog
+- `bun run dev` no longer fails on SQLite path creation; the default port `3000` can still be occupied by something else locally
+
+Items still intentionally left open from this document:
+
+- consolidate request validation
+- reuse the create/edit form implementation
+- commit `bun.lock` and normalize package metadata
+- expand Biome coverage and reduce the existing warning backlog
+
 ## Findings
 
-### P1. Quick start is broken from a fresh checkout
+### Resolved (was P1). Quick start was broken from a fresh checkout
 
 `bun run dev` currently fails before the server starts:
 
@@ -27,7 +52,10 @@ Observed result:
 
 - `SQLiteError: unable to open database file`
 
-This means the README quick start is not reproducible as written.
+Status:
+
+- fixed by creating parent directories before opening file-backed SQLite paths
+- implemented in `175e25d`
 
 Files:
 
@@ -35,7 +63,7 @@ Files:
 - `src/server.ts`
 - `src/db.ts`
 
-### P1. Server integration tests are currently dead
+### Resolved (was P1). Server integration tests were dead
 
 `src/server.test.ts` starts the server with `port: 0`, expecting an ephemeral port. Under the current Bun version in this environment (`1.3.10`), `Bun.serve` throws:
 
@@ -47,14 +75,17 @@ Observed result:
 - `bun run test` ended with `81 pass / 4 fail`
 - all 4 failures came from `src/server.test.ts`
 
-The practical issue is that one part of the test strategy depends on behavior that does not currently hold.
+Status:
+
+- fixed by removing real socket binding from `src/server.test.ts` and injecting the serve implementation instead
+- implemented in `ba42955`
 
 Files:
 
 - `src/server.test.ts`
 - `src/server.ts`
 
-### P1. Updating a block while it is running can schedule the next run with stale interval data
+### Resolved (was P1). Updating a block while it is running could schedule the next run with stale interval data
 
 The scheduler captures `prompt`, `intervalValue`, and `intervalUnit` at run start. The API allows updates while a block is already in `running` state. If a block is edited mid-run, the row is updated in SQLite, but when the run finishes the scheduler still computes `next_run_at` using the stale interval values captured before the edit.
 
@@ -65,7 +96,10 @@ I reproduced this with an in-memory run:
 - final persisted `interval_unit` became `days`
 - final persisted `next_run_at` was still only `+1 hour`
 
-This is a correctness bug, not only a UX inconsistency.
+Status:
+
+- fixed by discarding stale in-flight results and immediately rerunning with the updated block data
+- implemented in `75eeee0`
 
 Files:
 
@@ -73,7 +107,7 @@ Files:
 - `src/api.ts`
 - `src/db.ts`
 
-### P2. E2E is brittle because the port is hardcoded
+### Resolved (was P2). E2E was brittle because the port was hardcoded
 
 The Playwright setup and the test server both default to port `3456`. If that port is already in use, `bun run e2e` fails before tests start.
 
@@ -82,7 +116,10 @@ Observed result:
 - `Process from config.webServer was not able to start`
 - underlying error: `EADDRINUSE`
 
-This makes local DX worse than necessary and makes parallel local work harder.
+Status:
+
+- fixed by adding a wrapper that chooses the e2e port dynamically and wiring Playwright/test-server to require `E2E_PORT`
+- implemented in `3729fb8`
 
 Files:
 
