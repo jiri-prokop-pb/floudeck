@@ -12,6 +12,7 @@ export type AppOptions = {
   port?: number;
   runBlock?: RunBlockFn;
   tickIntervalMs?: number;
+  serve?: typeof Bun.serve;
 };
 
 export type App = {
@@ -25,6 +26,7 @@ export function createApp(options: AppOptions = {}): App {
     port = 3000,
     runBlock = createCliRunner(),
     tickIntervalMs = 10_000,
+    serve = Bun.serve,
   } = options;
 
   const db = initDb(dbPath);
@@ -53,7 +55,7 @@ export function createApp(options: AppOptions = {}): App {
     },
   });
 
-  const server = Bun.serve({
+  const server = serve({
     port,
     idleTimeout: 255, // max value — prevents SSE connections from being killed
     routes: {
