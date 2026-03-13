@@ -1,0 +1,29 @@
+{
+  "name": "floudeck",
+  "module": "src/server.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun run src/server.ts",
+    "test": "bun test",
+    "lint": "bunx @biomejs/biome check .",
+    "format": "bunx @biomejs/biome check --fix .",
+    "check": "bunx @biomejs/biome check . && bun test"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.6",
+    "@types/bun": "latest",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@types/sanitize-html": "^2.16.1",
+    "bun-plugin-tailwind": "^0.1.2"
+  },
+  "peerDependencies": {
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "sanitize-html": "^2.17.1"
+  }
+}
