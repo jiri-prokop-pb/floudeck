@@ -84,8 +84,9 @@ try {
   await page.goto(`http://localhost:${PORT}`);
   await page.waitForTimeout(500);
 
-  // Create blocks
+  // Create blocks via modal
   for (const block of EXAMPLE_BLOCKS) {
+    await page.click("text=+ Add another block");
     await page.fill("textarea", block.prompt);
     await page.fill('input[type="number"]', String(block.intervalValue));
     await page.selectOption("select", block.intervalUnit);

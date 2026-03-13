@@ -1,12 +1,5 @@
 # TODO
 
-## UI simplification
-
-- Replace permanent create form with a small `+` button at the bottom that opens a modal
-- Strip card chrome: hide actions behind a hamburger menu (top-right)
-- Show only the rendered result by default; move freshness info and frequency to a tooltip or `(i)` icon on hover
-- Remove status lozenge — the card content itself is enough
-
 ## CI
 
 - Set up CI pipeline with lint, unit tests, and E2E checks

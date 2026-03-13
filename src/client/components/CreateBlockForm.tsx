@@ -4,9 +4,10 @@ import { createBlockApi } from "../lib/api.ts";
 
 type CreateBlockFormProps = {
   onCreate: (block: BlockRecord) => void;
+  onClose?: () => void;
 };
 
-export function CreateBlockForm({ onCreate }: CreateBlockFormProps) {
+export function CreateBlockForm({ onCreate, onClose }: CreateBlockFormProps) {
   const [prompt, setPrompt] = useState("");
   const [intervalValue, setIntervalValue] = useState(15);
   const [intervalUnit, setIntervalUnit] = useState("minutes");
@@ -33,6 +34,7 @@ export function CreateBlockForm({ onCreate }: CreateBlockFormProps) {
       setPrompt("");
       setIntervalValue(15);
       setIntervalUnit("minutes");
+      onClose?.();
     } else {
       setError(res.error);
     }
@@ -40,10 +42,7 @@ export function CreateBlockForm({ onCreate }: CreateBlockFormProps) {
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm space-y-4"
-    >
+    <form onSubmit={handleSubmit} className="space-y-4">
       <textarea
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
