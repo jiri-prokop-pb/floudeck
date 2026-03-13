@@ -5,13 +5,15 @@
   "private": true,
   "scripts": {
     "dev": "bun run src/server.ts",
-    "test": "bun test",
+    "test": "bun test src/",
     "lint": "bunx @biomejs/biome check .",
     "format": "bunx @biomejs/biome check --fix .",
-    "check": "bunx @biomejs/biome check . && bun test"
+    "check": "bunx @biomejs/biome check . && bun run test && bunx playwright test",
+    "e2e": "bunx playwright test"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.6",
+    "@playwright/test": "^1.58.2",
     "@types/bun": "latest",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
