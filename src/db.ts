@@ -1,4 +1,6 @@
 import { Database } from "bun:sqlite";
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 import { nowIso } from "./time.ts";
 import type {
   BlockRecord,
@@ -10,6 +12,13 @@ import type {
 const VALID_UNITS: IntervalUnit[] = ["minutes", "hours", "days"];
 
 export function initDb(path?: string): Database {
+  if (path && path !== ":memory:") {
+    const parentDir = dirname(path);
+    if (parentDir !== ".") {
+      mkdirSync(parentDir, { recursive: true });
+    }
+  }
+
   const db = path ? new Database(path) : new Database(":memory:");
   db.run("PRAGMA journal_mode = WAL");
   db.run(`
