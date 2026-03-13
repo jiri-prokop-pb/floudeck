@@ -1,8 +1,13 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { createMockRunner } from "./runner.ts";
 import { type App, createApp } from "./server.ts";
 
 let app: App | null = null;
+let stopCalled = false;
+
+beforeEach(() => {
+  stopCalled = false;
+});
 
 afterEach(() => {
   app?.close();
@@ -11,7 +16,7 @@ afterEach(() => {
 
 function startApp() {
   app = createApp({
-    port: 0,
+    port: 31_000,
     runBlock: createMockRunner(() => ({
       ok: true,
       html: "<p>mock result</p>",
@@ -19,18 +24,39 @@ function startApp() {
       reasoning: null,
     })),
     tickIntervalMs: 100_000, // don't auto-tick in tests
+    serve: ((options: Parameters<typeof Bun.serve>[0]) => {
+      return {
+        port: options.port ?? 3000,
+        stop() {
+          stopCalled = true;
+        },
+        fetch: options.fetch,
+      } as ReturnType<typeof Bun.serve>;
+    }) as typeof Bun.serve,
   });
   return app;
 }
 
 function url(path: string): string {
-  return `http://localhost:${app!.server.port}${path}`;
+  if (!app) {
+    throw new Error("App not started");
+  }
+
+  return `http://localhost:${app.server.port}${path}`;
+}
+
+async function request(path: string, init?: RequestInit): Promise<Response> {
+  if (!app) {
+    throw new Error("App not started");
+  }
+
+  return await app.server.fetch(new Request(url(path), init));
 }
 
 describe("server", () => {
   test("responds to GET /api/blocks", async () => {
     startApp();
-    const res = await fetch(url("/api/blocks"));
+    const res = await request("/api/blocks");
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.ok).toBe(true);
@@ -40,7 +66,7 @@ describe("server", () => {
   test("full create → fetch flow", async () => {
     startApp();
 
-    const createRes = await fetch(url("/api/blocks"), {
+    const createRes = await request("/api/blocks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -53,7 +79,7 @@ describe("server", () => {
     const { block } = await createRes.json();
     expect(block.prompt).toBe("integration test");
 
-    const listRes = await fetch(url("/api/blocks"));
+    const listRes = await request("/api/blocks");
     const { blocks } = await listRes.json();
     expect(blocks).toHaveLength(1);
     expect(blocks[0].id).toBe(block.id);
@@ -62,7 +88,7 @@ describe("server", () => {
   test("invalid input returns 400", async () => {
     startApp();
 
-    const res = await fetch(url("/api/blocks"), {
+    const res = await request("/api/blocks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -74,18 +100,12 @@ describe("server", () => {
     expect(res.status).toBe(400);
   });
 
-  test("close() cleans up", async () => {
+  test("close() stops the server", () => {
     const a = startApp();
-    const port = a.server.port;
+
     a.close();
     app = null;
 
-    // Server should be stopped
-    try {
-      await fetch(`http://localhost:${port}/api/blocks`);
-      // If fetch succeeds, that's unexpected but not fatal for test
-    } catch {
-      // Expected — connection refused
-    }
+    expect(stopCalled).toBe(true);
   });
 });
