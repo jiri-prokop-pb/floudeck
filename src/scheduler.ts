@@ -49,6 +49,9 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
 
     try {
       const startedAt = nowIso();
+      console.log(
+        `scheduler:run:start block=${blockId} prompt="${prompt.slice(0, 60)}..." activeRuns=${activeRuns}`,
+      );
       markBlockRunning(db, blockId, startedAt);
       sse.broadcast("block-updated", { blockId, status: "running" });
 
@@ -58,12 +61,21 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
 
       // Check if block still exists
       const block = getBlock(db, blockId);
-      if (!block) return;
+      if (!block) {
+        console.log(`scheduler:run:orphan block=${blockId} was deleted during run`);
+        return;
+      }
 
       if (result.ok) {
+        console.log(
+          `scheduler:run:success block=${blockId} html=${result.html.length}b nextRun=${nextRunAt}`,
+        );
         markBlockSuccess(db, blockId, result.html, finishedAt, nextRunAt);
         sse.broadcast("block-updated", { blockId, status: "success" });
       } else {
+        console.log(
+          `scheduler:run:error block=${blockId} error="${result.error}" nextRun=${nextRunAt}`,
+        );
         markBlockError(db, blockId, result.error, finishedAt, nextRunAt);
         sse.broadcast("block-updated", { blockId, status: "error" });
       }
@@ -75,20 +87,35 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
       const nextRunAt = addInterval(finishedAt, intervalValue, intervalUnit);
       const message =
         err instanceof Error ? err.message : "Unknown runner error";
+      console.error(
+        `scheduler:run:exception block=${blockId} error="${message}"`,
+      );
       markBlockError(db, blockId, message, finishedAt, nextRunAt);
       sse.broadcast("block-updated", { blockId, status: "error" });
     } finally {
       runningBlockIds.delete(blockId);
       activeRuns--;
+      console.log(
+        `scheduler:run:done block=${blockId} activeRuns=${activeRuns}`,
+      );
     }
   }
 
   async function tick(): Promise<void> {
-    if (activeRuns >= maxConcurrency) return;
+    if (activeRuns >= maxConcurrency) {
+      console.log(`scheduler:tick skipped (at max concurrency ${maxConcurrency})`);
+      return;
+    }
 
     const capacity = maxConcurrency - activeRuns;
     const now = nowIso();
     const dueBlocks = findDueBlocks(db, now, capacity);
+
+    if (dueBlocks.length > 0) {
+      console.log(
+        `scheduler:tick found ${dueBlocks.length} due blocks (capacity=${capacity})`,
+      );
+    }
 
     const promises: Promise<void>[] = [];
     for (const block of dueBlocks) {
