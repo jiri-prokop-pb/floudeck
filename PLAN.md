@@ -87,7 +87,6 @@ floudeck/
   /src
     server.ts
     db.ts
-    schema.ts
     scheduler.ts
     runner.ts
     prompts.ts
@@ -111,6 +110,8 @@ floudeck/
         api.ts
         format.ts
 ```
+
+Note: `src/api.ts` contains server-side route handlers. `src/client/lib/api.ts` contains client-side fetch helpers.
 
 ---
 
@@ -737,7 +738,9 @@ Suggested log events:
 ### Step 3: Build basic API
 
 - `GET /api/blocks`
+- `GET /api/blocks/:id`
 - `POST /api/blocks`
+- `POST /api/blocks/:id/refresh`
 - `POST /api/blocks/:id/update`
 - `POST /api/blocks/:id/delete`
 
@@ -969,7 +972,7 @@ Each event must end with a blank line.
 
 ### Keepalive
 
-Send a lightweight keepalive comment periodically, for example every 15–30 seconds:
+Send a lightweight keepalive comment every 20 seconds:
 
 ```text
 : keepalive
