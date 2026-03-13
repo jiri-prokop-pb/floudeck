@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { BlockRecord } from "../../types.ts";
-import { fetchBlocks, fetchBlock } from "../lib/api.ts";
+import { fetchBlock, fetchBlocks } from "../lib/api.ts";
 import { CreateBlockForm } from "./CreateBlockForm.tsx";
 import { Feed } from "./Feed.tsx";
 
@@ -67,11 +67,7 @@ export function App() {
           <CreateBlockForm onCreate={handleCreate} />
         </div>
 
-        <Feed
-          blocks={blocks}
-          onUpdate={handleUpdate}
-          onDelete={handleDelete}
-        />
+        <Feed blocks={blocks} onUpdate={handleUpdate} onDelete={handleDelete} />
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { processCliOutput, createMockRunner } from "./runner.ts";
+import { createMockRunner, processCliOutput } from "./runner.ts";
 
 describe("processCliOutput", () => {
   test("valid output extracts and sanitizes HTML", () => {
@@ -95,7 +95,12 @@ describe("createMockRunner", () => {
     let receivedPrompt = "";
     const runner = createMockRunner((prompt) => {
       receivedPrompt = prompt;
-      return { ok: true, html: "<p>x</p>", rawHtml: "<p>x</p>", reasoning: null };
+      return {
+        ok: true,
+        html: "<p>x</p>",
+        rawHtml: "<p>x</p>",
+        reasoning: null,
+      };
     });
     await runner("my prompt");
     expect(receivedPrompt).toBe("my prompt");

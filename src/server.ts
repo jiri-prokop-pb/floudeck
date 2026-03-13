@@ -1,10 +1,10 @@
-import type { RunBlockFn } from "./types.ts";
-import { initDb, resetStaleRunningBlocks } from "./db.ts";
-import { nowIso } from "./time.ts";
-import { createSseBroadcaster } from "./sse.ts";
 import { createRouter } from "./api.ts";
-import { createScheduler } from "./scheduler.ts";
+import { initDb, resetStaleRunningBlocks } from "./db.ts";
 import { createCliRunner } from "./runner.ts";
+import { createScheduler } from "./scheduler.ts";
+import { createSseBroadcaster } from "./sse.ts";
+import { nowIso } from "./time.ts";
+import type { RunBlockFn } from "./types.ts";
 
 export type AppOptions = {
   dbPath?: string;

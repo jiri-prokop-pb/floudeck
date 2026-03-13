@@ -1,17 +1,17 @@
-import { describe, expect, test, beforeEach } from "bun:test";
 import type { Database } from "bun:sqlite";
+import { beforeEach, describe, expect, test } from "bun:test";
 import {
+  createBlock,
+  deleteBlock,
+  findDueBlocks,
+  getBlock,
   initDb,
   listBlocks,
-  getBlock,
-  createBlock,
-  updateBlock,
-  deleteBlock,
+  markBlockError,
   markBlockRunning,
   markBlockSuccess,
-  markBlockError,
-  findDueBlocks,
   resetStaleRunningBlocks,
+  updateBlock,
 } from "./db.ts";
 
 let db: Database;

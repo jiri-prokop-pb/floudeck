@@ -1,6 +1,6 @@
-import { describe, expect, test, afterEach } from "bun:test";
-import { createApp, type App } from "./server.ts";
+import { afterEach, describe, expect, test } from "bun:test";
 import { createMockRunner } from "./runner.ts";
+import { type App, createApp } from "./server.ts";
 
 let app: App | null = null;
 

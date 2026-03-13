@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import {
-  SYSTEM_PROMPT,
   ALLOWED_TAGS,
   BEGIN_HTML,
-  END_HTML,
   BEGIN_REASONING,
+  END_HTML,
   END_REASONING,
+  SYSTEM_PROMPT,
 } from "./prompts.ts";
 
 describe("SYSTEM_PROMPT", () => {

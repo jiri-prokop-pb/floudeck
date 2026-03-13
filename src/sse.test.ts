@@ -1,4 +1,4 @@
-import { describe, expect, test, afterEach } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import { createSseBroadcaster, type SseBroadcaster } from "./sse.ts";
 
 let sse: SseBroadcaster;
@@ -51,8 +51,6 @@ describe("createSseBroadcaster", () => {
 
     const text = await response.text();
     expect(text).toContain("event: block-updated\n");
-    expect(text).toContain(
-      'data: {"blockId":1,"status":"success"}\n',
-    );
+    expect(text).toContain('data: {"blockId":1,"status":"success"}\n');
   });
 });

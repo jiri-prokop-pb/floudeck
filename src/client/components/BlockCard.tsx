@@ -1,7 +1,11 @@
 import { useState } from "react";
 import type { BlockRecord } from "../../types.ts";
-import { formatSchedule, formatTimeAgo, formatTimeUntil } from "../lib/format.ts";
 import { deleteBlockApi, refreshBlockApi, updateBlockApi } from "../lib/api.ts";
+import {
+  formatSchedule,
+  formatTimeAgo,
+  formatTimeUntil,
+} from "../lib/format.ts";
 import { BlockBody } from "./BlockBody.tsx";
 
 type BlockCardProps = {
@@ -118,7 +122,9 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
             />
             <select
               value={intervalUnit}
-              onChange={(e) => setIntervalUnit(e.target.value as "minutes" | "hours" | "days")}
+              onChange={(e) =>
+                setIntervalUnit(e.target.value as "minutes" | "hours" | "days")
+              }
               className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-sm focus:border-zinc-400 focus:outline-none"
             >
               <option value="minutes">minutes</option>

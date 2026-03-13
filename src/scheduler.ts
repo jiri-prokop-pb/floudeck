@@ -1,14 +1,14 @@
 import type { Database } from "bun:sqlite";
-import type { SseBroadcaster } from "./sse.ts";
-import type { RunBlockFn } from "./types.ts";
 import {
   findDueBlocks,
   getBlock,
+  markBlockError,
   markBlockRunning,
   markBlockSuccess,
-  markBlockError,
 } from "./db.ts";
-import { nowIso, addInterval } from "./time.ts";
+import type { SseBroadcaster } from "./sse.ts";
+import { addInterval, nowIso } from "./time.ts";
+import type { RunBlockFn } from "./types.ts";
 
 export type SchedulerDeps = {
   db: Database;
@@ -38,7 +38,12 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
   let activeRuns = 0;
   let timer: ReturnType<typeof setInterval> | null = null;
 
-  async function startRun(blockId: number, prompt: string, intervalValue: number, intervalUnit: "minutes" | "hours" | "days"): Promise<void> {
+  async function startRun(
+    blockId: number,
+    prompt: string,
+    intervalValue: number,
+    intervalUnit: "minutes" | "hours" | "days",
+  ): Promise<void> {
     runningBlockIds.add(blockId);
     activeRuns++;
 
@@ -90,7 +95,12 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
       if (runningBlockIds.has(block.id)) continue;
       if (activeRuns >= maxConcurrency) break;
       promises.push(
-        startRun(block.id, block.prompt, block.interval_value, block.interval_unit),
+        startRun(
+          block.id,
+          block.prompt,
+          block.interval_value,
+          block.interval_unit,
+        ),
       );
     }
 

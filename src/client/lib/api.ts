@@ -1,6 +1,6 @@
 import type { BlockRecord } from "../../types.ts";
 
-type ApiResponse<T> = { ok: true } & T | { ok: false; error: string };
+type ApiResponse<T> = ({ ok: true } & T) | { ok: false; error: string };
 
 async function apiFetch<T>(
   path: string,
