@@ -54,7 +54,9 @@ export function createCliRunner(): RunBlockFn {
       stderr: "pipe",
     });
 
+    let timedOut = false;
     const timeout = setTimeout(() => {
+      timedOut = true;
       try {
         console.log(`run:timeout killing process after ${RUN_TIMEOUT_MS}ms`);
         proc.kill();
@@ -68,8 +70,10 @@ export function createCliRunner(): RunBlockFn {
       const stderr = await new Response(proc.stderr).text();
       const exitCode = await proc.exited;
 
+      clearTimeout(timeout);
+
       console.log(
-        `run:exited code=${exitCode} stdout=${stdout.length}b stderr=${stderr.length}b killed=${proc.killed}`,
+        `run:exited code=${exitCode} stdout=${stdout.length}b stderr=${stderr.length}b timedOut=${timedOut}`,
       );
       if (stderr.trim()) {
         console.log(`run:stderr ${stderr.trim().slice(0, 300)}`);
@@ -78,8 +82,7 @@ export function createCliRunner(): RunBlockFn {
         console.log(`run:stdout-preview ${stdout.slice(0, 300)}`);
       }
 
-      // Check if killed by timeout
-      if (proc.killed) {
+      if (timedOut) {
         return {
           ok: false,
           error: `Task timed out after ${RUN_TIMEOUT_MS / 1000} seconds.`,
