@@ -171,6 +171,20 @@ export function markBlockError(
   );
 }
 
+export function markBlockPendingImmediateRun(
+  db: Database,
+  id: number,
+  updatedAt: string,
+): void {
+  db.run(
+    `UPDATE blocks SET status = 'idle', next_run_at = ?, running_started_at = NULL, updated_at = ?
+     WHERE id = ?`,
+    updatedAt,
+    updatedAt,
+    id,
+  );
+}
+
 export function findDueBlocks(
   db: Database,
   now: string,
