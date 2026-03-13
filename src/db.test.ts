@@ -1,3 +1,6 @@
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import type { Database } from "bun:sqlite";
 import { beforeEach, describe, expect, test } from "bun:test";
 import {
@@ -268,5 +271,25 @@ describe("validation", () => {
         intervalUnit: "hours",
       }),
     ).toThrow("Interval value must be a positive integer");
+  });
+});
+
+describe("initDb", () => {
+  test("creates parent directories for file-backed databases", () => {
+    const tempRoot = mkdtempSync(join(tmpdir(), "floudeck-db-"));
+    const dbPath = join(tempRoot, "nested", "data", "floudeck.sqlite");
+
+    const fileDb = initDb(dbPath);
+
+    expect(existsSync(dbPath)).toBe(true);
+    const table = fileDb
+      .query(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'blocks'",
+      )
+      .get() as { name: string } | null;
+    expect(table).toEqual({ name: "blocks" });
+
+    fileDb.close();
+    rmSync(tempRoot, { recursive: true, force: true });
   });
 });
