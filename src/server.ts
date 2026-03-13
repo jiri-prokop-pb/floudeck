@@ -58,10 +58,12 @@ export function createApp(options: AppOptions = {}): App {
       const response = await router(req);
       if (response) return response;
 
-      // Serve frontend
+      // Serve frontend via Bun HTML imports (bundles + tailwind)
       const url = new URL(req.url);
       if (url.pathname === "/" || url.pathname === "/index.html") {
-        return new Response(Bun.file("src/client/index.html"));
+        return new Response(Bun.file("src/client/index.html"), {
+          headers: { "Content-Type": "text/html" },
+        });
       }
 
       return new Response("Not Found", { status: 404 });
