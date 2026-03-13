@@ -3,9 +3,11 @@ import type { BlockRecord } from "../../types.ts";
 import { fetchBlock, fetchBlocks } from "../lib/api.ts";
 import { CreateBlockForm } from "./CreateBlockForm.tsx";
 import { Feed } from "./Feed.tsx";
+import { Modal } from "./Modal.tsx";
 
 export function App() {
   const [blocks, setBlocks] = useState<BlockRecord[]>([]);
+  const [showCreate, setShowCreate] = useState(false);
 
   const refetchBlocks = useCallback(async () => {
     const data = await fetchBlocks();
@@ -17,7 +19,6 @@ export function App() {
     if (block) {
       setBlocks((prev) => prev.map((b) => (b.id === id ? block : b)));
     } else {
-      // Block was deleted
       setBlocks((prev) => prev.filter((b) => b.id !== id));
     }
   }, []);
@@ -63,11 +64,28 @@ export function App() {
           </p>
         </header>
 
-        <div className="mb-8">
-          <CreateBlockForm onCreate={handleCreate} />
-        </div>
-
         <Feed blocks={blocks} onUpdate={handleUpdate} onDelete={handleDelete} />
+
+        <button
+          type="button"
+          onClick={() => setShowCreate(true)}
+          className="mt-6 w-full rounded-2xl border border-dashed border-zinc-300 py-3 text-sm font-medium text-zinc-500 hover:border-zinc-400 hover:text-zinc-700 hover:bg-zinc-100/50"
+        >
+          + Add another block
+        </button>
+
+        {showCreate && (
+          <Modal
+            title="Create block"
+            subtitle="Compact entry point, full form only when needed."
+            onClose={() => setShowCreate(false)}
+          >
+            <CreateBlockForm
+              onCreate={handleCreate}
+              onClose={() => setShowCreate(false)}
+            />
+          </Modal>
+        )}
       </div>
     </div>
   );

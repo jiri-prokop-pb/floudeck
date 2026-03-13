@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { BlockRecord } from "../../types.ts";
 import { deleteBlockApi, refreshBlockApi, updateBlockApi } from "../lib/api.ts";
 import {
@@ -14,21 +14,30 @@ type BlockCardProps = {
   onDelete: (id: number) => void;
 };
 
-const statusColors: Record<string, string> = {
-  idle: "bg-zinc-100 text-zinc-600",
-  running: "bg-blue-100 text-blue-700",
-  success: "bg-green-100 text-green-700",
-  error: "bg-red-100 text-red-700",
-};
-
 export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
   const [editing, setEditing] = useState(false);
   const [prompt, setPrompt] = useState(block.prompt);
   const [intervalValue, setIntervalValue] = useState(block.interval_value);
   const [intervalUnit, setIntervalUnit] = useState(block.interval_unit);
   const [loading, setLoading] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const infoRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node))
+        setShowMenu(false);
+      if (infoRef.current && !infoRef.current.contains(e.target as Node))
+        setShowInfo(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
   async function handleRefresh() {
+    setShowMenu(false);
     setLoading(true);
     const res = await refreshBlockApi(block.id);
     if (res.ok) onUpdate(res.block);
@@ -36,6 +45,7 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
   }
 
   async function handleDelete() {
+    setShowMenu(false);
     if (!confirm("Delete this block?")) return;
     const res = await deleteBlockApi(block.id);
     if (res.ok) onDelete(block.id);
@@ -63,48 +73,88 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
   }
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-3">
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-zinc-700">
-            {formatSchedule(block.interval_value, block.interval_unit)}
-          </span>
-          <span
-            className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[block.status] ?? ""}`}
+    <div className="relative rounded-2xl border border-zinc-200 bg-white shadow-sm">
+      {/* Icon buttons */}
+      <div className="absolute right-3 top-3 flex items-center gap-1 z-10">
+        {/* Info button */}
+        <div ref={infoRef} className="relative">
+          <button
+            type="button"
+            onClick={() => setShowInfo(!showInfo)}
+            className="flex h-7 w-7 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 text-sm"
+            title="Info"
           >
-            {block.status}
-          </span>
+            ⓘ
+          </button>
+          {showInfo && (
+            <div className="absolute right-0 top-8 w-56 rounded-lg border border-zinc-200 bg-white p-3 shadow-lg text-xs text-zinc-600 space-y-1">
+              <div>
+                <span className="font-medium text-zinc-500">Refresh: </span>
+                {formatSchedule(block.interval_value, block.interval_unit)}
+              </div>
+              <div>
+                <span className="font-medium text-zinc-500">Last run: </span>
+                {block.last_run_at
+                  ? formatTimeAgo(block.last_run_at)
+                  : "Not yet run"}
+              </div>
+              <div>
+                <span className="font-medium text-zinc-500">Next run: </span>
+                {block.status === "running"
+                  ? "Running now"
+                  : block.next_run_at
+                    ? formatTimeUntil(block.next_run_at)
+                    : "—"}
+              </div>
+            </div>
+          )}
         </div>
-        <div className="flex items-center gap-2">
+
+        {/* Menu button */}
+        <div ref={menuRef} className="relative">
           <button
             type="button"
-            onClick={handleRefresh}
-            disabled={loading || block.status === "running"}
-            className="rounded px-2 py-1 text-xs text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 disabled:opacity-50"
+            onClick={() => setShowMenu(!showMenu)}
+            className="flex h-7 w-7 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 text-sm"
+            title="Menu"
           >
-            Refresh
+            ☰
           </button>
-          <button
-            type="button"
-            onClick={() => setEditing(!editing)}
-            className="rounded px-2 py-1 text-xs text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700"
-          >
-            Edit
-          </button>
-          <button
-            type="button"
-            onClick={handleDelete}
-            className="rounded px-2 py-1 text-xs text-red-500 hover:bg-red-50 hover:text-red-700"
-          >
-            Delete
-          </button>
+          {showMenu && (
+            <div className="absolute right-0 top-8 w-36 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg">
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={loading || block.status === "running"}
+                className="w-full px-3 py-1.5 text-left text-sm text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+              >
+                Refresh
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMenu(false);
+                  setEditing(!editing);
+                }}
+                className="w-full px-3 py-1.5 text-left text-sm text-zinc-700 hover:bg-zinc-50"
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="w-full px-3 py-1.5 text-left text-sm text-red-600 hover:bg-red-50"
+              >
+                Delete
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Edit form */}
       {editing && (
-        <div className="border-b border-zinc-100 bg-zinc-50 px-5 py-4 space-y-3">
+        <div className="border-b border-zinc-100 bg-zinc-50 px-5 py-4 space-y-3 rounded-t-2xl">
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
@@ -155,22 +205,6 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
       {/* Body */}
       <div className="px-5 py-4">
         <BlockBody block={block} />
-      </div>
-
-      {/* Footer */}
-      <div className="flex items-center justify-between border-t border-zinc-100 px-5 py-2 text-xs text-zinc-400">
-        <span>
-          {block.last_run_at
-            ? `Last run ${formatTimeAgo(block.last_run_at)}`
-            : "Not yet run"}
-        </span>
-        <span>
-          {block.status === "running"
-            ? "Running now"
-            : block.next_run_at
-              ? `Next ${formatTimeUntil(block.next_run_at)}`
-              : ""}
-        </span>
       </div>
     </div>
   );

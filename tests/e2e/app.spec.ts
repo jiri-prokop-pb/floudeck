@@ -10,6 +10,30 @@ test.beforeEach(async ({ page }) => {
   await page.goto("/");
 });
 
+/** Open the create modal, fill in the form, and submit */
+async function createBlock(
+  page: import("@playwright/test").Page,
+  prompt: string,
+  interval: string,
+  unit?: string,
+) {
+  await page.click("text=+ Add another block");
+  await page.fill("textarea", prompt);
+  await page.fill('input[type="number"]', interval);
+  if (unit) await page.selectOption("select", unit);
+  await page.click("text=Add block");
+}
+
+/** Open the ☰ menu on the nth block card (0-indexed) and click an action */
+async function clickCardMenu(
+  page: import("@playwright/test").Page,
+  action: string,
+  index = 0,
+) {
+  await page.locator('[title="Menu"]').nth(index).click();
+  await page.click(`text=${action}`);
+}
+
 test("page loads with empty state", async ({ page }) => {
   await expect(page.locator("text=Floudeck")).toBeVisible();
   await expect(
@@ -20,13 +44,7 @@ test("page loads with empty state", async ({ page }) => {
 test("create block → appears in feed → runs → shows HTML", async ({
   page,
 }) => {
-  // Fill in form
-  await page.fill("textarea", "Show me the weather");
-  await page.fill('input[type="number"]', "15");
-  await page.click("text=Add block");
-
-  // Block should appear
-  await expect(page.locator("text=Every 15 minutes")).toBeVisible();
+  await createBlock(page, "Show me the weather", "15");
 
   // Wait for it to run (mock runner returns after 200ms, scheduler ticks every 500ms)
   await expect(page.locator(".mock-output")).toBeVisible({ timeout: 10_000 });
@@ -34,19 +52,16 @@ test("create block → appears in feed → runs → shows HTML", async ({
 });
 
 test("edit block → re-runs", async ({ page }) => {
-  // Create a block
-  await page.fill("textarea", "Original prompt");
-  await page.fill('input[type="number"]', "1");
-  await page.click("text=Add block");
+  await createBlock(page, "Original prompt", "1");
 
   // Wait for first run
   await expect(page.locator(".mock-output")).toBeVisible({ timeout: 10_000 });
 
-  // Click Edit
-  await page.click("text=Edit");
+  // Click Edit via menu
+  await clickCardMenu(page, "Edit");
 
-  // Update the prompt in the edit form (the second textarea on the page)
-  const editTextarea = page.locator("textarea").nth(1);
+  // Update the prompt in the edit form
+  const editTextarea = page.locator("textarea");
   await editTextarea.fill("Updated prompt");
   await page.click("text=Save");
 
@@ -57,16 +72,16 @@ test("edit block → re-runs", async ({ page }) => {
 });
 
 test("delete block → disappears", async ({ page }) => {
-  // Create a block
-  await page.fill("textarea", "To be deleted");
-  await page.fill('input[type="number"]', "1");
-  await page.selectOption("select", "hours");
-  await page.click("text=Add block");
+  await createBlock(page, "To be deleted", "1", "hours");
+
+  // Verify block appeared (check info tooltip for schedule)
+  await page.locator('[title="Info"]').click();
   await expect(page.locator("text=Every hour")).toBeVisible();
+  await page.locator('[title="Info"]').click(); // close tooltip
 
   // Delete with confirmation
   page.on("dialog", (dialog) => dialog.accept());
-  await page.click("text=Delete");
+  await clickCardMenu(page, "Delete");
 
   // Should show empty state again
   await expect(
@@ -75,26 +90,19 @@ test("delete block → disappears", async ({ page }) => {
 });
 
 test("refresh → enters running state", async ({ page }) => {
-  // Create a block and wait for it to complete
-  await page.fill("textarea", "Refresh test");
-  await page.fill('input[type="number"]', "60");
-  await page.selectOption("select", "minutes");
-  await page.click("text=Add block");
+  await createBlock(page, "Refresh test", "60");
   await expect(page.locator(".mock-output")).toBeVisible({ timeout: 10_000 });
 
-  // Click refresh
-  await page.click("text=Refresh");
+  // Click refresh via menu
+  await clickCardMenu(page, "Refresh");
 
-  // Should briefly show running state (may be quick with mock)
-  // Then show updated output
+  // Should show updated output
   await expect(page.locator(".mock-output")).toBeVisible({ timeout: 10_000 });
 });
 
 test("error state visible for failing mock", async ({ page }) => {
   // The mock runner fails when prompt contains "fail"
-  await page.fill("textarea", "Please fail this task");
-  await page.fill('input[type="number"]', "1");
-  await page.click("text=Add block");
+  await createBlock(page, "Please fail this task", "1");
 
   // Wait for error state
   await expect(page.getByRole("heading", { name: "Task failed" })).toBeVisible({
@@ -106,7 +114,7 @@ test("error state visible for failing mock", async ({ page }) => {
 });
 
 test("form validation - empty prompt", async ({ page }) => {
-  // Try to submit without prompt
+  await page.click("text=+ Add another block");
   await page.fill('input[type="number"]', "5");
   await page.click("text=Add block");
 
@@ -114,32 +122,20 @@ test("form validation - empty prompt", async ({ page }) => {
 });
 
 test("multiple blocks in creation order", async ({ page }) => {
-  // Create first block
-  await page.fill("textarea", "First block");
-  await page.fill('input[type="number"]', "5");
-  await page.click("text=Add block");
-  await expect(page.locator("text=Every 5 minutes")).toBeVisible();
+  await createBlock(page, "First block", "5");
 
   // Create second block
-  await page.fill("textarea", "Second block");
-  await page.fill('input[type="number"]', "10");
-  await page.click("text=Add block");
+  await createBlock(page, "Second block", "10");
 
-  // Both should be visible in order
-  const scheduleLabels = page.locator(
-    'text=/Every \\d+ minutes/',
-  );
-  await expect(scheduleLabels).toHaveCount(2);
+  // Both should be visible - check via info tooltips
+  const infoButtons = page.locator('[title="Info"]');
+  await expect(infoButtons).toHaveCount(2);
 });
 
 test("SSE updates UI without manual refresh", async ({ page }) => {
-  // Create a block
-  await page.fill("textarea", "SSE test block");
-  await page.fill('input[type="number"]', "1");
-  await page.click("text=Add block");
+  await createBlock(page, "SSE test block", "1");
 
   // The block should transition from idle/running to success via SSE
-  // without us manually refreshing
   await expect(page.locator(".mock-output")).toBeVisible({ timeout: 10_000 });
   await expect(
     page.locator("text=Output for: SSE test block"),
