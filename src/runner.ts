@@ -45,10 +45,6 @@ export function createCliRunner(): RunBlockFn {
       prompt,
     ];
 
-    console.log(
-      `run:spawn cwd=${process.cwd()} cmd=claude --print --dangerously-skip-permissions --append-system-prompt <SYSTEM_PROMPT> "${prompt.slice(0, 80)}..."`,
-    );
-
     const proc = Bun.spawn(args, {
       stdout: "pipe",
       stderr: "pipe",
@@ -58,7 +54,6 @@ export function createCliRunner(): RunBlockFn {
     const timeout = setTimeout(() => {
       timedOut = true;
       try {
-        console.log(`run:timeout killing process after ${RUN_TIMEOUT_MS}ms`);
         proc.kill();
       } catch {
         // ignore
@@ -72,16 +67,6 @@ export function createCliRunner(): RunBlockFn {
 
       clearTimeout(timeout);
 
-      console.log(
-        `run:exited code=${exitCode} stdout=${stdout.length}b stderr=${stderr.length}b timedOut=${timedOut}`,
-      );
-      if (stderr.trim()) {
-        console.log(`run:stderr ${stderr.trim().slice(0, 300)}`);
-      }
-      if (stdout.length > 0) {
-        console.log(`run:stdout-preview ${stdout.slice(0, 300)}`);
-      }
-
       if (timedOut) {
         return {
           ok: false,
@@ -90,11 +75,7 @@ export function createCliRunner(): RunBlockFn {
         };
       }
 
-      const result = processCliOutput(stdout, stderr, exitCode);
-      console.log(
-        `run:result ok=${result.ok}${result.ok ? ` html=${result.html.length}b` : ` error=${result.error}`}`,
-      );
-      return result;
+      return processCliOutput(stdout, stderr, exitCode);
     } finally {
       clearTimeout(timeout);
     }
