@@ -40,13 +40,13 @@ export function createCliRunner(): RunBlockFn {
       "claude",
       "--print",
       "--dangerously-skip-permissions",
-      "--system-prompt",
+      "--append-system-prompt",
       SYSTEM_PROMPT,
       prompt,
     ];
 
     console.log(
-      `run:spawn cwd=${process.cwd()} cmd=claude --print --dangerously-skip-permissions --system-prompt <SYSTEM_PROMPT> "${prompt.slice(0, 80)}..."`,
+      `run:spawn cwd=${process.cwd()} cmd=claude --print --dangerously-skip-permissions --append-system-prompt <SYSTEM_PROMPT> "${prompt.slice(0, 80)}..."`,
     );
 
     const proc = Bun.spawn(args, {

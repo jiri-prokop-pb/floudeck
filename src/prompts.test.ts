@@ -23,9 +23,9 @@ describe("SYSTEM_PROMPT", () => {
   });
 
   test("mentions key constraints", () => {
-    expect(SYSTEM_PROMPT).toContain("Do not output JavaScript");
     expect(SYSTEM_PROMPT).toContain("script");
     expect(SYSTEM_PROMPT).toContain("iframe");
     expect(SYSTEM_PROMPT).toContain("form");
+    expect(SYSTEM_PROMPT).toContain("MUST");
   });
 });
