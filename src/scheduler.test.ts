@@ -297,8 +297,6 @@ describe("scheduler", () => {
     expect(block.prompt).toBe("new prompt");
     expect(block.output_html).toBe("<p>new prompt</p>");
     expect(block.last_run_at).not.toBeNull();
-    expect(block.next_run_at).toBe(
-      addInterval(block.last_run_at!, 2, "days"),
-    );
+    expect(block.next_run_at).toBe(addInterval(block.last_run_at!, 2, "days"));
   });
 });
