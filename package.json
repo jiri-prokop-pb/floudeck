@@ -8,8 +8,8 @@
     "test": "bun test src/",
     "lint": "bunx @biomejs/biome check .",
     "format": "bunx @biomejs/biome check --fix .",
-    "check": "bunx @biomejs/biome check . && bun run test && bunx playwright test",
-    "e2e": "bunx playwright test"
+    "check": "bunx @biomejs/biome check . && bun run test && bun run e2e",
+    "e2e": "bun run scripts/run-e2e.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.6",

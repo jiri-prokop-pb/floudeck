@@ -1,12 +1,20 @@
 /**
  * Standalone test server for E2E tests.
  * Uses a mock runner and :memory: SQLite so no real CLI calls or disk writes.
- * Starts on the port specified by E2E_PORT env var (default 3456).
+ * Starts on the port specified by E2E_PORT.
  */
 import { createApp } from "../../src/server.ts";
 import { createMockRunner } from "../../src/runner.ts";
 
-const PORT = Number(process.env.E2E_PORT) || 3456;
+const portValue = process.env.E2E_PORT;
+if (!portValue) {
+  throw new Error("E2E_PORT is required. Run the suite via `bun run e2e`.");
+}
+
+const PORT = Number(portValue);
+if (!Number.isInteger(PORT) || PORT <= 0) {
+  throw new Error(`Invalid E2E_PORT: ${portValue}`);
+}
 
 // Mock runner that returns realistic HTML after a short delay
 const mockRunner = createMockRunner(async (prompt) => {

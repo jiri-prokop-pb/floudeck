@@ -43,10 +43,7 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
     return new Date(updatedAt).getTime() > new Date(startedAt).getTime();
   }
 
-  async function startRun(
-    blockId: number,
-    prompt: string,
-  ): Promise<void> {
+  async function startRun(blockId: number, prompt: string): Promise<void> {
     runningBlockIds.add(blockId);
     activeRuns++;
     const startedAt = nowIso();
@@ -121,9 +118,7 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
     for (const block of dueBlocks) {
       if (runningBlockIds.has(block.id)) continue;
       if (activeRuns >= maxConcurrency) break;
-      promises.push(
-        startRun(block.id, block.prompt),
-      );
+      promises.push(startRun(block.id, block.prompt));
     }
 
     await Promise.all(promises);
