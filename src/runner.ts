@@ -1,6 +1,6 @@
-import type { RunResult, RunBlockFn } from "./types.ts";
 import { SYSTEM_PROMPT } from "./prompts.ts";
-import { sanitizeBlockHtml, extractHtmlFromOutput } from "./sanitize.ts";
+import { extractHtmlFromOutput, sanitizeBlockHtml } from "./sanitize.ts";
+import type { RunBlockFn, RunResult } from "./types.ts";
 
 const RUN_TIMEOUT_MS = 60_000;
 

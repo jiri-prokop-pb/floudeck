@@ -1,8 +1,8 @@
-import { describe, expect, test, beforeEach } from "bun:test";
 import type { Database } from "bun:sqlite";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { createRouter } from "./api.ts";
 import { initDb } from "./db.ts";
 import { createSseBroadcaster, type SseBroadcaster } from "./sse.ts";
-import { createRouter } from "./api.ts";
 
 let db: Database;
 let sse: SseBroadcaster;
@@ -63,9 +63,7 @@ describe("GET /api/blocks/:id", () => {
       }),
     );
     const created = await createRes!.json();
-    const res = await router(
-      req("GET", `/api/blocks/${created.block.id}`),
-    );
+    const res = await router(req("GET", `/api/blocks/${created.block.id}`));
     const data = await res!.json();
     expect(data.ok).toBe(true);
     expect(data.block.prompt).toBe("find me");
@@ -162,9 +160,7 @@ describe("POST /api/blocks/:id/delete", () => {
     );
     const { block } = await createRes!.json();
 
-    const res = await router(
-      req("POST", `/api/blocks/${block.id}/delete`),
-    );
+    const res = await router(req("POST", `/api/blocks/${block.id}/delete`));
     expect(res!.status).toBe(200);
     const data = await res!.json();
     expect(data.ok).toBe(true);
@@ -192,9 +188,7 @@ describe("POST /api/blocks/:id/refresh", () => {
     const { block } = await createRes!.json();
     triggeredIds = [];
 
-    const res = await router(
-      req("POST", `/api/blocks/${block.id}/refresh`),
-    );
+    const res = await router(req("POST", `/api/blocks/${block.id}/refresh`));
     expect(res!.status).toBe(200);
     expect(triggeredIds).toContain(block.id);
   });

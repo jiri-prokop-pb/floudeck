@@ -1,15 +1,10 @@
-import { describe, expect, test, beforeEach } from "bun:test";
 import type { Database } from "bun:sqlite";
-import {
-  initDb,
-  createBlock,
-  getBlock,
-  markBlockRunning,
-} from "./db.ts";
-import { createSseBroadcaster, type SseBroadcaster } from "./sse.ts";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { createBlock, getBlock, initDb, markBlockRunning } from "./db.ts";
 import { createMockRunner } from "./runner.ts";
 import { createScheduler, type Scheduler } from "./scheduler.ts";
-import type { RunResult, RunBlockFn } from "./types.ts";
+import { createSseBroadcaster, type SseBroadcaster } from "./sse.ts";
+import type { RunBlockFn, RunResult } from "./types.ts";
 
 let db: Database;
 let sse: SseBroadcaster;
@@ -119,7 +114,12 @@ describe("scheduler", () => {
       sse,
       runBlock: createMockRunner(() => {
         runCount++;
-        return { ok: true, html: "<p>x</p>", rawHtml: "<p>x</p>", reasoning: null };
+        return {
+          ok: true,
+          html: "<p>x</p>",
+          rawHtml: "<p>x</p>",
+          reasoning: null,
+        };
       }),
     });
     await scheduler.tick();

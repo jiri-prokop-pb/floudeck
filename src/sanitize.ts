@@ -1,7 +1,7 @@
 import sanitizeHtml from "sanitize-html";
 import {
-  ALLOWED_TAGS,
   ALLOWED_ATTRIBUTES,
+  ALLOWED_TAGS,
   BEGIN_HTML,
   END_HTML,
 } from "./prompts.ts";

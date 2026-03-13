@@ -1,11 +1,11 @@
 import { Database } from "bun:sqlite";
+import { nowIso } from "./time.ts";
 import type {
   BlockRecord,
   CreateBlockInput,
-  UpdateBlockInput,
   IntervalUnit,
+  UpdateBlockInput,
 } from "./types.ts";
-import { nowIso } from "./time.ts";
 
 const VALID_UNITS: IntervalUnit[] = ["minutes", "hours", "days"];
 
@@ -47,7 +47,11 @@ export function getBlock(db: Database, id: number): BlockRecord | null {
   );
 }
 
-function validateBlockInput(input: { prompt: string; intervalValue: number; intervalUnit: string }) {
+function validateBlockInput(input: {
+  prompt: string;
+  intervalValue: number;
+  intervalUnit: string;
+}) {
   const prompt = input.prompt.trim();
   if (!prompt) throw new Error("Prompt is required");
   if (!Number.isInteger(input.intervalValue) || input.intervalValue <= 0)

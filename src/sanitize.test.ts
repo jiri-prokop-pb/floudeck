@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { sanitizeBlockHtml, extractHtmlFromOutput } from "./sanitize.ts";
+import { extractHtmlFromOutput, sanitizeBlockHtml } from "./sanitize.ts";
 
 describe("sanitizeBlockHtml", () => {
   test("allows safe tags", () => {
