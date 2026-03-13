@@ -36,16 +36,27 @@ export function processCliOutput(
 
 export function createCliRunner(): RunBlockFn {
   return async (prompt: string): Promise<RunResult> => {
-    const proc = Bun.spawn(
-      ["claude", "--print", "--system-prompt", SYSTEM_PROMPT, prompt],
-      {
-        stdout: "pipe",
-        stderr: "pipe",
-      },
+    const args = [
+      "claude",
+      "--print",
+      "--dangerously-skip-permissions",
+      "--system-prompt",
+      SYSTEM_PROMPT,
+      prompt,
+    ];
+
+    console.log(
+      `run:spawn cwd=${process.cwd()} cmd=claude --print --dangerously-skip-permissions --system-prompt <SYSTEM_PROMPT> "${prompt.slice(0, 80)}..."`,
     );
+
+    const proc = Bun.spawn(args, {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
 
     const timeout = setTimeout(() => {
       try {
+        console.log(`run:timeout killing process after ${RUN_TIMEOUT_MS}ms`);
         proc.kill();
       } catch {
         // ignore
@@ -57,6 +68,16 @@ export function createCliRunner(): RunBlockFn {
       const stderr = await new Response(proc.stderr).text();
       const exitCode = await proc.exited;
 
+      console.log(
+        `run:exited code=${exitCode} stdout=${stdout.length}b stderr=${stderr.length}b killed=${proc.killed}`,
+      );
+      if (stderr.trim()) {
+        console.log(`run:stderr ${stderr.trim().slice(0, 300)}`);
+      }
+      if (stdout.length > 0) {
+        console.log(`run:stdout-preview ${stdout.slice(0, 300)}`);
+      }
+
       // Check if killed by timeout
       if (proc.killed) {
         return {
@@ -66,7 +87,11 @@ export function createCliRunner(): RunBlockFn {
         };
       }
 
-      return processCliOutput(stdout, stderr, exitCode);
+      const result = processCliOutput(stdout, stderr, exitCode);
+      console.log(
+        `run:result ok=${result.ok}${result.ok ? ` html=${result.html.length}b` : ` error=${result.error}`}`,
+      );
+      return result;
     } finally {
       clearTimeout(timeout);
     }
