@@ -17,7 +17,12 @@ Floudeck is a local PoC: a Bun app that runs scheduled prompts through Claude Co
 ## Commands
 
 ```bash
-bun run src/server.ts      # start the app (port 3000)
+bun run dev                # start the app (port 3000)
+bun run test               # unit tests (85 tests)
+bun run e2e                # Playwright E2E tests (9 tests)
+bun run check              # lint + unit tests + E2E
+bun run lint               # biome check
+bun run format             # biome auto-fix
 bun install                # install deps
 ```
 
@@ -53,4 +58,10 @@ Two files named `api.ts` exist on purpose:
 
 Record non-obvious decisions here as they come up during implementation. Format: `- **topic**: decision (reason)`
 
-<!-- Add entries below as you work -->
+- **Tailwind v4**: CSS uses `@import "tailwindcss"` (not v3 `@tailwind` directives). `tailwindcss` must be a runtime dependency.
+- **Bun HTML imports**: Server uses `import homepage from "./client/index.html"` + `routes: { "/": homepage }` for bundling. Raw `Bun.file()` serving won't bundle TSX/CSS.
+- **`--append-system-prompt`**: Runner uses `--append-system-prompt` (not `--system-prompt`) to keep Claude Code's default system prompt intact.
+- **`--dangerously-skip-permissions`**: Added to CLI args so blocks can run without interactive permission prompts.
+- **`proc.killed` unreliable in Bun**: Timeout detection uses an explicit `timedOut` flag instead of `proc.killed` which reports true even for normally exited processes.
+- **SSE idle timeout**: `Bun.serve()` needs `idleTimeout: 255` to prevent SSE connections from being dropped after 10s default.
+- **README screenshot**: Run `bun run scripts/screenshot.ts` to regenerate `docs/screenshot.png`. Do this when changing app visuals/functionality.
