@@ -2,9 +2,9 @@ import type { Database } from "bun:sqlite";
 import { beforeEach, describe, expect, test } from "bun:test";
 import { createBlock, getBlock, initDb, markBlockRunning } from "./db.ts";
 import { createMockRunner } from "./runner.ts";
-import { createScheduler, type Scheduler } from "./scheduler.ts";
+import { createScheduler } from "./scheduler.ts";
 import { createSseBroadcaster, type SseBroadcaster } from "./sse.ts";
-import type { RunBlockFn, RunResult } from "./types.ts";
+import type { RunBlockFn } from "./types.ts";
 
 let db: Database;
 let sse: SseBroadcaster;
@@ -36,24 +36,6 @@ function errorRunner(): RunBlockFn {
     ok: false,
     error: "mock error",
   }));
-}
-
-function delayRunner(ms: number): RunBlockFn {
-  return createMockRunner(
-    () =>
-      new Promise<RunResult>((resolve) =>
-        setTimeout(
-          () =>
-            resolve({
-              ok: true,
-              html: "<p>delayed</p>",
-              rawHtml: "<p>delayed</p>",
-              reasoning: null,
-            }),
-          ms,
-        ),
-      ),
-  );
 }
 
 describe("scheduler", () => {

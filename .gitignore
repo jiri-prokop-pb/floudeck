@@ -38,3 +38,7 @@ data/
 
 # bun lock
 bun.lock
+
+# Playwright
+test-results/
+playwright-report/

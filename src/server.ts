@@ -1,4 +1,5 @@
 import { createRouter } from "./api.ts";
+import homepage from "./client/index.html";
 import { initDb, resetStaleRunningBlocks } from "./db.ts";
 import { createCliRunner } from "./runner.ts";
 import { createScheduler } from "./scheduler.ts";
@@ -54,17 +55,12 @@ export function createApp(options: AppOptions = {}): App {
 
   const server = Bun.serve({
     port,
+    routes: {
+      "/": homepage,
+    },
     async fetch(req) {
       const response = await router(req);
       if (response) return response;
-
-      // Serve frontend via Bun HTML imports (bundles + tailwind)
-      const url = new URL(req.url);
-      if (url.pathname === "/" || url.pathname === "/index.html") {
-        return new Response(Bun.file("src/client/index.html"), {
-          headers: { "Content-Type": "text/html" },
-        });
-      }
 
       return new Response("Not Found", { status: 404 });
     },

@@ -244,7 +244,8 @@ describe("validation", () => {
       createBlock(db, {
         prompt: "x",
         intervalValue: 1,
-        intervalUnit: "weeks" as any,
+        // @ts-expect-error testing invalid unit
+        intervalUnit: "weeks",
       }),
     ).toThrow("Invalid interval unit");
   });
