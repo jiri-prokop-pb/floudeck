@@ -3,6 +3,7 @@ import {
   findDueBlocks,
   getBlock,
   markBlockError,
+  markBlockPendingImmediateRun,
   markBlockRunning,
   markBlockSuccess,
 } from "./db.ts";
@@ -38,27 +39,40 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
   let activeRuns = 0;
   let timer: ReturnType<typeof setInterval> | null = null;
 
+  function wasUpdatedDuringRun(updatedAt: string, startedAt: string): boolean {
+    return new Date(updatedAt).getTime() > new Date(startedAt).getTime();
+  }
+
   async function startRun(
     blockId: number,
     prompt: string,
-    intervalValue: number,
-    intervalUnit: "minutes" | "hours" | "days",
   ): Promise<void> {
     runningBlockIds.add(blockId);
     activeRuns++;
+    const startedAt = nowIso();
+    let shouldRerun = false;
 
     try {
-      const startedAt = nowIso();
       markBlockRunning(db, blockId, startedAt);
       sse.broadcast("block-updated", { blockId, status: "running" });
 
       const result = await runBlock(prompt);
-      const finishedAt = nowIso();
-      const nextRunAt = addInterval(finishedAt, intervalValue, intervalUnit);
 
-      // Check if block still exists
       const block = getBlock(db, blockId);
       if (!block) return;
+      if (wasUpdatedDuringRun(block.updated_at, startedAt)) {
+        const finishedAt = nowIso();
+        markBlockPendingImmediateRun(db, blockId, finishedAt);
+        shouldRerun = true;
+        return;
+      }
+
+      const finishedAt = nowIso();
+      const nextRunAt = addInterval(
+        finishedAt,
+        block.interval_value,
+        block.interval_unit,
+      );
 
       if (result.ok) {
         markBlockSuccess(db, blockId, result.html, finishedAt, nextRunAt);
@@ -70,9 +84,19 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
     } catch (err: unknown) {
       const block = getBlock(db, blockId);
       if (!block) return;
+      if (wasUpdatedDuringRun(block.updated_at, startedAt)) {
+        const finishedAt = nowIso();
+        markBlockPendingImmediateRun(db, blockId, finishedAt);
+        shouldRerun = true;
+        return;
+      }
 
       const finishedAt = nowIso();
-      const nextRunAt = addInterval(finishedAt, intervalValue, intervalUnit);
+      const nextRunAt = addInterval(
+        finishedAt,
+        block.interval_value,
+        block.interval_unit,
+      );
       const message =
         err instanceof Error ? err.message : "Unknown runner error";
       markBlockError(db, blockId, message, finishedAt, nextRunAt);
@@ -80,6 +104,9 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
     } finally {
       runningBlockIds.delete(blockId);
       activeRuns--;
+      if (shouldRerun) {
+        await tick();
+      }
     }
   }
 
@@ -95,12 +122,7 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
       if (runningBlockIds.has(block.id)) continue;
       if (activeRuns >= maxConcurrency) break;
       promises.push(
-        startRun(
-          block.id,
-          block.prompt,
-          block.interval_value,
-          block.interval_unit,
-        ),
+        startRun(block.id, block.prompt),
       );
     }
 

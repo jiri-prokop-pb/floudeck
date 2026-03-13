@@ -1,9 +1,16 @@
 import type { Database } from "bun:sqlite";
 import { beforeEach, describe, expect, test } from "bun:test";
-import { createBlock, getBlock, initDb, markBlockRunning } from "./db.ts";
+import {
+  createBlock,
+  getBlock,
+  initDb,
+  markBlockRunning,
+  updateBlock,
+} from "./db.ts";
 import { createMockRunner } from "./runner.ts";
 import { createScheduler } from "./scheduler.ts";
 import { createSseBroadcaster, type SseBroadcaster } from "./sse.ts";
+import { addInterval } from "./time.ts";
 import type { RunBlockFn } from "./types.ts";
 
 let db: Database;
@@ -243,5 +250,55 @@ describe("scheduler", () => {
     // Should not throw
     await scheduler.tick();
     expect(getBlock(db, b.id)).toBeNull();
+  });
+
+  test("discards stale run output and reruns with updated block data", async () => {
+    const b = createBlock(db, {
+      prompt: "old prompt",
+      intervalValue: 1,
+      intervalUnit: "hours",
+    });
+    const promptsSeen: string[] = [];
+
+    const scheduler = createScheduler({
+      db,
+      sse,
+      runBlock: createMockRunner(async (prompt) => {
+        promptsSeen.push(prompt);
+        if (promptsSeen.length === 1) {
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        }
+
+        return {
+          ok: true,
+          html: `<p>${prompt}</p>`,
+          rawHtml: `<p>${prompt}</p>`,
+          reasoning: null,
+        };
+      }),
+    });
+
+    const tickPromise = scheduler.tick();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    const updated = updateBlock(db, b.id, {
+      prompt: "new prompt",
+      intervalValue: 2,
+      intervalUnit: "days",
+    });
+
+    expect(updated).not.toBeNull();
+    expect(updated?.status).toBe("running");
+
+    await tickPromise;
+
+    const block = getBlock(db, b.id)!;
+    expect(promptsSeen).toEqual(["old prompt", "new prompt"]);
+    expect(block.status).toBe("success");
+    expect(block.prompt).toBe("new prompt");
+    expect(block.output_html).toBe("<p>new prompt</p>");
+    expect(block.last_run_at).not.toBeNull();
+    expect(block.next_run_at).toBe(
+      addInterval(block.last_run_at!, 2, "days"),
+    );
   });
 });
