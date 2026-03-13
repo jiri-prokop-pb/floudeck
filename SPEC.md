@@ -70,7 +70,7 @@ No block history, no exceptions, no advanced schedules, no actions, no connector
 - arbitrary JS from task output
 - streaming task output into the UI
 - retries
-- concurrency controls beyond per-block non-overlap and a tiny optional global cap
+- concurrency controls beyond per-block non-overlap and a small global cap
 - drag-and-drop ordering
 - folders/tags
 - external data sources beyond what the prompt itself can instruct Claude Code to do
@@ -188,7 +188,7 @@ When a block is created:
 
 - `next_run_at = now`
 
-This makes the result appear quickly.
+This makes the scheduler pick it up on the next tick (within ~10 seconds) so the result appears quickly.
 
 After a successful or failed run:
 
@@ -425,7 +425,7 @@ Validation:
 Behavior after submit:
 
 - create block
-- trigger immediate first run
+- set `next_run_at = now` so the scheduler picks it up on the next tick
 - add the block to the feed
 
 ### Block Card
@@ -683,16 +683,24 @@ Console logging is enough for the PoC.
   runner.ts
   sanitize.ts
   prompts.ts
+  types.ts
+  time.ts
+  api.ts
+  sse.ts
   client/
     index.html
     app.tsx
-    styles.css
+    main.css
     components/
       App.tsx
       CreateBlockForm.tsx
       Feed.tsx
       BlockCard.tsx
+      BlockBody.tsx
       ErrorPanel.tsx
+    lib/
+      api.ts
+      format.ts
 ```
 
 Keep modules small and obvious.
