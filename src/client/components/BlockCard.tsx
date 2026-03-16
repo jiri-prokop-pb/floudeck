@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { BlockRecord } from "../../types.ts";
+import { useClickOutside } from "../hooks/useClickOutside.ts";
 import { deleteBlockApi, refreshBlockApi, updateBlockApi } from "../lib/api.ts";
 import {
   formatSchedule,
@@ -25,16 +26,8 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const infoRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node))
-        setShowMenu(false);
-      if (infoRef.current && !infoRef.current.contains(e.target as Node))
-        setShowInfo(false);
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
+  useClickOutside(menuRef, () => setShowMenu(false));
+  useClickOutside(infoRef, () => setShowInfo(false));
 
   async function handleRefresh() {
     setShowMenu(false);

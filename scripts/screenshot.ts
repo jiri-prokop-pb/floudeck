@@ -84,19 +84,21 @@ try {
   await page.goto(`http://localhost:${PORT}`);
   await page.waitForTimeout(500);
 
-  // Create blocks via modal
+  // Create blocks via API (faster than filling the UI modal)
   for (const block of EXAMPLE_BLOCKS) {
-    await page.click("text=+ Add another block");
-    await page.fill("textarea", block.prompt);
-    await page.fill('input[type="number"]', String(block.intervalValue));
-    await page.selectOption("select", block.intervalUnit);
-    await page.click("text=Add block");
-    // Wait for the block to run and show output
-    await page.waitForTimeout(2000);
+    await fetch(`http://localhost:${PORT}/api/blocks`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompt: block.prompt,
+        intervalValue: block.intervalValue,
+        intervalUnit: block.intervalUnit,
+      }),
+    });
   }
 
-  // Wait for all blocks to finish rendering
-  await page.waitForTimeout(1000);
+  // Wait for all blocks to run and render
+  await page.waitForTimeout(3000);
 
   // Take screenshot
   await page.screenshot({ path: OUTPUT, fullPage: true });

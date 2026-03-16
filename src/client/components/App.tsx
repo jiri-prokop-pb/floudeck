@@ -75,11 +75,7 @@ export function App() {
         </button>
 
         {showCreate && (
-          <Modal
-            title="Create block"
-            subtitle="Compact entry point, full form only when needed."
-            onClose={() => setShowCreate(false)}
-          >
+          <Modal title="Create block" onClose={() => setShowCreate(false)}>
             <CreateBlockForm
               onCreate={handleCreate}
               onClose={() => setShowCreate(false)}
