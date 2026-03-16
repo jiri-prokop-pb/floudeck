@@ -97,8 +97,12 @@ try {
     });
   }
 
-  // Wait for all blocks to run and render
-  await page.waitForTimeout(3000);
+  // Reload so the page picks up the API-created blocks, then wait for output
+  await page.reload();
+  await page.waitForFunction(
+    (count) => document.querySelectorAll(".prose").length >= count,
+    EXAMPLE_BLOCKS.length,
+  );
 
   // Take screenshot
   await page.screenshot({ path: OUTPUT, fullPage: true });
