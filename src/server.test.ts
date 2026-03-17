@@ -1,17 +1,8 @@
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  spyOn,
-  test,
-} from "bun:test";
+import { afterEach, describe, expect, spyOn, test } from "bun:test";
 import { createMockRunner } from "./runner.ts";
 import { type App, createApp } from "./server.ts";
 
 let app: App | null = null;
-
-beforeEach(() => {});
 
 afterEach(() => {
   app?.close();
