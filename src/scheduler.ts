@@ -72,7 +72,7 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
       );
 
       if (result.ok) {
-        markBlockSuccess(db, blockId, result.html, finishedAt, nextRunAt);
+        markBlockSuccess(db, blockId, result.markdown, finishedAt, nextRunAt);
         sse.broadcast("block-updated", { blockId, status: "success" });
       } else {
         markBlockError(db, blockId, result.error, finishedAt, nextRunAt);

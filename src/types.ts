@@ -7,7 +7,7 @@ export type BlockRecord = {
   interval_value: number;
   interval_unit: IntervalUnit;
   status: BlockStatus;
-  output_html: string | null;
+  output_markdown: string | null;
   error_text: string | null;
   created_at: string;
   updated_at: string;
@@ -29,7 +29,7 @@ export type UpdateBlockInput = {
 };
 
 export type RunResult =
-  | { ok: true; html: string; rawHtml: string; reasoning: string | null }
+  | { ok: true; markdown: string; reasoning: string | null }
   | { ok: false; error: string; stderr?: string };
 
 export type RunBlockFn = (prompt: string) => Promise<RunResult>;

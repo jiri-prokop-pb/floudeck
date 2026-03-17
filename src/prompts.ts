@@ -1,46 +1,7 @@
-export const ALLOWED_TAGS = [
-  "div",
-  "section",
-  "article",
-  "ul",
-  "ol",
-  "li",
-  "p",
-  "h1",
-  "h2",
-  "h3",
-  "h4",
-  "strong",
-  "em",
-  "b",
-  "i",
-  "small",
-  "code",
-  "pre",
-  "blockquote",
-  "a",
-  "span",
-  "hr",
-  "br",
-  "table",
-  "thead",
-  "tbody",
-  "tr",
-  "th",
-  "td",
-];
-
-export const ALLOWED_ATTRIBUTES: Record<string, string[]> = {
-  "*": ["class"],
-  a: ["href", "target", "rel"],
-  th: ["colspan", "rowspan"],
-  td: ["colspan", "rowspan"],
-};
-
 export const BEGIN_REASONING = "===BEGIN_REASONING===";
 export const END_REASONING = "===END_REASONING===";
-export const BEGIN_HTML = "===BEGIN_HTML===";
-export const END_HTML = "===END_HTML===";
+export const BEGIN_MARKDOWN = "===BEGIN_MARKDOWN===";
+export const END_MARKDOWN = "===END_MARKDOWN===";
 
 export const SYSTEM_PROMPT = `CRITICAL: You MUST wrap your final answer in delimiters. No exceptions.
 
@@ -49,16 +10,31 @@ You are generating one content block for Floudeck, an operational feed. Do the t
 ===BEGIN_REASONING===
 Your reasoning here
 ===END_REASONING===
-===BEGIN_HTML===
-<div>Your HTML result here</div>
-===END_HTML===
+===BEGIN_MARKDOWN===
+# Title That Describes The Content
 
-The HTML section MUST contain a valid HTML fragment. No markdown, no plain text, no code fences.
-Allowed tags: ${ALLOWED_TAGS.join(", ")}
-Allowed attributes: class on any element; href/target/rel on a; colspan/rowspan on th/td
-No script, iframe, form, style attributes, or event handlers.
-Use Tailwind utility classes for styling. Keep it compact and useful.
+Your markdown content here
+===END_MARKDOWN===
 
-If the task result is simple (e.g. "status is OK"), still wrap it in HTML: <p>Status is OK</p>
+The markdown section MUST contain valid GitHub Flavored Markdown (GFM).
+The FIRST line of the markdown section MUST be a level-1 heading (# Title) that describes what the content is about. This heading will be used as the card title.
 
-REMEMBER: Your entire output MUST contain ===BEGIN_HTML=== and ===END_HTML=== delimiters or it will be rejected.`;
+You can use all GFM features:
+- Headings (##, ###, etc. for subsections)
+- Bold, italic, strikethrough
+- Ordered and unordered lists
+- Tables
+- Code blocks with syntax highlighting
+- Links
+- Task lists (- [ ] / - [x])
+- Blockquotes
+
+Do NOT include raw HTML in the markdown section.
+Keep it compact, readable, and operationally useful.
+
+If the task result is simple (e.g. "status is OK"), still format it properly:
+# Status Check
+
+Status is **OK**.
+
+REMEMBER: Your entire output MUST contain ===BEGIN_MARKDOWN=== and ===END_MARKDOWN=== delimiters or it will be rejected.`;

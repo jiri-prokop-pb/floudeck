@@ -1,5 +1,5 @@
+import { extractMarkdownFromOutput } from "./extract.ts";
 import { SYSTEM_PROMPT } from "./prompts.ts";
-import { extractHtmlFromOutput, sanitizeBlockHtml } from "./sanitize.ts";
 import type { RunBlockFn, RunResult } from "./types.ts";
 
 const RUN_TIMEOUT_MS = 60_000;
@@ -16,22 +16,13 @@ export function processCliOutput(
     return { ok: false, error: message, stderr };
   }
 
-  const { html: rawHtml, reasoning } = extractHtmlFromOutput(stdout);
+  const { markdown, reasoning } = extractMarkdownFromOutput(stdout);
 
-  if (!rawHtml) {
-    return { ok: false, error: "Task returned no HTML output.", stderr };
+  if (!markdown) {
+    return { ok: false, error: "Task returned no markdown output.", stderr };
   }
 
-  const sanitized = sanitizeBlockHtml(rawHtml);
-  if (!sanitized.trim()) {
-    return {
-      ok: false,
-      error: "Task returned invalid or unsafe HTML.",
-      stderr,
-    };
-  }
-
-  return { ok: true, html: sanitized, rawHtml, reasoning };
+  return { ok: true, markdown, reasoning };
 }
 
 export function createCliRunner(): RunBlockFn {

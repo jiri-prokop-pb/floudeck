@@ -152,7 +152,7 @@ describe("state transitions", () => {
     );
     const fetched = getBlock(db, b.id)!;
     expect(fetched.status).toBe("success");
-    expect(fetched.output_html).toBe("<p>ok</p>");
+    expect(fetched.output_markdown).toBe("<p>ok</p>");
     expect(fetched.error_text).toBeNull();
     expect(fetched.running_started_at).toBeNull();
     expect(fetched.last_run_at).toBe("2024-01-15T10:01:00.000Z");

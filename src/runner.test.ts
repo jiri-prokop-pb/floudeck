@@ -2,17 +2,20 @@ import { describe, expect, test } from "bun:test";
 import { createMockRunner, processCliOutput } from "./runner.ts";
 
 describe("processCliOutput", () => {
-  test("valid output extracts and sanitizes HTML", () => {
+  test("valid output extracts markdown", () => {
     const stdout = `===BEGIN_REASONING===
 Thinking about it
 ===END_REASONING===
-===BEGIN_HTML===
-<div class="test"><p>Hello <strong>world</strong></p></div>
-===END_HTML===`;
+===BEGIN_MARKDOWN===
+# Hello
+
+Some **bold** content
+===END_MARKDOWN===`;
     const result = processCliOutput(stdout, "", 0);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.html).toContain("<p>Hello <strong>world</strong></p>");
+      expect(result.markdown).toContain("# Hello");
+      expect(result.markdown).toContain("**bold**");
       expect(result.reasoning).toBe("Thinking about it");
     }
   });
@@ -21,28 +24,17 @@ Thinking about it
     const result = processCliOutput("just some text without delimiters", "", 0);
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.error).toBe("Task returned no HTML output.");
+      expect(result.error).toBe("Task returned no markdown output.");
     }
   });
 
-  test("empty HTML section returns error", () => {
-    const stdout = `===BEGIN_HTML===
-===END_HTML===`;
+  test("empty markdown section returns error", () => {
+    const stdout = `===BEGIN_MARKDOWN===
+===END_MARKDOWN===`;
     const result = processCliOutput(stdout, "", 0);
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.error).toBe("Task returned no HTML output.");
-    }
-  });
-
-  test("all-unsafe HTML sanitized to empty returns error", () => {
-    const stdout = `===BEGIN_HTML===
-<script>alert(1)</script>
-===END_HTML===`;
-    const result = processCliOutput(stdout, "", 0);
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error).toBe("Task returned invalid or unsafe HTML.");
+      expect(result.error).toBe("Task returned no markdown output.");
     }
   });
 
@@ -68,14 +60,13 @@ describe("createMockRunner", () => {
   test("returns predictable success result", async () => {
     const runner = createMockRunner(() => ({
       ok: true,
-      html: "<p>mock</p>",
-      rawHtml: "<p>mock</p>",
+      markdown: "# Mock\n\nDone",
       reasoning: null,
     }));
     const result = await runner("test prompt");
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.html).toBe("<p>mock</p>");
+      expect(result.markdown).toBe("# Mock\n\nDone");
     }
   });
 
@@ -97,8 +88,7 @@ describe("createMockRunner", () => {
       receivedPrompt = prompt;
       return {
         ok: true,
-        html: "<p>x</p>",
-        rawHtml: "<p>x</p>",
+        markdown: "# X\n\nDone",
         reasoning: null,
       };
     });

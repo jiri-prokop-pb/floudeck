@@ -32,8 +32,7 @@ beforeEach(() => {
 function successRunner(): RunBlockFn {
   return createMockRunner(() => ({
     ok: true,
-    html: "<p>done</p>",
-    rawHtml: "<p>done</p>",
+    markdown: "# Done\n\nresult",
     reasoning: null,
   }));
 }
@@ -62,7 +61,7 @@ describe("scheduler", () => {
 
     const block = getBlock(db, 1)!;
     expect(block.status).toBe("success");
-    expect(block.output_html).toBe("<p>done</p>");
+    expect(block.output_markdown).toBe("# Done\n\nresult");
     expect(block.next_run_at).not.toBeNull();
   });
 
@@ -105,8 +104,7 @@ describe("scheduler", () => {
         runCount++;
         return {
           ok: true,
-          html: "<p>x</p>",
-          rawHtml: "<p>x</p>",
+          markdown: "# X\n\nDone",
           reasoning: null,
         };
       }),
@@ -134,8 +132,7 @@ describe("scheduler", () => {
         concurrent--;
         return {
           ok: true,
-          html: "<p>x</p>",
-          rawHtml: "<p>x</p>",
+          markdown: "# X\n\nDone",
           reasoning: null,
         };
       }),
@@ -240,8 +237,7 @@ describe("scheduler", () => {
         db.run("DELETE FROM blocks WHERE id = ?", b.id);
         return {
           ok: true,
-          html: "<p>x</p>",
-          rawHtml: "<p>x</p>",
+          markdown: "# X\n\nDone",
           reasoning: null,
         };
       }),
@@ -271,8 +267,7 @@ describe("scheduler", () => {
 
         return {
           ok: true,
-          html: `<p>${prompt}</p>`,
-          rawHtml: `<p>${prompt}</p>`,
+          markdown: `# Result\n\n${prompt}`,
           reasoning: null,
         };
       }),
@@ -295,7 +290,7 @@ describe("scheduler", () => {
     expect(promptsSeen).toEqual(["old prompt", "new prompt"]);
     expect(block.status).toBe("success");
     expect(block.prompt).toBe("new prompt");
-    expect(block.output_html).toBe("<p>new prompt</p>");
+    expect(block.output_markdown).toBe("# Result\n\nnew prompt");
     expect(block.last_run_at).not.toBeNull();
     expect(block.next_run_at).toBe(addInterval(block.last_run_at!, 2, "days"));
   });
