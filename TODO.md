@@ -6,10 +6,6 @@
 - Adjust system prompt, there should always be Heading 1 (`#`) at the top => it will be used as card's title (and should be indicative of what the card content is about)
 - Links and lists are easy to do, as well as images (but for that they will need to be small and base64 encoded)
 
-## Refresh UX
-
-- Keep existing content visible during refresh; overlay a loading indicator instead of replacing with a spinner
-
 ## Runner configuration
 
 - Allow configuring the `claude` invocation: `--dangerously-skip-permissions`, `--sandbox`, `cwd`, and other useful flags per block or globally
