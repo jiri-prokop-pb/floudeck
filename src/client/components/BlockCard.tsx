@@ -54,10 +54,20 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
             className="flex h-7 w-7 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 text-sm"
             title="Info"
           >
-            ⓘ
+            {block.status === "running" ? (
+              <span className="inline-block animate-spin">↻</span>
+            ) : (
+              "ⓘ"
+            )}
           </button>
           {showInfo && (
             <div className="absolute right-0 top-8 w-56 rounded-lg border border-zinc-200 bg-white p-3 shadow-lg text-xs text-zinc-600 space-y-1">
+              {block.status === "running" && (
+                <div className="flex items-center gap-1.5 text-amber-600 font-medium">
+                  <span className="inline-block h-3 w-3 animate-spin rounded-full border border-amber-400 border-t-amber-600" />
+                  Refreshing...
+                </div>
+              )}
               <div>
                 <span className="font-medium text-zinc-500">Refresh: </span>
                 {formatSchedule(block.interval_value, block.interval_unit)}

@@ -5,14 +5,32 @@ type BlockBodyProps = {
   block: BlockRecord;
 };
 
+function PulseSkeleton() {
+  return (
+    <div className="animate-pulse space-y-3 py-4">
+      <div className="h-3 w-3/4 rounded bg-zinc-200" />
+      <div className="h-3 w-1/2 rounded bg-zinc-200" />
+      <div className="h-3 w-5/6 rounded bg-zinc-200" />
+    </div>
+  );
+}
+
 export function BlockBody({ block }: BlockBodyProps) {
   if (block.status === "running") {
-    return (
-      <div className="flex items-center gap-2 py-4 text-sm text-zinc-500">
-        <div className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600" />
-        Running...
-      </div>
-    );
+    if (block.output_html) {
+      return (
+        <div
+          className="prose prose-sm max-w-none"
+          dangerouslySetInnerHTML={{ __html: block.output_html }}
+        />
+      );
+    }
+    if (block.error_text) {
+      return (
+        <ErrorPanel errorText={block.error_text} lastRunAt={block.last_run_at} />
+      );
+    }
+    return <PulseSkeleton />;
   }
 
   if (block.status === "error" && block.error_text) {

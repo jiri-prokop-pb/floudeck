@@ -113,8 +113,27 @@ describe("state transitions", () => {
     markBlockRunning(db, b.id, "2024-01-15T10:00:00.000Z");
     const fetched = getBlock(db, b.id)!;
     expect(fetched.status).toBe("running");
-    expect(fetched.error_text).toBeNull();
     expect(fetched.running_started_at).toBe("2024-01-15T10:00:00.000Z");
+  });
+
+  test("markBlockRunning preserves prior error_text", () => {
+    const b = createBlock(db, {
+      prompt: "e",
+      intervalValue: 1,
+      intervalUnit: "hours",
+    });
+    markBlockRunning(db, b.id, "2024-01-15T10:00:00.000Z");
+    markBlockError(
+      db,
+      b.id,
+      "previous failure",
+      "2024-01-15T10:01:00.000Z",
+      "2024-01-15T11:01:00.000Z",
+    );
+    markBlockRunning(db, b.id, "2024-01-15T11:01:00.000Z");
+    const fetched = getBlock(db, b.id)!;
+    expect(fetched.status).toBe("running");
+    expect(fetched.error_text).toBe("previous failure");
   });
 
   test("markBlockSuccess", () => {
