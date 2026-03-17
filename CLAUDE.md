@@ -4,14 +4,14 @@
 
 ## What is this
 
-Floudeck is a local PoC: a Bun app that runs scheduled prompts through Claude Code CLI and renders sanitized HTML output in a feed. See SPEC.md for product spec, PLAN.md for implementation plan.
+Floudeck is a local PoC: a Bun app that runs scheduled prompts through Claude Code CLI and renders GFM markdown output in a feed. See SPEC.md for product spec, PLAN.md for implementation plan.
 
 ## Stack
 
 - **Runtime**: Bun only (server, bundler, package manager, SQLite)
 - **Backend**: `Bun.serve()`, `bun:sqlite`, `Bun.spawn()`
 - **Frontend**: Bun HTML imports, minimal React, Tailwind via `bun-plugin-tailwind`
-- **Sanitization**: `sanitize-html`
+- **Markdown**: `marked` (client-side GFM rendering)
 - **No**: ORM, state library, router, websockets, cron library, worker processes
 
 ## Commands
@@ -43,7 +43,7 @@ Two files named `api.ts` exist on purpose:
 - **"Immediate run" means `next_run_at = now`**, letting the scheduler pick it up on the next tick. Do not run inline from API handlers.
 - **SSE is notification-only.** Payloads are small `{ blockId, status }` objects. Client refetches actual data via JSON endpoints.
 - **SSE keepalive every 20 seconds.**
-- **HTML sanitization is mandatory.** Both the system prompt and `sanitize.ts` share the same allow-list. If you change one, change the other.
+- **Claude outputs GFM markdown.** Backend stores markdown as-is. Frontend renders with `marked` (raw HTML stripped by custom renderer).
 - **All API endpoints use POST for mutations** (not PUT/PATCH/DELETE). This is a deliberate PoC simplification.
 - **No history/logs table.** Only the latest output per block is stored.
 - **Prefer Bun primitives over `node:*` imports.** Use `Bun.file().exists()` instead of `existsSync`, template literal paths instead of `path.join`, etc. Fall back to `node:fs`/`node:path` only when no Bun equivalent exists (e.g. `mkdirSync`).
@@ -54,7 +54,7 @@ Two files named `api.ts` exist on purpose:
 
 - This is a Bun app with a thin React layer, not a React app. Keep it minimal.
 - No SPA router, no global state library.
-- Use `dangerouslySetInnerHTML` only for server-sanitized `output_html`.
+- Use `dangerouslySetInnerHTML` only for `marked`-rendered markdown content (raw HTML stripped by custom renderer).
 - Tailwind classes inline. No CSS modules or styled-components.
 
 ## Decisions log
@@ -68,3 +68,17 @@ Record non-obvious decisions here as they come up during implementation. Format:
 - **`proc.killed` unreliable in Bun**: Timeout detection uses an explicit `timedOut` flag instead of `proc.killed` which reports true even for normally exited processes.
 - **SSE idle timeout**: `Bun.serve()` needs `idleTimeout: 255` to prevent SSE connections from being dropped after 10s default.
 - **README screenshot**: Run `bun run scripts/screenshot.ts` to regenerate `docs/screenshot.png`. Do this when changing app visuals/functionality.
+- **`marked` for markdown**: Switched from `sanitize-html` to `marked` for client-side GFM rendering. Custom renderer strips raw HTML tokens. Title extracted from first `# Heading` in output.
+
+## Testability architecture
+
+Every module uses **dependency injection via factory functions** — no module-level singletons, no monkey-patching.
+
+| Module | Injection point | Test strategy |
+|--------|----------------|---------------|
+| `db.ts` | All functions take `Database` param | `:memory:` SQLite per test |
+| `runner.ts` | `RunBlockFn` type; `createCliRunner()` / `createMockRunner()` factories | Tests use mock runner or test `processCliOutput()` pure function directly |
+| `scheduler.ts` | `createScheduler(deps)` returns `{ start, stop, tick }` | Tests call `tick()` directly, no timers |
+| `api.ts` | `createRouter(deps)` takes db, sse, triggerRun | In-memory db + real SSE broadcaster |
+| `server.ts` | `createApp(deps)` factory; auto-starts only via `import.meta.main` | Tests create isolated instances on port 0 |
+| `sse.ts` | `createSseBroadcaster()` factory | Unit test broadcast/client management |

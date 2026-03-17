@@ -1,6 +1,6 @@
 # Floudeck
 
-A local feed of scheduled blocks that run prompts through [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) and render the results as sanitized HTML.
+A local feed of scheduled blocks that run prompts through [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) and render the results as GFM markdown.
 
 ![Floudeck screenshot](docs/screenshot.png)
 
@@ -17,7 +17,7 @@ Requires `claude` CLI in your PATH.
 
 - Define blocks with a prompt and a repeat interval (minutes/hours/days)
 - Each block runs through Claude Code CLI on schedule
-- Output is sanitized HTML rendered in a card
+- Output is GFM markdown rendered in a card
 - SSE pushes updates to the browser in real time
 - Blocks can be edited, refreshed, or deleted
 
@@ -43,4 +43,4 @@ This starts a temporary server with mock data, captures a screenshot via Playwri
 
 ## Stack
 
-Bun (server, bundler, SQLite, package manager), minimal React, Tailwind v4, `sanitize-html`. No ORM, no router, no state library, no websockets.
+Bun (server, bundler, SQLite, package manager), minimal React, Tailwind v4, `marked` (client-side markdown rendering). No ORM, no router, no state library, no websockets.

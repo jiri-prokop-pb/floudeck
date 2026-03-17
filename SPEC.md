@@ -2,7 +2,7 @@
 
 ## Goal
 
-Build the simplest possible proof of concept for **Floudeck**: a linear feed of scheduled blocks that periodically run a prompt through Claude Code CLI and render the result as sanitized HTML.
+Build the simplest possible proof of concept for **Floudeck**: a linear feed of scheduled blocks that periodically run a prompt through Claude Code CLI and render the result as GFM markdown.
 
 The PoC should optimize for:
 
@@ -14,7 +14,7 @@ The PoC should optimize for:
 
 This version is intentionally narrow. It is not a generic automation platform yet. It is a small local web app that proves the core loop:
 
-**scheduled prompt → CLI task execution → HTML output → feed update**
+**scheduled prompt → CLI task execution → markdown output → feed update**
 
 ---
 
@@ -38,7 +38,7 @@ Each block represents one recurring task. A block has only:
 - a repeat interval value
 - a repeat interval unit (`minutes`, `hours`, `days`)
 - current execution state
-- latest rendered HTML or latest error
+- latest rendered markdown or latest error
 
 No block history, no exceptions, no advanced schedules, no actions, no connectors, no user accounts.
 
@@ -54,7 +54,7 @@ No block history, no exceptions, no advanced schedules, no actions, no connector
 - delete block
 - manual refresh for a block
 - automatic scheduled execution
-- one latest HTML result per block
+- one latest markdown result per block
 - visible error state instead of normal block content
 - SSE notifications when a block changes
 - catch-up behavior after sleep/wake or downtime: **run once only** if overdue
@@ -134,7 +134,7 @@ CREATE TABLE blocks (
   interval_value INTEGER NOT NULL,
   interval_unit TEXT NOT NULL CHECK(interval_unit IN ('minutes', 'hours', 'days')),
   status TEXT NOT NULL DEFAULT 'idle' CHECK(status IN ('idle', 'running', 'success', 'error')),
-  output_html TEXT,
+  output_markdown TEXT,
   error_text TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
@@ -150,7 +150,7 @@ Field meanings stay simple:
 - `interval_value`: positive integer
 - `interval_unit`: schedule unit
 - `status`: current execution state
-- `output_html`: latest successful sanitized HTML fragment
+- `output_markdown`: latest successful GFM markdown output
 - `error_text`: latest error message if last run failed
 - `created_at`: creation timestamp
 - `updated_at`: any change timestamp
@@ -256,15 +256,12 @@ The task receives:
 
 The system prompt should clearly instruct Claude Code to:
 
-- output only a safe HTML fragment in the final section
-- not output markdown fences inside the HTML section
-- not output JavaScript
-- not include external script tags
-- not include forms
-- keep HTML visually clean and compact
-- use Tailwind-friendly class names if helpful
+- output only GFM markdown in the final section
+- start with a `# Title` heading as the first line
+- not output raw HTML in the markdown section
+- use all GFM features (headings, lists, tables, code blocks, links, bold/italic)
 - present useful operational content clearly
-- separate any reasoning from final HTML with explicit delimiters
+- separate any reasoning from final markdown with explicit delimiters
 
 ### Execution flow
 
@@ -276,9 +273,8 @@ For each run:
 4. spawn Claude Code CLI
 5. capture stdout/stderr
 6. enforce timeout
-7. extract HTML using delimiters
-8. validate/sanitize stdout as HTML fragment
-9. on success, store sanitized HTML and mark `success`
+7. extract markdown using delimiters
+8. on success, store markdown and mark `success`
 10. on failure, store readable error text and mark `error`
 11. compute and store `next_run_at`
 12. emit SSE event that the block changed to `success` or `error`
@@ -295,52 +291,23 @@ If the process exceeds the timeout:
 
 ---
 
-## HTML Output Rules
+## Markdown Output Rules
 
-The task output is display HTML only.
+The task output is GitHub Flavored Markdown (GFM) for display only.
 
-### Allowed
+### Required format
 
-- semantic elements like `div`, `section`, `article`, `ul`, `ol`, `li`, `p`, `h1-h4`, `strong`, `em`, `b`, `i`, `small`, `code`, `pre`, `blockquote`, `a`, `span`, `hr`, `br`
-- simple data tables: `table`, `thead`, `tbody`, `tr`, `th`, `td`
-- classes for styling
-- links
+- The first line of the markdown section MUST be a level-1 heading (`# Title`) that describes the content. This heading is extracted as the card title.
+- All standard GFM features are allowed: headings, bold/italic/strikethrough, lists, tables, code blocks, links, task lists, blockquotes.
+- No raw HTML in the markdown section.
 
-### Disallowed
+### Safety
 
-- `script`
-- inline event handlers (`onclick`, etc.)
-- `iframe`
-- `form`
-- arbitrary embeds
-- custom JS
-- `style` attributes
-- full document wrappers like `html`, `head`, `body`
+Raw HTML in markdown output is stripped client-side by the `marked` renderer's custom `html()` method that returns an empty string. No server-side sanitization is needed.
 
-### Sanitization
+If the markdown section is missing or empty, treat the run as an error:
 
-Always sanitize task output before storing or rendering.
-
-The server should treat Claude output as untrusted HTML.
-
-Use a small allow-list based sanitizer on the server.
-
-Recommended PoC choice:
-
-- `sanitize-html`
-
-Why:
-
-- works server-side directly
-- designed for HTML fragments
-- supports explicit allow-list configuration for tags and attributes
-- avoids the extra DOM setup that DOMPurify typically needs on the server
-
-Sanitizer configuration should mirror the output contract in the system prompt as closely as practical.
-
-If sanitization removes everything meaningful, treat the run as an error:
-
-- `error_text = "Task returned invalid or unsafe HTML"`
+- `error_text = "Task returned no markdown output."`
 
 ---
 
@@ -365,8 +332,6 @@ Possible error cases:
 - timeout
 - empty output
 - invalid delimiter output
-- invalid HTML output
-- sanitization failure
 - SQLite write failure
 
 Prefer short, readable messages over raw stack traces.
@@ -454,7 +419,7 @@ Show:
 
 **Success**
 
-Render sanitized `output_html` directly inside the card.
+Render `output_markdown` as HTML (via `marked`) inside the card.
 
 **Error**
 
@@ -646,7 +611,7 @@ Typical transitions:
 
 Even for a local PoC, apply a few protections:
 
-- HTML sanitization is mandatory
+- Raw HTML in markdown is stripped client-side by the marked renderer
 - always escape prompt text when shown in forms
 - do not show raw stderr in the browser
 - do not build shell commands through string concatenation if avoidable; pass subprocess arguments safely
@@ -681,7 +646,7 @@ Console logging is enough for the PoC.
   db.ts
   scheduler.ts
   runner.ts
-  sanitize.ts
+  extract.ts
   prompts.ts
   types.ts
   time.ts
@@ -728,10 +693,10 @@ The prompt should explain:
 - what Floudeck is
 - that the model is generating content for one block in an operational feed
 - that the user prompt is the full task definition
-- that the result must be a single safe HTML fragment for display
-- that reasoning is allowed, but must stay outside the final output fragment
-- that the final answer must use a strict delimiter format so the server can extract the renderable HTML reliably
-- the exact allow-list of tags and attributes expected by the sanitizer
+- that the result must be GFM markdown starting with a `# Title` heading
+- that reasoning is allowed, but must stay outside the final output section
+- that the final answer must use a strict delimiter format so the server can extract the markdown reliably
+- that raw HTML is not allowed in the markdown section
 
 ### Recommended output envelope
 
@@ -739,40 +704,30 @@ The prompt should explain:
 ===BEGIN_REASONING===
 (optional reasoning)
 ===END_REASONING===
-===BEGIN_HTML===
-<div>...</div>
-===END_HTML===
+===BEGIN_MARKDOWN===
+# Title
+
+Content here...
+===END_MARKDOWN===
 ```
 
-The server should ignore everything except the content between `===BEGIN_HTML===` and `===END_HTML===`.
+The server should ignore everything except the content between `===BEGIN_MARKDOWN===` and `===END_MARKDOWN===`.
 
-If the HTML section is missing, empty, or invalid after sanitization, treat the run as an error.
+If the markdown section is missing or empty, treat the run as an error.
 
 ### Draft system prompt
 
 ```text
 You are generating one content block for Floudeck, a linear operational feed of scheduled blocks.
 
-Your job is to read the user prompt, think through the task, and produce a concise, useful HTML fragment that will be rendered inside an existing web application card.
+Your job is to read the user prompt, think through the task, and produce concise, useful GFM markdown that will be rendered inside an existing web application card.
 
 Important constraints:
 - The rendered result is for display only.
-- Do not output JavaScript.
-- Do not output <script>, <iframe>, <form>, <html>, <head>, or <body> tags.
-- Do not use inline event handler attributes like onclick.
-- Do not use style attributes.
-- Prefer clean semantic HTML.
-- You may use class attributes for Tailwind-friendly utility classes.
+- The FIRST line of the markdown section MUST be a level-1 heading (# Title).
+- Do NOT include raw HTML in the markdown section.
+- Use all GFM features: headings, bold/italic, lists, tables, code blocks, links, task lists, blockquotes.
 - Keep the result compact, readable, and operationally useful.
-- Links are allowed, but should use normal <a> tags only.
-
-Allowed tags:
-- div, section, article, ul, ol, li, p, h1, h2, h3, h4, strong, em, b, i, small, code, pre, blockquote, a, span, hr, br, table, thead, tbody, tr, th, td
-
-Allowed attributes:
-- class on any allowed element
-- href, target, rel on a
-- colspan, rowspan on th and td
 
 Output format is mandatory.
 
@@ -780,15 +735,17 @@ Return exactly this structure:
 ===BEGIN_REASONING===
 Your reasoning here
 ===END_REASONING===
-===BEGIN_HTML===
-Your final HTML fragment here
-===END_HTML===
+===BEGIN_MARKDOWN===
+# Title That Describes The Content
 
-Rules for the HTML section:
-- Output exactly one HTML fragment.
-- Do not wrap it in Markdown fences.
-- Do not include any text before or after the fragment inside the HTML section.
-- Make sure the fragment is valid and useful on its own.
+Your markdown content here
+===END_MARKDOWN===
+
+Rules for the markdown section:
+- Output valid GFM markdown only.
+- Do not wrap it in code fences.
+- Do not include any text before or after the markdown inside the section.
+- Make sure the content is useful on its own.
 ```
 
 The reasoning should never be rendered in the UI.
@@ -808,9 +765,9 @@ Choose these defaults:
 - **interval-only schedules** with minutes/hours/days
 - **immediate first run on create/edit**
 - **one latest output only**
-- **sanitized HTML fragments only**
-- **allow-list mirrored in system prompt and sanitizer config**
-- **explicit output delimiters for reasoning vs final HTML**
+- **GFM markdown output, rendered client-side with `marked`**
+- **raw HTML stripped by custom marked renderer**
+- **explicit output delimiters for reasoning vs final markdown**
 - **SSE for notifications; no polling as primary mechanism**
 - **error card replaces block content**
 - **no history, no websockets, no ORM**
