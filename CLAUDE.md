@@ -69,6 +69,7 @@ Record non-obvious decisions here as they come up during implementation. Format:
 - **SSE idle timeout**: `Bun.serve()` needs `idleTimeout: 255` to prevent SSE connections from being dropped after 10s default.
 - **README screenshot**: Run `bun run scripts/screenshot.ts` to regenerate `docs/screenshot.png`. Do this when changing app visuals/functionality.
 - **`marked` for markdown**: Switched from `sanitize-html` to `marked` for client-side GFM rendering. Custom renderer strips raw HTML tokens. Title extracted from first `# Heading` in output.
+- **Markdown XSS model**: Links and images with `javascript:` URLs are rendered as-is because Claude's output is trusted. If the app becomes user-editable or public-facing, add link sanitization (e.g., custom `marked` link renderer that rejects non-http(s) schemes).
 
 ## Testability architecture
 

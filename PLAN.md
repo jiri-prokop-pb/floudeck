@@ -225,7 +225,7 @@ Persist all timestamps in ISO UTC strings.
 - capture stdout/stderr
 - enforce timeout
 - parse reasoning/output delimiters
-- sanitize HTML
+- extract markdown from delimited output
 - return a typed success/error result
 
 ### Result shape
@@ -259,10 +259,9 @@ It should include:
 
 - Floudeck purpose
 - role of the generated block
-- output-only HTML requirement
-- allowed tags/attributes
+- output-only GFM markdown requirement
 - reasoning delimiters
-- HTML delimiters
+- markdown delimiters
 - quality guidance
 
 Also include guidance like:
@@ -275,7 +274,7 @@ Also include guidance like:
 
 ---
 
-## 11. Sanitizer Configuration
+## 11. Extraction Configuration
 
 `extract.ts` should export:
 
@@ -351,7 +350,7 @@ async function startRun(block) {
     const nextRunAt = addInterval(finishedAt, block.interval_value, block.interval_unit)
 
     if (result.ok) {
-      markBlockSuccess(block.id, result.html, finishedAt, nextRunAt)
+      markBlockSuccess(block.id, result.markdown, finishedAt, nextRunAt)
       broadcastSse("block-updated", { blockId: block.id, status: "success" })
     } else {
       markBlockError(block.id, result.error, finishedAt, nextRunAt)
@@ -663,8 +662,7 @@ User-facing examples:
 
 - `Claude CLI is not installed or not available in PATH.`
 - `Task timed out after 60 seconds.`
-- `Task returned no HTML output.`
-- `Task returned invalid or unsafe HTML.`
+- `Task returned no markdown output.`
 - `The block could not be saved.`
 
 Internal logs may include stderr and stack traces, but do not show those raw details in the UI.
@@ -728,7 +726,7 @@ Suggested log events:
 - periodic tick
 - due block selection
 - mark running
-- temporary fake runner that returns static HTML
+- temporary fake runner that returns static markdown
 
 ### Step 6: Add SSE endpoint and client subscription
 
@@ -741,7 +739,7 @@ Suggested log events:
 - subprocess invocation
 - timeout
 - delimiter parsing
-- sanitizer
+- markdown extraction
 - success/error persistence
 
 ### Step 8: Startup recovery
@@ -777,11 +775,9 @@ Suggested log events:
 
 ### Runner
 
-- valid HTML succeeds
-- empty HTML fails
+- valid markdown succeeds
+- empty markdown fails
 - malformed delimiter output fails
-- disallowed tags removed
-- fully unsafe output fails
 - timeout handled correctly
 
 ### SSE
@@ -842,7 +838,7 @@ export async function runBlockPrompt(prompt: string): Promise<RunResult> {
   // spawn claude cli
   // read stdout/stderr
   // parse delimiters
-  // sanitize html
+  // extract markdown
   // return typed result
 }
 ```
@@ -996,7 +992,7 @@ The PoC is done when all of these are true:
 - user can create a block with prompt + interval
 - block is saved in SQLite
 - block runs automatically and immediately after creation
-- Claude Code CLI output is parsed, sanitized, and rendered as HTML
+- Claude Code CLI output is parsed and rendered as GFM markdown
 - errors are shown clearly instead of normal content
 - block reruns on schedule
 - sleep/restart/downtime cause only one catch-up run, not many
