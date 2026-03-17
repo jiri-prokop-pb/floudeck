@@ -24,7 +24,7 @@ export function initDb(path?: string): Database {
       interval_value INTEGER NOT NULL,
       interval_unit TEXT NOT NULL CHECK(interval_unit IN ('minutes', 'hours', 'days')),
       status TEXT NOT NULL DEFAULT 'idle' CHECK(status IN ('idle', 'running', 'success', 'error')),
-      output_html TEXT,
+      output_markdown TEXT,
       error_text TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
@@ -117,15 +117,15 @@ export function markBlockRunning(
 export function markBlockSuccess(
   db: Database,
   id: number,
-  outputHtml: string,
+  outputMarkdown: string,
   finishedAt: string,
   nextRunAt: string,
 ): void {
   db.run(
-    `UPDATE blocks SET status = 'success', output_html = ?, error_text = NULL,
+    `UPDATE blocks SET status = 'success', output_markdown = ?, error_text = NULL,
      last_run_at = ?, next_run_at = ?, running_started_at = NULL, updated_at = ?
      WHERE id = ?`,
-    outputHtml,
+    outputMarkdown,
     finishedAt,
     nextRunAt,
     finishedAt,

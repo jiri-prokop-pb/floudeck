@@ -14,8 +14,7 @@ function startApp() {
     port: 0, // OS-assigned free port
     runBlock: createMockRunner(() => ({
       ok: true,
-      html: "<p>mock result</p>",
-      rawHtml: "<p>mock result</p>",
+      markdown: "# Mock\n\nmock result",
       reasoning: null,
     })),
     tickIntervalMs: 100_000, // don't auto-tick in tests
