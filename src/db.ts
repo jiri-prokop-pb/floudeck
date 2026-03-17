@@ -1,6 +1,5 @@
 import { Database } from "bun:sqlite";
 import { mkdirSync } from "node:fs";
-import { dirname } from "node:path";
 import { nowIso } from "./time.ts";
 import type {
   BlockRecord,
@@ -13,8 +12,8 @@ const VALID_UNITS: IntervalUnit[] = ["minutes", "hours", "days"];
 
 export function initDb(path?: string): Database {
   if (path && path !== ":memory:") {
-    const parentDir = dirname(path);
-    if (parentDir !== ".") {
+    const parentDir = path.substring(0, path.lastIndexOf("/"));
+    if (parentDir) {
       mkdirSync(parentDir, { recursive: true });
     }
   }

@@ -1,8 +1,7 @@
 import type { Database } from "bun:sqlite";
 import { beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
 import {
   createBlock,
   deleteBlock,
@@ -275,13 +274,13 @@ describe("validation", () => {
 });
 
 describe("initDb", () => {
-  test("creates parent directories for file-backed databases", () => {
-    const tempRoot = mkdtempSync(join(tmpdir(), "floudeck-db-"));
-    const dbPath = join(tempRoot, "nested", "data", "floudeck.sqlite");
+  test("creates parent directories for file-backed databases", async () => {
+    const tempRoot = mkdtempSync(`${tmpdir()}/floudeck-db-`);
+    const dbPath = `${tempRoot}/nested/data/floudeck.sqlite`;
 
     const fileDb = initDb(dbPath);
 
-    expect(existsSync(dbPath)).toBe(true);
+    expect(await Bun.file(dbPath).exists()).toBe(true);
     const table = fileDb
       .query(
         "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'blocks'",
