@@ -107,7 +107,7 @@ export function markBlockRunning(
   startedAt: string,
 ): void {
   db.run(
-    `UPDATE blocks SET status = 'running', error_text = NULL, running_started_at = ?, updated_at = ? WHERE id = ?`,
+    `UPDATE blocks SET status = 'running', running_started_at = ?, updated_at = ? WHERE id = ?`,
     startedAt,
     startedAt,
     id,
