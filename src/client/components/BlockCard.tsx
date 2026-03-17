@@ -8,6 +8,7 @@ import {
   formatTimeUntil,
 } from "../lib/format.ts";
 import { BlockBody } from "./BlockBody.tsx";
+import { BlockForm } from "./BlockForm.tsx";
 
 type BlockCardProps = {
   block: BlockRecord;
@@ -17,9 +18,6 @@ type BlockCardProps = {
 
 export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
   const [editing, setEditing] = useState(false);
-  const [prompt, setPrompt] = useState(block.prompt);
-  const [intervalValue, setIntervalValue] = useState(block.interval_value);
-  const [intervalUnit, setIntervalUnit] = useState(block.interval_unit);
   const [loading, setLoading] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
@@ -42,27 +40,6 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
     if (!confirm("Delete this block?")) return;
     const res = await deleteBlockApi(block.id);
     if (res.ok) onDelete(block.id);
-  }
-
-  async function handleSave() {
-    setLoading(true);
-    const res = await updateBlockApi(block.id, {
-      prompt,
-      intervalValue,
-      intervalUnit,
-    });
-    if (res.ok) {
-      onUpdate(res.block);
-      setEditing(false);
-    }
-    setLoading(false);
-  }
-
-  function handleCancel() {
-    setPrompt(block.prompt);
-    setIntervalValue(block.interval_value);
-    setIntervalUnit(block.interval_unit);
-    setEditing(false);
   }
 
   return (
@@ -147,51 +124,23 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
 
       {/* Edit form */}
       {editing && (
-        <div className="border-b border-zinc-100 bg-zinc-50 px-5 py-4 space-y-3 rounded-t-2xl">
-          <textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-zinc-400 focus:outline-none"
-            rows={3}
-          />
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-zinc-600">Every</span>
-            <input
-              type="number"
-              min={1}
-              value={intervalValue}
-              onChange={(e) => setIntervalValue(Number(e.target.value))}
-              className="w-20 rounded-lg border border-zinc-200 bg-white px-2 py-1 text-sm focus:border-zinc-400 focus:outline-none"
-            />
-            <select
-              value={intervalUnit}
-              onChange={(e) =>
-                setIntervalUnit(e.target.value as "minutes" | "hours" | "days")
+        <div className="border-b border-zinc-100 bg-zinc-50 px-5 py-4 rounded-t-2xl">
+          <BlockForm
+            initialPrompt={block.prompt}
+            initialIntervalValue={block.interval_value}
+            initialIntervalUnit={block.interval_unit}
+            submitLabel="Save"
+            onCancel={() => setEditing(false)}
+            onSubmit={async (data) => {
+              const res = await updateBlockApi(block.id, data);
+              if (res.ok) {
+                onUpdate(res.block);
+                setEditing(false);
+                return {};
               }
-              className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-sm focus:border-zinc-400 focus:outline-none"
-            >
-              <option value="minutes">minutes</option>
-              <option value="hours">hours</option>
-              <option value="days">days</option>
-            </select>
-          </div>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={loading}
-              className="rounded-lg bg-zinc-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-700 disabled:opacity-50"
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs text-zinc-600 hover:bg-zinc-100"
-            >
-              Cancel
-            </button>
-          </div>
+              return { error: res.error };
+            }}
+          />
         </div>
       )}
 

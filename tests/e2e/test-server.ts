@@ -3,8 +3,9 @@
  * Uses a mock runner and :memory: SQLite so no real CLI calls or disk writes.
  * Starts on the port specified by E2E_PORT.
  */
-import { createApp } from "../../src/server.ts";
+
 import { createMockRunner } from "../../src/runner.ts";
+import { createApp } from "../../src/server.ts";
 
 const portValue = process.env.E2E_PORT;
 if (!portValue) {

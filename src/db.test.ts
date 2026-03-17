@@ -230,49 +230,6 @@ describe("resetStaleRunningBlocks", () => {
   });
 });
 
-describe("validation", () => {
-  test("rejects empty prompt", () => {
-    expect(() =>
-      createBlock(db, {
-        prompt: "   ",
-        intervalValue: 1,
-        intervalUnit: "hours",
-      }),
-    ).toThrow("Prompt is required");
-  });
-
-  test("rejects invalid unit", () => {
-    expect(() =>
-      createBlock(db, {
-        prompt: "x",
-        intervalValue: 1,
-        // @ts-expect-error testing invalid unit
-        intervalUnit: "weeks",
-      }),
-    ).toThrow("Invalid interval unit");
-  });
-
-  test("rejects interval <= 0", () => {
-    expect(() =>
-      createBlock(db, {
-        prompt: "x",
-        intervalValue: 0,
-        intervalUnit: "hours",
-      }),
-    ).toThrow("Interval value must be a positive integer");
-  });
-
-  test("rejects non-integer interval", () => {
-    expect(() =>
-      createBlock(db, {
-        prompt: "x",
-        intervalValue: 1.5,
-        intervalUnit: "hours",
-      }),
-    ).toThrow("Interval value must be a positive integer");
-  });
-});
-
 describe("initDb", () => {
   test("creates parent directories for file-backed databases", async () => {
     const tempRoot = mkdtempSync(`${tmpdir()}/floudeck-db-`);

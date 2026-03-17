@@ -4,11 +4,8 @@ import { nowIso } from "./time.ts";
 import type {
   BlockRecord,
   CreateBlockInput,
-  IntervalUnit,
   UpdateBlockInput,
 } from "./types.ts";
-
-const VALID_UNITS: IntervalUnit[] = ["minutes", "hours", "days"];
 
 export function initDb(path?: string): Database {
   if (path && path !== ":memory:") {
@@ -55,24 +52,10 @@ export function getBlock(db: Database, id: number): BlockRecord | null {
   );
 }
 
-function validateBlockInput(input: {
-  prompt: string;
-  intervalValue: number;
-  intervalUnit: string;
-}) {
-  const prompt = input.prompt.trim();
-  if (!prompt) throw new Error("Prompt is required");
-  if (!Number.isInteger(input.intervalValue) || input.intervalValue <= 0)
-    throw new Error("Interval value must be a positive integer");
-  if (!VALID_UNITS.includes(input.intervalUnit as IntervalUnit))
-    throw new Error("Invalid interval unit");
-}
-
 export function createBlock(
   db: Database,
   input: CreateBlockInput,
 ): BlockRecord {
-  validateBlockInput(input);
   const now = nowIso();
   const result = db
     .query(
@@ -96,7 +79,6 @@ export function updateBlock(
   id: number,
   input: UpdateBlockInput,
 ): BlockRecord | null {
-  validateBlockInput(input);
   const now = nowIso();
   const result = db
     .query(

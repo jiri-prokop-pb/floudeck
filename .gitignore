@@ -36,9 +36,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # SQLite data
 data/
 
-# bun lock
-bun.lock
-
 # Playwright
 test-results/
 playwright-report/
