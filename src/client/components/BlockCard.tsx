@@ -55,7 +55,7 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
             title="Info"
           >
             {block.status === "running" ? (
-              <span className="inline-block animate-spin">↻</span>
+              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-green-300 border-t-green-600" />
             ) : (
               "ⓘ"
             )}
@@ -63,8 +63,8 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
           {showInfo && (
             <div className="absolute right-0 top-8 w-56 rounded-lg border border-zinc-200 bg-white p-3 shadow-lg text-xs text-zinc-600 space-y-1">
               {block.status === "running" && (
-                <div className="flex items-center gap-1.5 text-amber-600 font-medium">
-                  <span className="inline-block h-3 w-3 animate-spin rounded-full border border-amber-400 border-t-amber-600" />
+                <div className="flex items-center gap-1.5 text-green-600 font-medium">
+                  <span className="inline-block h-3 w-3 animate-spin rounded-full border border-green-300 border-t-green-600" />
                   Refreshing...
                 </div>
               )}
@@ -98,7 +98,11 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
             className="flex h-7 w-7 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 text-sm"
             title="Menu"
           >
-            ☰
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <line x1="2" y1="3.5" x2="12" y2="3.5" />
+              <line x1="2" y1="7" x2="12" y2="7" />
+              <line x1="2" y1="10.5" x2="12" y2="10.5" />
+            </svg>
           </button>
           {showMenu && (
             <div className="absolute right-0 top-8 w-36 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg">
