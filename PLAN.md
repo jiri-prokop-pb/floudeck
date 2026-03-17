@@ -10,7 +10,7 @@ Implement the Floudeck PoC as a very small Bun application with:
 - minimal React client
 - Tailwind via Bun plugin
 - scheduled execution of Claude Code CLI
-- sanitized HTML block output
+- GFM markdown block output
 - SSE notifications for server → client updates
 
 This plan translates the product spec into concrete implementation steps, package choices, route contracts, runtime rules, and a suggested build order.
@@ -37,9 +37,9 @@ This plan translates the product spec into concrete implementation steps, packag
 - Tailwind via Bun plugin
 - native browser `EventSource`
 
-### Sanitization
+### Markdown rendering
 
-- `sanitize-html`
+- `marked` (client-side GFM rendering)
 
 ### Optional utility packages
 
@@ -56,8 +56,8 @@ For the current PoC, even `zod` is optional.
 ### Required packages
 
 ```bash
-bun add react react-dom sanitize-html
-bun add -d bun-plugin-tailwind typescript @types/react @types/react-dom @types/sanitize-html
+bun add react react-dom marked
+bun add -d bun-plugin-tailwind typescript @types/react @types/react-dom
 ```
 
 If Bun’s current Tailwind plugin packaging or naming differs at implementation time, follow the Bun docs and keep the rest of the plan unchanged.
@@ -90,7 +90,7 @@ floudeck/
     scheduler.ts
     runner.ts
     prompts.ts
-    sanitize.ts
+    extract.ts
     time.ts
     types.ts
     api.ts
@@ -148,7 +148,7 @@ export type BlockRecord = {
   interval_value: number;
   interval_unit: IntervalUnit;
   status: BlockStatus;
-  output_html: string | null;
+  output_markdown: string | null;
   error_text: string | null;
   created_at: string;
   updated_at: string;
@@ -169,7 +169,7 @@ CREATE TABLE IF NOT EXISTS blocks (
   interval_value INTEGER NOT NULL,
   interval_unit TEXT NOT NULL CHECK(interval_unit IN ('minutes', 'hours', 'days')),
   status TEXT NOT NULL DEFAULT 'idle' CHECK(status IN ('idle', 'running', 'success', 'error')),
-  output_html TEXT,
+  output_markdown TEXT,
   error_text TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
@@ -194,7 +194,7 @@ Required functions in `db.ts`:
 - `updateBlock(id, input)`
 - `deleteBlock(id)`
 - `markBlockRunning(id, startedAt)`
-- `markBlockSuccess(id, outputHtml, finishedAt, nextRunAt)`
+- `markBlockSuccess(id, outputMarkdown, finishedAt, nextRunAt)`
 - `markBlockError(id, errorText, finishedAt, nextRunAt)`
 - `findDueBlocks(now, limit)`
 - `resetStaleRunningBlocksOnStartup(now)`
@@ -232,7 +232,7 @@ Persist all timestamps in ISO UTC strings.
 
 ```ts
 type RunResult =
-  | { ok: true; html: string; rawHtml: string; reasoning: string | null }
+  | { ok: true; markdown: string; reasoning: string | null }
   | { ok: false; error: string; stderr?: string };
 ```
 
@@ -243,10 +243,9 @@ type RunResult =
 3. spawn CLI with safe argument handling
 4. collect stdout/stderr
 5. timeout after 60s
-6. extract `===BEGIN_HTML=== ... ===END_HTML===`
-7. sanitize fragment
-8. if empty/invalid after sanitization, fail
-9. return sanitized HTML
+6. extract `===BEGIN_MARKDOWN=== ... ===END_MARKDOWN===`
+7. if empty/missing, fail
+8. return markdown
 
 The exact CLI invocation may vary by Claude Code version, so isolate it behind one function.
 
@@ -278,38 +277,13 @@ Also include guidance like:
 
 ## 11. Sanitizer Configuration
 
-`sanitize.ts` should export:
+`extract.ts` should export:
 
-- `sanitizeBlockHtml(html: string): string`
-- sanitizer configuration object
+- `extractMarkdownFromOutput(stdout: string): { markdown: string | null; reasoning: string | null }`
 
-### Recommended config
+Extracts content between `===BEGIN_MARKDOWN===` and `===END_MARKDOWN===` delimiters.
 
-```ts
-import sanitizeHtml from "sanitize-html";
-
-export const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
-  allowedTags: [
-    "div", "section", "article", "ul", "ol", "li", "p",
-    "h1", "h2", "h3", "h4",
-    "strong", "em", "b", "i", "small",
-    "code", "pre", "blockquote",
-    "a", "span", "hr", "br",
-    "table", "thead", "tbody", "tr", "th", "td"
-  ],
-  allowedAttributes: {
-    "*": ["class"],
-    a: ["href", "target", "rel"],
-    th: ["colspan", "rowspan"],
-    td: ["colspan", "rowspan"]
-  },
-  allowedSchemes: ["http", "https", "mailto"],
-  allowProtocolRelative: false,
-  disallowedTagsMode: "discard"
-};
-```
-
-Keep the sanitizer config and system prompt allow-list in sync.
+No sanitization needed — raw HTML is stripped client-side by the `marked` renderer.
 
 ---
 
@@ -561,9 +535,7 @@ Use one small React app.
 - handle create/update/delete/refresh
 - subscribe to SSE updates
 - rerender changed blocks when notified
-- render sanitized HTML with `dangerouslySetInnerHTML`
-
-Only render HTML that has already been sanitized on the server.
+- render markdown with `marked` (raw HTML stripped by custom renderer)
 
 ### Suggested component breakdown
 
@@ -592,7 +564,7 @@ Only render HTML that has already been sanitized on the server.
 
 #### `BlockBody`
 
-- success: HTML fragment
+- success: rendered markdown
 - running: loading state
 - error: error panel
 

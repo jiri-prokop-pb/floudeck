@@ -22,39 +22,28 @@ const EXAMPLE_BLOCKS = [
     prompt: "Tell me if GitHub is up or down: https://www.githubstatus.com/",
     intervalValue: 15,
     intervalUnit: "minutes",
-    mockHtml: `<div class="flex items-center gap-3">
-  <span class="inline-block w-4 h-4 rounded-full bg-green-500"></span>
-  <strong class="text-green-600 text-lg">UP</strong>
-  <span class="text-zinc-500 text-sm">All Systems Operational</span>
-</div>
-<div class="mt-2 text-xs text-zinc-400">Git Operations, API Requests, Actions, Packages, Pages, Codespaces, Copilot — all normal</div>`,
+    mockMarkdown: `# GitHub Status
+
+**UP** — All Systems Operational
+
+Git Operations, API Requests, Actions, Packages, Pages, Codespaces, Copilot — all normal`,
   },
   {
     prompt:
       "What are my currently opened PR titles in `pb-frontend`? Use `gh pr list`.",
     intervalValue: 1,
     intervalUnit: "hours",
-    mockHtml: `<div>
-  <h4 class="text-sm font-semibold text-zinc-700 mb-2">Open PRs in pb-frontend</h4>
-  <ul class="space-y-1 text-sm">
-    <li class="flex items-center gap-2">
-      <span class="text-green-600 font-mono text-xs">#142</span>
-      <span>Fix sidebar collapse animation on mobile</span>
-    </li>
-    <li class="flex items-center gap-2">
-      <span class="text-green-600 font-mono text-xs">#139</span>
-      <span>Add dark mode toggle to settings page</span>
-    </li>
-    <li class="flex items-center gap-2">
-      <span class="text-green-600 font-mono text-xs">#137</span>
-      <span>Upgrade React Router to v7</span>
-    </li>
-  </ul>
-</div>`,
+    mockMarkdown: `# Open PRs in pb-frontend
+
+| # | Title |
+|---|-------|
+| #142 | Fix sidebar collapse animation on mobile |
+| #139 | Add dark mode toggle to settings page |
+| #137 | Upgrade React Router to v7 |`,
   },
 ];
 
-// Start server with mock runner that returns our example HTML
+// Start server with mock runner that returns our example markdown
 let blockIndex = 0;
 const mockRunner = createMockRunner(async () => {
   const block = EXAMPLE_BLOCKS[blockIndex];
@@ -65,8 +54,7 @@ const mockRunner = createMockRunner(async () => {
   await new Promise((r) => setTimeout(r, 300));
   return {
     ok: true,
-    html: block.mockHtml,
-    rawHtml: block.mockHtml,
+    markdown: block.mockMarkdown,
     reasoning: null,
   };
 });

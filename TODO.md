@@ -1,10 +1,6 @@
 # TODO
 
-## Use markdown output instead of HTML
-
-- Instead of dealing with HTML sanitization and weird layout issues, let's utilize https://github.github.com/gfm/
-- Adjust system prompt, there should always be Heading 1 (`#`) at the top => it will be used as card's title (and should be indicative of what the card content is about)
-- Links and lists are easy to do, as well as images (but for that they will need to be small and base64 encoded)
+## ~~Use markdown output instead of HTML~~ DONE
 
 ## Runner configuration
 
