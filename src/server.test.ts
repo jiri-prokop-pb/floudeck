@@ -1,9 +1,17 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { createMockRunner } from "./runner.ts";
-import { type App, createApp } from "./server.ts";
+import { type App, type AppOptions, createApp } from "./server.ts";
 
 let app: App | null = null;
 let stopCalled = false;
+
+function createMockServe(onStop: () => void): NonNullable<AppOptions["serve"]> {
+  return ((options: { port?: number; fetch?: Function }) => ({
+    port: options.port ?? 3000,
+    stop: onStop,
+    fetch: options.fetch,
+  })) as NonNullable<AppOptions["serve"]>;
+}
 
 beforeEach(() => {
   stopCalled = false;
@@ -24,15 +32,9 @@ function startApp() {
       reasoning: null,
     })),
     tickIntervalMs: 100_000, // don't auto-tick in tests
-    serve: ((options: Parameters<typeof Bun.serve>[0]) => {
-      return {
-        port: options.port ?? 3000,
-        stop() {
-          stopCalled = true;
-        },
-        fetch: options.fetch,
-      } as ReturnType<typeof Bun.serve>;
-    }) as typeof Bun.serve,
+    serve: createMockServe(() => {
+      stopCalled = true;
+    }),
   });
   return app;
 }

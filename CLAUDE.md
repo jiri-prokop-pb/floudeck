@@ -46,6 +46,9 @@ Two files named `api.ts` exist on purpose:
 - **HTML sanitization is mandatory.** Both the system prompt and `sanitize.ts` share the same allow-list. If you change one, change the other.
 - **All API endpoints use POST for mutations** (not PUT/PATCH/DELETE). This is a deliberate PoC simplification.
 - **No history/logs table.** Only the latest output per block is stored.
+- **Prefer Bun primitives over `node:*` imports.** Use `Bun.file().exists()` instead of `existsSync`, template literal paths instead of `path.join`, etc. Fall back to `node:fs`/`node:path` only when no Bun equivalent exists (e.g. `mkdirSync`).
+- **Never use `bunx` for locally installed packages.** Run binaries directly via `./node_modules/.bin/<name>`.
+- **Avoid type casting in tests.** Extract typed mock factory functions (e.g. `createMockServe`) to avoid inline `as` casts. A single cast inside a reusable helper is acceptable.
 
 ## Frontend rules
 
