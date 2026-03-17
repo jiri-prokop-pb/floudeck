@@ -1,21 +1,17 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  spyOn,
+  test,
+} from "bun:test";
 import { createMockRunner } from "./runner.ts";
-import { type App, type AppOptions, createApp } from "./server.ts";
+import { type App, createApp } from "./server.ts";
 
 let app: App | null = null;
-let stopCalled = false;
 
-function createMockServe(onStop: () => void): NonNullable<AppOptions["serve"]> {
-  return ((options: { port?: number; fetch?: Function }) => ({
-    port: options.port ?? 3000,
-    stop: onStop,
-    fetch: options.fetch,
-  })) as NonNullable<AppOptions["serve"]>;
-}
-
-beforeEach(() => {
-  stopCalled = false;
-});
+beforeEach(() => {});
 
 afterEach(() => {
   app?.close();
@@ -24,7 +20,7 @@ afterEach(() => {
 
 function startApp() {
   app = createApp({
-    port: 31_000,
+    port: 0, // OS-assigned free port
     runBlock: createMockRunner(() => ({
       ok: true,
       html: "<p>mock result</p>",
@@ -32,9 +28,6 @@ function startApp() {
       reasoning: null,
     })),
     tickIntervalMs: 100_000, // don't auto-tick in tests
-    serve: createMockServe(() => {
-      stopCalled = true;
-    }),
   });
   return app;
 }
@@ -104,10 +97,11 @@ describe("server", () => {
 
   test("close() stops the server", () => {
     const a = startApp();
+    const stopSpy = spyOn(a.server, "stop");
 
     a.close();
     app = null;
 
-    expect(stopCalled).toBe(true);
+    expect(stopSpy).toHaveBeenCalled();
   });
 });
