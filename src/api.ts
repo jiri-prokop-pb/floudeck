@@ -8,15 +8,13 @@ import {
 } from "./db.ts";
 import type { SseBroadcaster } from "./sse.ts";
 import { nowIso } from "./time.ts";
-import type { IntervalUnit } from "./types.ts";
+import { isBlockInputError, parseBlockInput } from "./validate.ts";
 
 export type RouterDeps = {
   db: Database;
   sse: SseBroadcaster;
   triggerRun: (blockId: number) => void;
 };
-
-const VALID_UNITS = new Set<string>(["minutes", "hours", "days"]);
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, { status });
@@ -93,39 +91,12 @@ export function createRouter(
         } catch {
           return json({ ok: false, error: "Invalid JSON" }, 400);
         }
-        const { prompt, intervalValue, intervalUnit } = body as Record<
-          string,
-          unknown
-        >;
-        if (typeof prompt !== "string" || !prompt.trim()) {
-          return json({ ok: false, error: "Prompt is required" }, 400);
+        const input = parseBlockInput(body);
+        if (isBlockInputError(input)) {
+          return json({ ok: false, error: input.message }, 400);
         }
-        if (
-          typeof intervalValue !== "number" ||
-          !Number.isInteger(intervalValue) ||
-          intervalValue <= 0
-        ) {
-          return json(
-            {
-              ok: false,
-              error: "Interval value must be a positive integer",
-            },
-            400,
-          );
-        }
-        if (
-          typeof intervalUnit !== "string" ||
-          !VALID_UNITS.has(intervalUnit)
-        ) {
-          return json({ ok: false, error: "Invalid interval unit" }, 400);
-        }
-
         try {
-          const block = createBlock(db, {
-            prompt: prompt as string,
-            intervalValue: intervalValue as number,
-            intervalUnit: intervalUnit as IntervalUnit,
-          });
+          const block = createBlock(db, input);
           triggerRun(block.id);
           return json({ ok: true, block }, 201);
         } catch (err: unknown) {
@@ -172,38 +143,12 @@ export function createRouter(
         } catch {
           return json({ ok: false, error: "Invalid JSON" }, 400);
         }
-        const { prompt, intervalValue, intervalUnit } = body as Record<
-          string,
-          unknown
-        >;
-        if (typeof prompt !== "string" || !prompt.trim()) {
-          return json({ ok: false, error: "Prompt is required" }, 400);
-        }
-        if (
-          typeof intervalValue !== "number" ||
-          !Number.isInteger(intervalValue) ||
-          intervalValue <= 0
-        ) {
-          return json(
-            {
-              ok: false,
-              error: "Interval value must be a positive integer",
-            },
-            400,
-          );
-        }
-        if (
-          typeof intervalUnit !== "string" ||
-          !VALID_UNITS.has(intervalUnit)
-        ) {
-          return json({ ok: false, error: "Invalid interval unit" }, 400);
+        const input = parseBlockInput(body);
+        if (isBlockInputError(input)) {
+          return json({ ok: false, error: input.message }, 400);
         }
         try {
-          const block = updateBlock(db, id, {
-            prompt: prompt as string,
-            intervalValue: intervalValue as number,
-            intervalUnit: intervalUnit as IntervalUnit,
-          });
+          const block = updateBlock(db, id, input);
           if (!block) return json({ ok: false, error: "Not found" }, 404);
           triggerRun(block.id);
           return json({ ok: true, block });

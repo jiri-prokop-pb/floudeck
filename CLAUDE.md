@@ -18,7 +18,7 @@ Floudeck is a local PoC: a Bun app that runs scheduled prompts through Claude Co
 
 ```bash
 bun run dev                # start the app (port 3000)
-bun run test               # unit tests (85 tests)
+bun run test               # unit tests (90 tests)
 bun run e2e                # Playwright E2E tests (9 tests)
 bun run check              # lint + unit tests + E2E
 bun run lint               # biome check

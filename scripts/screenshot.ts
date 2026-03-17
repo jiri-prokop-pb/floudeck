@@ -11,8 +11,8 @@
  * Re-run this whenever you change app visuals or functionality.
  */
 import { chromium } from "@playwright/test";
-import { createApp } from "../src/server.ts";
 import { createMockRunner } from "../src/runner.ts";
+import { createApp } from "../src/server.ts";
 
 const PORT = 3457;
 const OUTPUT = "docs/screenshot.png";
@@ -31,7 +31,7 @@ const EXAMPLE_BLOCKS = [
   },
   {
     prompt:
-      'What are my currently opened PR titles in `pb-frontend`? Use `gh pr list`.',
+      "What are my currently opened PR titles in `pb-frontend`? Use `gh pr list`.",
     intervalValue: 1,
     intervalUnit: "hours",
     mockHtml: `<div>
@@ -79,7 +79,9 @@ const app = createApp({
 
 try {
   const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: 1024, height: 800 } });
+  const page = await browser.newPage({
+    viewport: { width: 1024, height: 800 },
+  });
 
   await page.goto(`http://localhost:${PORT}`);
   await page.waitForTimeout(500);

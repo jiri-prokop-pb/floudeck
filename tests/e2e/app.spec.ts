@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
   // Clear all blocks before each test via API
@@ -41,14 +41,14 @@ test("page loads with empty state", async ({ page }) => {
   ).toBeVisible();
 });
 
-test("create block → appears in feed → runs → shows HTML", async ({
-  page,
-}) => {
+test("create block → appears in feed → runs → shows HTML", async ({ page }) => {
   await createBlock(page, "Show me the weather", "15");
 
   // Wait for it to run (mock runner returns after 200ms, scheduler ticks every 500ms)
   await expect(page.locator(".mock-output")).toBeVisible({ timeout: 10_000 });
-  await expect(page.locator("text=Output for: Show me the weather")).toBeVisible();
+  await expect(
+    page.locator("text=Output for: Show me the weather"),
+  ).toBeVisible();
 });
 
 test("edit block → re-runs", async ({ page }) => {
@@ -66,9 +66,9 @@ test("edit block → re-runs", async ({ page }) => {
   await page.click("text=Save");
 
   // Wait for re-run with new output
-  await expect(
-    page.locator("text=Output for: Updated prompt"),
-  ).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator("text=Output for: Updated prompt")).toBeVisible({
+    timeout: 10_000,
+  });
 });
 
 test("delete block → disappears", async ({ page }) => {
@@ -137,7 +137,5 @@ test("SSE updates UI without manual refresh", async ({ page }) => {
 
   // The block should transition from idle/running to success via SSE
   await expect(page.locator(".mock-output")).toBeVisible({ timeout: 10_000 });
-  await expect(
-    page.locator("text=Output for: SSE test block"),
-  ).toBeVisible();
+  await expect(page.locator("text=Output for: SSE test block")).toBeVisible();
 });
