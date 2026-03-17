@@ -17,7 +17,7 @@ if (!Number.isInteger(PORT) || PORT <= 0) {
   throw new Error(`Invalid E2E_PORT: ${portValue}`);
 }
 
-// Mock runner that returns realistic HTML after a short delay
+// Mock runner that returns realistic markdown after a short delay
 const mockRunner = createMockRunner(async (prompt) => {
   await new Promise((r) => setTimeout(r, 200));
   if (prompt.toLowerCase().includes("fail")) {
@@ -25,8 +25,7 @@ const mockRunner = createMockRunner(async (prompt) => {
   }
   return {
     ok: true,
-    html: `<div class="mock-output"><h3 class="text-lg font-semibold">Result</h3><p>Output for: ${prompt.slice(0, 100)}</p></div>`,
-    rawHtml: `<div class="mock-output"><h3>Result</h3><p>Output for: ${prompt.slice(0, 100)}</p></div>`,
+    markdown: `# Result\n\nOutput for: ${prompt.slice(0, 100)}`,
     reasoning: "Mock reasoning",
   };
 });

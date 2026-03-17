@@ -24,7 +24,7 @@ async function createBlock(
   await page.click("text=Add block");
 }
 
-/** Open the ☰ menu on the nth block card (0-indexed) and click an action */
+/** Open the menu on the nth block card (0-indexed) and click an action */
 async function clickCardMenu(
   page: import("@playwright/test").Page,
   action: string,
@@ -41,11 +41,13 @@ test("page loads with empty state", async ({ page }) => {
   ).toBeVisible();
 });
 
-test("create block → appears in feed → runs → shows HTML", async ({ page }) => {
+test("create block → appears in feed → runs → shows markdown", async ({
+  page,
+}) => {
   await createBlock(page, "Show me the weather", "15");
 
-  // Wait for it to run (mock runner returns after 200ms, scheduler ticks every 500ms)
-  await expect(page.locator(".mock-output")).toBeVisible({ timeout: 10_000 });
+  // Wait for it to run — mock runner returns "# Result" heading, rendered as text
+  await expect(page.locator("text=Result")).toBeVisible({ timeout: 10_000 });
   await expect(
     page.locator("text=Output for: Show me the weather"),
   ).toBeVisible();
@@ -55,7 +57,7 @@ test("edit block → re-runs", async ({ page }) => {
   await createBlock(page, "Original prompt", "1");
 
   // Wait for first run
-  await expect(page.locator(".mock-output")).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator("text=Result")).toBeVisible({ timeout: 10_000 });
 
   // Click Edit via menu
   await clickCardMenu(page, "Edit");
@@ -91,13 +93,13 @@ test("delete block → disappears", async ({ page }) => {
 
 test("refresh → enters running state", async ({ page }) => {
   await createBlock(page, "Refresh test", "60");
-  await expect(page.locator(".mock-output")).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator("text=Result")).toBeVisible({ timeout: 10_000 });
 
   // Click refresh via menu
   await clickCardMenu(page, "Refresh");
 
   // Should show updated output
-  await expect(page.locator(".mock-output")).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator("text=Result")).toBeVisible({ timeout: 10_000 });
 });
 
 test("error state visible for failing mock", async ({ page }) => {
@@ -136,6 +138,6 @@ test("SSE updates UI without manual refresh", async ({ page }) => {
   await createBlock(page, "SSE test block", "1");
 
   // The block should transition from idle/running to success via SSE
-  await expect(page.locator(".mock-output")).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator("text=Result")).toBeVisible({ timeout: 10_000 });
   await expect(page.locator("text=Output for: SSE test block")).toBeVisible();
 });
