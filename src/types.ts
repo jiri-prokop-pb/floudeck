@@ -16,15 +16,6 @@ export const RunnerConfigSchema = z.object({
 
 export type RunnerConfig = z.infer<typeof RunnerConfigSchema>;
 
-export function safeParseRunnerConfig(raw: string): RunnerConfig | null {
-  try {
-    const result = RunnerConfigSchema.safeParse(JSON.parse(raw));
-    return result.success ? result.data : null;
-  } catch {
-    return null;
-  }
-}
-
 export type ResolvedRunnerConfig = {
   cwd: string;
   model: string;

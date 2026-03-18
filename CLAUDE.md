@@ -58,7 +58,7 @@ Two files named `api.ts` exist on purpose:
 - **No history/logs table.** Only the latest output per block is stored.
 - **Prefer Bun primitives over `node:*` imports.** Use `Bun.file().exists()` instead of `existsSync`, template literal paths instead of `path.join`, etc. Fall back to `node:fs`/`node:path` only when no Bun equivalent exists (e.g. `mkdirSync`).
 - **Never use `bunx` for locally installed packages.** Use `bun <pkg>` which resolves local binaries automatically.
-- **No type casting (`as`).** Use `satisfies`, `spyOn`, proper interfaces, or restructure code to avoid `as` casts entirely. Prefer using real implementations (e.g. `Bun.serve` with port 0) over mocks that need casts to match complex types.
+- **No type casting (`as`) or non-null assertions (`!`).** Use `satisfies`, `spyOn`, proper interfaces, guards, or restructure code to avoid them entirely. Prefer using real implementations (e.g. `Bun.serve` with port 0) over mocks that need casts to match complex types. In tests, use helper functions with runtime guards (e.g. `if (!x) throw`) instead of `!`.
 
 ## Frontend rules
 

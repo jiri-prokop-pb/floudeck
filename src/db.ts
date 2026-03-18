@@ -4,9 +4,10 @@ import { nowIso } from "./time.ts";
 import type {
   BlockRecord,
   CreateBlockInput,
+  RunnerConfig,
   UpdateBlockInput,
 } from "./types.ts";
-import { safeParseRunnerConfig } from "./types.ts";
+import { safeParseRunnerConfig } from "./validate.ts";
 
 export function initDb(path?: string): Database {
   if (path && path !== ":memory:") {
@@ -228,7 +229,8 @@ export function setSetting(db: Database, key: string, value: string): void {
   );
 }
 
-export function parseBlockRunnerConfig(block: BlockRecord) {
-  if (!block.runner_config) return null;
-  return safeParseRunnerConfig(block.runner_config);
+export function parseBlockRunnerConfig(
+  block: BlockRecord,
+): RunnerConfig | null {
+  return safeParseRunnerConfig(block.runner_config) ?? null;
 }

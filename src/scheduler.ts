@@ -13,7 +13,7 @@ import {
 import type { SseBroadcaster } from "./sse.ts";
 import { addInterval, nowIso } from "./time.ts";
 import type { RunBlockFn } from "./types.ts";
-import { safeParseRunnerConfig } from "./types.ts";
+import { safeParseRunnerConfig } from "./validate.ts";
 
 export type SchedulerDeps = {
   db: Database;
@@ -48,9 +48,7 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
   }
 
   function loadGlobalDefaults() {
-    const raw = getSetting(db, "runner_defaults");
-    if (!raw) return null;
-    return safeParseRunnerConfig(raw);
+    return safeParseRunnerConfig(getSetting(db, "runner_defaults")) ?? null;
   }
 
   async function startRun(blockId: number, prompt: string): Promise<void> {

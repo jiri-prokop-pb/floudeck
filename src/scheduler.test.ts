@@ -13,6 +13,12 @@ import { createSseBroadcaster, type SseBroadcaster } from "./sse.ts";
 import { addInterval } from "./time.ts";
 import type { RunBlockFn } from "./types.ts";
 
+function mustGetBlock(db: Database, id: number) {
+  const block = getBlock(db, id);
+  if (!block) throw new Error(`Block ${id} not found`);
+  return block;
+}
+
 let db: Database;
 let sse: SseBroadcaster;
 let broadcasts: Array<{ event: string; data: unknown }>;
@@ -59,7 +65,7 @@ describe("scheduler", () => {
 
     await scheduler.tick();
 
-    const block = getBlock(db, 1)!;
+    const block = mustGetBlock(db, 1);
     expect(block.status).toBe("success");
     expect(block.output_markdown).toBe("# Done\n\nresult");
     expect(block.next_run_at).not.toBeNull();
@@ -84,7 +90,7 @@ describe("scheduler", () => {
     });
     await scheduler.tick();
 
-    const block = getBlock(db, b.id)!;
+    const block = mustGetBlock(db, b.id);
     expect(block.status).toBe("idle");
   });
 
@@ -157,7 +163,7 @@ describe("scheduler", () => {
     });
     await scheduler.tick();
 
-    const block = getBlock(db, b.id)!;
+    const block = mustGetBlock(db, b.id);
     expect(block.status).toBe("success");
     expect(block.next_run_at).not.toBeNull();
     expect(block.last_run_at).not.toBeNull();
@@ -177,7 +183,7 @@ describe("scheduler", () => {
     });
     await scheduler.tick();
 
-    const block = getBlock(db, b.id)!;
+    const block = mustGetBlock(db, b.id);
     expect(block.status).toBe("error");
     expect(block.next_run_at).not.toBeNull();
   });
@@ -217,7 +223,7 @@ describe("scheduler", () => {
     });
     await scheduler.tick();
 
-    const block = getBlock(db, b.id)!;
+    const block = mustGetBlock(db, b.id);
     expect(block.status).toBe("error");
     expect(block.error_text).toBe("boom");
   });
@@ -286,12 +292,14 @@ describe("scheduler", () => {
 
     await tickPromise;
 
-    const block = getBlock(db, b.id)!;
+    const block = mustGetBlock(db, b.id);
     expect(promptsSeen).toEqual(["old prompt", "new prompt"]);
     expect(block.status).toBe("success");
     expect(block.prompt).toBe("new prompt");
     expect(block.output_markdown).toBe("# Result\n\nnew prompt");
     expect(block.last_run_at).not.toBeNull();
-    expect(block.next_run_at).toBe(addInterval(block.last_run_at!, 2, "days"));
+    expect(block.next_run_at).toBe(
+      addInterval(block.last_run_at ?? "", 2, "days"),
+    );
   });
 });

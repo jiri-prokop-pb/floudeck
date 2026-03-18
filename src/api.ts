@@ -12,11 +12,11 @@ import {
 } from "./db.ts";
 import type { SseBroadcaster } from "./sse.ts";
 import { nowIso } from "./time.ts";
-import { safeParseRunnerConfig } from "./types.ts";
 import {
   isBlockInputError,
   parseBlockInput,
   parseRunnerConfig,
+  safeParseRunnerConfig,
 } from "./validate.ts";
 
 export type RouterDeps = {
@@ -39,8 +39,8 @@ function matchRoute(
 
   const params: Record<string, string> = {};
   for (let i = 0; i < patternParts.length; i++) {
-    const pp = patternParts[i]!;
-    const pathPart = pathParts[i]!;
+    const pp = patternParts[i] ?? "";
+    const pathPart = pathParts[i] ?? "";
     if (pp.startsWith(":")) {
       params[pp.slice(1)] = pathPart;
     } else if (pp !== pathPart) {
@@ -82,10 +82,8 @@ export function createRouter(
         if (!block) return json({ ok: false, error: "Not found" }, 404);
 
         const blockConfig = parseBlockRunnerConfig(block);
-        const globalRaw = getSetting(db, "runner_defaults");
-        const globalDefaults = globalRaw
-          ? safeParseRunnerConfig(globalRaw)
-          : null;
+        const globalDefaults =
+          safeParseRunnerConfig(getSetting(db, "runner_defaults")) ?? null;
         const resolvedConfig = resolveRunnerConfig(
           globalDefaults,
           blockConfig,
@@ -148,7 +146,8 @@ export function createRouter(
           id,
         );
         triggerRun(id);
-        const updated = getBlock(db, id)!;
+        const updated = getBlock(db, id);
+        if (!updated) return json({ ok: false, error: "Not found" }, 404);
         return json({ ok: true, block: updated });
       },
     },
@@ -198,8 +197,8 @@ export function createRouter(
       method: "GET",
       pattern: "/api/settings/runner",
       handler: () => {
-        const raw = getSetting(db, "runner_defaults");
-        const config = raw ? safeParseRunnerConfig(raw) : null;
+        const config =
+          safeParseRunnerConfig(getSetting(db, "runner_defaults")) ?? null;
         return json({ ok: true, config });
       },
     },

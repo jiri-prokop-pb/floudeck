@@ -19,6 +19,12 @@ import {
   updateBlock,
 } from "./db.ts";
 
+function mustGetBlock(db: Database, id: number) {
+  const block = getBlock(db, id);
+  if (!block) throw new Error(`Block ${id} not found`);
+  return block;
+}
+
 let db: Database;
 
 beforeEach(() => {
@@ -45,8 +51,8 @@ describe("CRUD", () => {
 
     const all = listBlocks(db);
     expect(all).toHaveLength(2);
-    expect(all[0]!.id).toBe(1);
-    expect(all[1]!.id).toBe(2);
+    expect(all[0]?.id).toBe(1);
+    expect(all[1]?.id).toBe(2);
   });
 
   test("get block by id", () => {
@@ -57,7 +63,7 @@ describe("CRUD", () => {
     });
     const fetched = getBlock(db, created.id);
     expect(fetched).not.toBeNull();
-    expect(fetched!.prompt).toBe("x");
+    expect(fetched?.prompt).toBe("x");
   });
 
   test("get block returns null for missing id", () => {
@@ -76,9 +82,9 @@ describe("CRUD", () => {
       intervalUnit: "days",
     });
     expect(updated).not.toBeNull();
-    expect(updated!.prompt).toBe("new");
-    expect(updated!.interval_value).toBe(2);
-    expect(updated!.interval_unit).toBe("days");
+    expect(updated?.prompt).toBe("new");
+    expect(updated?.interval_value).toBe(2);
+    expect(updated?.interval_unit).toBe("days");
   });
 
   test("update returns null for missing id", () => {
@@ -114,7 +120,7 @@ describe("state transitions", () => {
       intervalUnit: "hours",
     });
     markBlockRunning(db, b.id, "2024-01-15T10:00:00.000Z");
-    const fetched = getBlock(db, b.id)!;
+    const fetched = mustGetBlock(db, b.id);
     expect(fetched.status).toBe("running");
     expect(fetched.running_started_at).toBe("2024-01-15T10:00:00.000Z");
   });
@@ -134,7 +140,7 @@ describe("state transitions", () => {
       "2024-01-15T11:01:00.000Z",
     );
     markBlockRunning(db, b.id, "2024-01-15T11:01:00.000Z");
-    const fetched = getBlock(db, b.id)!;
+    const fetched = mustGetBlock(db, b.id);
     expect(fetched.status).toBe("running");
     expect(fetched.error_text).toBe("previous failure");
   });
@@ -153,7 +159,7 @@ describe("state transitions", () => {
       "2024-01-15T10:01:00.000Z",
       "2024-01-15T11:01:00.000Z",
     );
-    const fetched = getBlock(db, b.id)!;
+    const fetched = mustGetBlock(db, b.id);
     expect(fetched.status).toBe("success");
     expect(fetched.output_markdown).toBe("<p>ok</p>");
     expect(fetched.error_text).toBeNull();
@@ -176,7 +182,7 @@ describe("state transitions", () => {
       "2024-01-15T10:01:00.000Z",
       "2024-01-15T11:01:00.000Z",
     );
-    const fetched = getBlock(db, b.id)!;
+    const fetched = mustGetBlock(db, b.id);
     expect(fetched.status).toBe("error");
     expect(fetched.error_text).toBe("timeout");
     expect(fetched.running_started_at).toBeNull();
@@ -194,7 +200,7 @@ describe("findDueBlocks", () => {
 
     const due = findDueBlocks(db, "2099-01-01T00:00:00.000Z", 10);
     expect(due).toHaveLength(1);
-    expect(due[0]!.id).toBe(b1.id);
+    expect(due[0]?.id).toBe(b1.id);
   });
 
   test("excludes running blocks", () => {
@@ -244,7 +250,7 @@ describe("resetStaleRunningBlocks", () => {
     const count = resetStaleRunningBlocks(db, now);
     expect(count).toBe(1);
 
-    const fetched = getBlock(db, b.id)!;
+    const fetched = mustGetBlock(db, b.id);
     expect(fetched.status).toBe("error");
     expect(fetched.error_text).toContain("server stopped");
     expect(fetched.next_run_at).toBe(now);
@@ -338,7 +344,7 @@ describe("uuid and runner_config", () => {
       runnerConfig: { cwd: "/my/path" },
     });
     expect(updated).not.toBeNull();
-    expect(updated!.runner_config).toBe('{"cwd":"/my/path"}');
+    expect(updated?.runner_config).toBe('{"cwd":"/my/path"}');
   });
 
   test("parseBlockRunnerConfig parses valid JSON", () => {
@@ -368,7 +374,7 @@ describe("uuid and runner_config", () => {
       intervalUnit: "hours",
     });
     db.run("UPDATE blocks SET runner_config = 'not json' WHERE id = ?", b.id);
-    const fetched = getBlock(db, b.id)!;
+    const fetched = mustGetBlock(db, b.id);
     expect(parseBlockRunnerConfig(fetched)).toBeNull();
   });
 });
