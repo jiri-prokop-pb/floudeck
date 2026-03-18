@@ -1,3 +1,4 @@
+import { X } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 
 type ModalProps = {
@@ -26,7 +27,7 @@ export function Modal({ title, onClose, children }: ModalProps) {
             onClick={onClose}
             className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
           >
-            ✕
+            <X size={16} weight="bold" />
           </button>
         </div>
         {children}

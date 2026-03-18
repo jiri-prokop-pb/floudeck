@@ -12,7 +12,7 @@ import {
 } from "./db.ts";
 import type { SseBroadcaster } from "./sse.ts";
 import { nowIso } from "./time.ts";
-import type { RunnerConfig } from "./types.ts";
+import { safeParseRunnerConfig } from "./types.ts";
 import {
   isBlockInputError,
   parseBlockInput,
@@ -83,14 +83,9 @@ export function createRouter(
 
         const blockConfig = parseBlockRunnerConfig(block);
         const globalRaw = getSetting(db, "runner_defaults");
-        let globalDefaults: RunnerConfig | null = null;
-        if (globalRaw) {
-          try {
-            globalDefaults = JSON.parse(globalRaw) as RunnerConfig;
-          } catch {
-            // ignore corrupt settings
-          }
-        }
+        const globalDefaults = globalRaw
+          ? safeParseRunnerConfig(globalRaw)
+          : null;
         const resolvedConfig = resolveRunnerConfig(
           globalDefaults,
           blockConfig,
@@ -204,14 +199,7 @@ export function createRouter(
       pattern: "/api/settings/runner",
       handler: () => {
         const raw = getSetting(db, "runner_defaults");
-        let config: RunnerConfig | null = null;
-        if (raw) {
-          try {
-            config = JSON.parse(raw) as RunnerConfig;
-          } catch {
-            // ignore corrupt data
-          }
-        }
+        const config = raw ? safeParseRunnerConfig(raw) : null;
         return json({ ok: true, config });
       },
     },

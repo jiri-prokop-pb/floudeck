@@ -1,15 +1,14 @@
-import type {
-  CreateBlockInput,
-  IntervalUnit,
-  PermissionMode,
-  RunnerConfig,
-} from "./types.ts";
+import { z } from "zod/mini";
+import type { CreateBlockInput, RunnerConfig } from "./types.ts";
 
-const VALID_UNITS = new Set<IntervalUnit>(["minutes", "hours", "days"]);
-const VALID_PERMISSIONS = new Set<PermissionMode>([
-  "default",
-  "dangerouslySkipPermissions",
-]);
+const VALID_UNITS = ["minutes", "hours", "days"] as const;
+
+const BlockInputSchema = z.object({
+  prompt: z.string(),
+  intervalValue: z.number(),
+  intervalUnit: z.enum(VALID_UNITS),
+  runnerConfig: z.optional(z.unknown()),
+});
 
 export type BlockInputError = {
   field: "prompt" | "intervalValue" | "intervalUnit";
@@ -23,31 +22,36 @@ export function parseBlockInput(
     return { field: "prompt", message: "Request body must be a JSON object" };
   }
 
-  const { prompt, intervalValue, intervalUnit, runnerConfig } = body as Record<
-    string,
-    unknown
-  >;
+  const result = BlockInputSchema.safeParse(body);
+  if (!result.success) {
+    const issue = result.error.issues[0];
+    const path = issue?.path[0];
+    if (path === "intervalUnit") {
+      return { field: "intervalUnit", message: "Invalid interval unit" };
+    }
+    if (path === "intervalValue") {
+      return {
+        field: "intervalValue",
+        message: "Interval value must be a positive integer",
+      };
+    }
+    if (path === "prompt") {
+      return { field: "prompt", message: "Prompt is required" };
+    }
+    return { field: "prompt", message: "Invalid input" };
+  }
 
-  if (typeof prompt !== "string" || !prompt.trim()) {
+  const { prompt, intervalValue, intervalUnit, runnerConfig } = result.data;
+
+  if (!prompt.trim()) {
     return { field: "prompt", message: "Prompt is required" };
   }
 
-  if (
-    typeof intervalValue !== "number" ||
-    !Number.isInteger(intervalValue) ||
-    intervalValue <= 0
-  ) {
+  if (!Number.isInteger(intervalValue) || intervalValue <= 0) {
     return {
       field: "intervalValue",
       message: "Interval value must be a positive integer",
     };
-  }
-
-  if (
-    typeof intervalUnit !== "string" ||
-    !VALID_UNITS.has(intervalUnit as IntervalUnit)
-  ) {
-    return { field: "intervalUnit", message: "Invalid interval unit" };
   }
 
   const parsed = parseRunnerConfig(runnerConfig);
@@ -55,7 +59,7 @@ export function parseBlockInput(
   return {
     prompt: prompt.trim(),
     intervalValue,
-    intervalUnit: intervalUnit as IntervalUnit,
+    intervalUnit,
     ...(parsed ? { runnerConfig: parsed } : {}),
   };
 }
@@ -70,6 +74,16 @@ export type ParseRunnerConfigOptions = {
   allowCwd?: boolean;
 };
 
+// Lenient schema for parseRunnerConfig — env accepts unknown values so we can
+// filter non-strings manually (matching the original lenient parsing behavior).
+const LenientRunnerConfigSchema = z.object({
+  cwd: z.optional(z.string()),
+  model: z.optional(z.string()),
+  permissions: z.optional(z.enum(["default", "dangerouslySkipPermissions"])),
+  env: z.optional(z.record(z.string(), z.unknown())),
+  timeout: z.optional(z.number()),
+});
+
 export function parseRunnerConfig(
   raw: unknown,
   options?: ParseRunnerConfigOptions,
@@ -77,32 +91,31 @@ export function parseRunnerConfig(
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
 
   const { allowCwd = true } = options ?? {};
-  const obj = raw as Record<string, unknown>;
+  const result = LenientRunnerConfigSchema.safeParse(raw);
+  if (!result.success) return null;
+
   const config: RunnerConfig = {};
   let hasKeys = false;
 
-  if (allowCwd && typeof obj.cwd === "string" && obj.cwd.trim()) {
-    config.cwd = obj.cwd.trim();
+  if (allowCwd && result.data.cwd?.trim()) {
+    config.cwd = result.data.cwd.trim();
     hasKeys = true;
   }
 
-  if (typeof obj.model === "string" && obj.model.trim()) {
-    config.model = obj.model.trim();
+  if (result.data.model?.trim()) {
+    config.model = result.data.model.trim();
     hasKeys = true;
   }
 
-  if (
-    typeof obj.permissions === "string" &&
-    VALID_PERMISSIONS.has(obj.permissions as PermissionMode)
-  ) {
-    config.permissions = obj.permissions as PermissionMode;
+  if (result.data.permissions) {
+    config.permissions = result.data.permissions;
     hasKeys = true;
   }
 
-  if (obj.env && typeof obj.env === "object" && !Array.isArray(obj.env)) {
+  if (result.data.env && typeof result.data.env === "object") {
     const env: Record<string, string> = {};
     let envHasKeys = false;
-    for (const [key, value] of Object.entries(obj.env)) {
+    for (const [key, value] of Object.entries(result.data.env)) {
       if (typeof value === "string") {
         env[key] = value;
         envHasKeys = true;
@@ -114,8 +127,8 @@ export function parseRunnerConfig(
     }
   }
 
-  if (typeof obj.timeout === "number" && obj.timeout > 0) {
-    config.timeout = obj.timeout;
+  if (result.data.timeout !== undefined && result.data.timeout > 0) {
+    config.timeout = result.data.timeout;
     hasKeys = true;
   }
 

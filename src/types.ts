@@ -1,16 +1,29 @@
+import { z } from "zod/mini";
+
 export type IntervalUnit = "minutes" | "hours" | "days";
 export type BlockStatus = "idle" | "running" | "success" | "error";
 export type PermissionMode = "default" | "dangerouslySkipPermissions";
 
 export const ENV_INHERIT_SENTINEL = "$__FLOUDECK_INHERIT__";
 
-export type RunnerConfig = {
-  cwd?: string;
-  model?: string;
-  permissions?: PermissionMode;
-  env?: Record<string, string>;
-  timeout?: number;
-};
+export const RunnerConfigSchema = z.object({
+  cwd: z.optional(z.string()),
+  model: z.optional(z.string()),
+  permissions: z.optional(z.enum(["default", "dangerouslySkipPermissions"])),
+  env: z.optional(z.record(z.string(), z.string())),
+  timeout: z.optional(z.number()),
+});
+
+export type RunnerConfig = z.infer<typeof RunnerConfigSchema>;
+
+export function safeParseRunnerConfig(raw: string): RunnerConfig | null {
+  try {
+    const result = RunnerConfigSchema.safeParse(JSON.parse(raw));
+    return result.success ? result.data : null;
+  } catch {
+    return null;
+  }
+}
 
 export type ResolvedRunnerConfig = {
   cwd: string;
