@@ -59,6 +59,15 @@ export type RunResult =
   | { ok: true; markdown: string; reasoning: string | null }
   | { ok: false; error: string; stderr?: string };
 
+export const DisplaySettingsSchema = z.object({
+  dateFormat: z.optional(
+    z.enum(["D. M. YYYY", "YYYY-MM-DD", "DD/MM/YYYY", "MM/DD/YYYY"]),
+  ),
+  timeFormat: z.optional(z.enum(["24h", "12h"])),
+});
+
+export type DisplaySettings = z.infer<typeof DisplaySettingsSchema>;
+
 export type RunBlockFn = (
   prompt: string,
   config: ResolvedRunnerConfig,
