@@ -1,9 +1,5 @@
 # TODO
 
-## ~~Runner configuration~~ (done)
-
-- ~~Allow configuring the `claude` invocation: `--dangerously-skip-permissions`, `--sandbox`, `cwd`, and other useful flags per block or globally~~
-
 ## Real-time output streaming
 
 - Stream claude's stdout in real-time so users can watch blocks being processed
@@ -42,7 +38,7 @@
 ## Settings
 
 — Have settings page with default for:
-  - runner
+  - ~~runner~~ (done — global runner settings modal)
   - date & time formats
   - other stuff, if needed (should be flexible and easy to add more)
 
@@ -79,5 +75,5 @@
 - **History** — per-card run history with timestamps and past outputs
 - **Advanced scheduling** — exceptions, start/end dates, self-destroying cards, cron-like expressions
 - **Cost tracking** — track API cost for the whole system and per card
-- **Claude Code SDK** — should we use CC SDK instead of CLI?
+- **Claude Code SDK** — should we use CC SDK instead of CLI? This would also enable proper permission handling (detecting permission requests, asking user to allow/deny, remembering choices for future runs)
 - **Other tools/AI** — allow user to specify what tool/script to use/run; eventually we can also support regular AI over API/Ollama and so on (but that's quite complex)

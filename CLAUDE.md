@@ -4,7 +4,7 @@
 
 ## What is this
 
-Floudeck is a local PoC: a Bun app that runs scheduled prompts through Claude Code CLI and renders GFM markdown output in a feed. See SPEC.md for product spec, PLAN.md for implementation plan.
+Floudeck is a local PoC: a Bun app that runs scheduled prompts through Claude Code CLI and renders GFM markdown output in a feed. See SPEC.md for product spec.
 
 ## Stack
 
