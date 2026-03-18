@@ -1,5 +1,19 @@
 # TODO
 
+## Date & time
+
+- Add date & time (24h format for now; later configurable) to the header (on the right side)
+- When date is hovered, show a tiny calendar widget in popover (nice-to-have; we will re-use it later on when implementing reminders, exceptions etc.)
+
+## Settings
+
+— Have settings modal with default for:
+  - ~~runner~~ (done — global runner settings modal)
+  - date & time formats
+  - other stuff, if needed (should be flexible and easy to add more)
+  
+---
+
 ## Drag & drop block reordering
 
 - Add drag handle (e.g. `DotsSixVertical` icon from Phosphor) to the left of each card, outside the card boundary, visible on hover
@@ -8,16 +22,7 @@
 - API: `POST /blocks/reorder` accepts `{ id, position }` or a full ordered id array; server recalculates positions
 - Keep positions sparse (e.g. multiples of 1000) to avoid rewriting all rows on every reorder
 
-## Real-time output streaming
-
-- Stream claude's stdout in real-time so users can watch blocks being processed
-- Requires per-block SSE streaming or a log file the UI can tail
-- Helps users fine-tune prompts by seeing what's happening during execution
-
-## Date & time
-
-- Add date & time (24h format for now; later configurable) to the header (on the right side)
-- When date is hovered, show a tiny calendar widget in popover (nice-to-have; we will re-use it later on when implementing reminders, exceptions etc.)
+---
 
 ## Improve how scheduling works
 
@@ -43,12 +48,13 @@
 - Add ability to manually trigger an update of all blocks
 - Be aware of possible rate limits => update blocks serially or in batches; if there are 20 blocks, updating all of them at exactly same moment wouldn't be good idea!
 
-## Settings
+---
 
-— Have settings page with default for:
-  - ~~runner~~ (done — global runner settings modal)
-  - date & time formats
-  - other stuff, if needed (should be flexible and easy to add more)
+## Custom actions
+
+- Per-card and per-item actions (prompt-based, running another `claude` instance; or shell commands); can render additional UI in a modal or fullscreen
+
+---
 
 ## Packaging
 
@@ -62,9 +68,7 @@
   - Where to release?
   - How to do updates? At that point, we need db migrations?
 
-## Custom actions
-
-- Per-card and per-item actions (prompt-based, running another `claude` instance; or shell commands); can render additional UI in a modal or fullscreen
+---
 
 ## Implement ability to also prompt scripts that will provide the output
 
@@ -72,6 +76,12 @@
 - We would have some folder where these scripts could be saved safely
 - We would still save the prompt but we als need some flag & field to have the script saved there
 - In case the script still need some conditional reasoning, it can call nested `claude` instance with some input/output logic
+
+## Real-time output streaming
+
+- Stream claude's stdout in real-time so users can watch blocks being processed
+- Requires per-block SSE streaming or a log file the UI can tail
+- Helps users fine-tune prompts by seeing what's happening during execution
 
 ## Post-PoC
 
