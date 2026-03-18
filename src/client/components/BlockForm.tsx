@@ -1,6 +1,11 @@
 import { useState } from "react";
 import type { RunnerConfig } from "../../types.ts";
-import { ENV_INHERIT_SENTINEL } from "../../types.ts";
+import {
+  type EnvEntry,
+  entriesToEnv,
+  parseEnvEntries,
+  RunnerConfigFields,
+} from "./RunnerConfigFields.tsx";
 
 type BlockFormData = {
   prompt: string;
@@ -18,30 +23,6 @@ type BlockFormProps = {
   onSubmit: (data: BlockFormData) => Promise<{ error?: string }>;
   onCancel?: () => void;
 };
-
-type EnvEntry = { id: number; key: string; value: string; inherit: boolean };
-
-let nextEnvId = 1;
-
-function parseEnvEntries(env?: Record<string, string>): EnvEntry[] {
-  if (!env || Object.keys(env).length === 0) return [];
-  return Object.entries(env).map(([key, value]) => ({
-    id: nextEnvId++,
-    key,
-    value: value === ENV_INHERIT_SENTINEL ? "" : value,
-    inherit: value === ENV_INHERIT_SENTINEL,
-  }));
-}
-
-function entriesToEnv(entries: EnvEntry[]): Record<string, string> | undefined {
-  const filtered = entries.filter((e) => e.key.trim());
-  if (filtered.length === 0) return undefined;
-  const env: Record<string, string> = {};
-  for (const entry of filtered) {
-    env[entry.key.trim()] = entry.inherit ? ENV_INHERIT_SENTINEL : entry.value;
-  }
-  return env;
-}
 
 export function BlockForm({
   initialPrompt = "",
@@ -134,25 +115,6 @@ export function BlockForm({
     setLoading(false);
   }
 
-  function addEnvEntry() {
-    setEnvEntries([
-      ...envEntries,
-      { id: nextEnvId++, key: "", value: "", inherit: false },
-    ]);
-  }
-
-  function removeEnvEntry(index: number) {
-    setEnvEntries(envEntries.filter((_, i) => i !== index));
-  }
-
-  function updateEnvEntry(index: number, updates: Partial<EnvEntry>) {
-    setEnvEntries(
-      envEntries.map((entry, i) =>
-        i === index ? { ...entry, ...updates } : entry,
-      ),
-    );
-  }
-
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <textarea
@@ -211,33 +173,16 @@ export function BlockForm({
 
       {showAdvanced && (
         <div className="space-y-3 rounded-lg border border-zinc-100 bg-zinc-50/50 p-3">
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block">
-              <span className="mb-1 block text-xs font-medium text-zinc-500">
-                Model
-              </span>
-              <input
-                type="text"
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                placeholder="sonnet"
-                className="w-full rounded border border-zinc-200 px-2 py-1 text-sm placeholder:text-zinc-300 focus:border-zinc-400 focus:outline-none"
-              />
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-xs font-medium text-zinc-500">
-                Timeout (seconds)
-              </span>
-              <input
-                type="number"
-                min={1}
-                value={timeout}
-                onChange={(e) => setTimeout_(e.target.value)}
-                placeholder="60"
-                className="w-full rounded border border-zinc-200 px-2 py-1 text-sm placeholder:text-zinc-300 focus:border-zinc-400 focus:outline-none"
-              />
-            </label>
-          </div>
+          <RunnerConfigFields
+            model={model}
+            onModelChange={setModel}
+            timeout={timeout}
+            onTimeoutChange={setTimeout_}
+            permissions={permissions}
+            onPermissionsChange={setPermissions}
+            envEntries={envEntries}
+            onEnvChange={setEnvEntries}
+          />
 
           <label className="block">
             <span className="mb-1 block text-xs font-medium text-zinc-500">
@@ -248,87 +193,9 @@ export function BlockForm({
               value={cwd}
               onChange={(e) => setCwd(e.target.value)}
               placeholder="Default: ~/.floudeck/blocks-workspace/{uuid}"
-              className="w-full rounded border border-zinc-200 px-2 py-1 text-sm placeholder:text-zinc-300 focus:border-zinc-400 focus:outline-none"
+              className="w-full rounded border border-zinc-200 px-2 py-1.5 text-sm placeholder:text-zinc-300 focus:border-zinc-400 focus:outline-none"
             />
           </label>
-
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium text-zinc-500">
-              Permissions
-            </span>
-            <select
-              value={permissions}
-              onChange={(e) => setPermissions(e.target.value)}
-              className="w-full rounded border border-zinc-200 px-2 py-1 text-sm focus:border-zinc-400 focus:outline-none"
-            >
-              <option value="">Default (sandbox)</option>
-              <option value="sandbox">Sandbox</option>
-              <option value="dangerouslySkipPermissions">
-                Skip permissions
-              </option>
-            </select>
-          </label>
-
-          {/* Environment variables */}
-          <div>
-            <div className="mb-1 flex items-center justify-between">
-              <span className="text-xs font-medium text-zinc-500">
-                Environment variables
-              </span>
-              <button
-                type="button"
-                onClick={addEnvEntry}
-                className="text-xs text-zinc-400 hover:text-zinc-600"
-              >
-                + Add
-              </button>
-            </div>
-            {envEntries.map((entry, i) => (
-              <div key={entry.id} className="mb-1 flex items-center gap-1">
-                <input
-                  type="text"
-                  value={entry.key}
-                  onChange={(e) => updateEnvEntry(i, { key: e.target.value })}
-                  placeholder="KEY"
-                  className="w-28 rounded border border-zinc-200 px-2 py-1 text-xs font-mono focus:border-zinc-400 focus:outline-none"
-                />
-                <span className="text-zinc-300">=</span>
-                {entry.inherit ? (
-                  <span className="flex-1 rounded border border-dashed border-zinc-200 px-2 py-1 text-xs text-zinc-400">
-                    from system
-                  </span>
-                ) : (
-                  <input
-                    type="text"
-                    value={entry.value}
-                    onChange={(e) =>
-                      updateEnvEntry(i, { value: e.target.value })
-                    }
-                    placeholder="value"
-                    className="flex-1 rounded border border-zinc-200 px-2 py-1 text-xs font-mono focus:border-zinc-400 focus:outline-none"
-                  />
-                )}
-                <label className="flex items-center gap-1 text-xs text-zinc-400">
-                  <input
-                    type="checkbox"
-                    checked={entry.inherit}
-                    onChange={(e) =>
-                      updateEnvEntry(i, { inherit: e.target.checked })
-                    }
-                    className="rounded"
-                  />
-                  inherit
-                </label>
-                <button
-                  type="button"
-                  onClick={() => removeEnvEntry(i)}
-                  className="text-xs text-zinc-300 hover:text-red-500"
-                >
-                  x
-                </button>
-              </div>
-            ))}
-          </div>
         </div>
       )}
 
