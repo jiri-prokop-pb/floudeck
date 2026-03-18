@@ -1,3 +1,4 @@
+import { Gear } from "@phosphor-icons/react";
 import { useCallback, useEffect, useState } from "react";
 import type { BlockRecord } from "../../types.ts";
 import { fetchBlock, fetchBlocks } from "../lib/api.ts";
@@ -72,20 +73,7 @@ export function App() {
             className="mt-1 flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-200 hover:text-zinc-600"
             title="Settings"
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <title>Settings</title>
-              <circle cx="8" cy="8" r="2.5" />
-              <path d="M6.8 1.5h2.4l.3 1.8.9.4 1.5-1 1.7 1.7-1 1.5.4.9 1.8.3v2.4l-1.8.3-.4.9 1 1.5-1.7 1.7-1.5-1-.9.4-.3 1.8H6.8l-.3-1.8-.9-.4-1.5 1-1.7-1.7 1-1.5-.4-.9-1.8-.3V6.4l1.8-.3.4-.9-1-1.5 1.7-1.7 1.5 1 .9-.4z" />
-            </svg>
+            <Gear size={16} weight="bold" />
           </button>
         </header>
 

@@ -1,5 +1,7 @@
+import { Info, List } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
-import type { BlockRecord, RunnerConfig } from "../../types.ts";
+import type { BlockRecord } from "../../types.ts";
+import { safeParseRunnerConfig } from "../../types.ts";
 import { useClickOutside } from "../hooks/useClickOutside.ts";
 import { deleteBlockApi, refreshBlockApi, updateBlockApi } from "../lib/api.ts";
 import {
@@ -16,13 +18,9 @@ type BlockCardProps = {
   onDelete: (id: number) => void;
 };
 
-function parseRunnerConfig(block: BlockRecord): RunnerConfig | undefined {
+function getBlockRunnerConfig(block: BlockRecord) {
   if (!block.runner_config) return undefined;
-  try {
-    return JSON.parse(block.runner_config) as RunnerConfig;
-  } catch {
-    return undefined;
-  }
+  return safeParseRunnerConfig(block.runner_config) ?? undefined;
 }
 
 export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
@@ -67,7 +65,7 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
               {block.status === "running" ? (
                 <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-green-300 border-t-green-600" />
               ) : (
-                "\u24D8"
+                <Info size={16} weight="bold" />
               )}
             </button>
             {showInfo && (
@@ -108,20 +106,7 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
               className="flex h-7 w-7 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 text-sm"
               title="Menu"
             >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 14 14"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              >
-                <title>Menu</title>
-                <line x1="2" y1="3.5" x2="12" y2="3.5" />
-                <line x1="2" y1="7" x2="12" y2="7" />
-                <line x1="2" y1="10.5" x2="12" y2="10.5" />
-              </svg>
+              <List size={14} weight="bold" />
             </button>
             {showMenu && (
               <div className="absolute right-0 top-8 w-36 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg">
@@ -163,7 +148,7 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
             initialPrompt={block.prompt}
             initialIntervalValue={block.interval_value}
             initialIntervalUnit={block.interval_unit}
-            initialRunnerConfig={parseRunnerConfig(block)}
+            initialRunnerConfig={getBlockRunnerConfig(block)}
             blockUuid={block.uuid}
             submitLabel="Save"
             onCancel={() => setEditing(false)}

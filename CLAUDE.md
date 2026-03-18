@@ -84,6 +84,8 @@ Record non-obvious decisions here as they come up during implementation. Format:
 - **README screenshot**: Run `bun run scripts/screenshot.ts` to regenerate `docs/screenshot.png`. Do this when changing app visuals/functionality.
 - **`marked` for markdown**: Switched from `sanitize-html` to `marked` for client-side GFM rendering. Custom renderer strips raw HTML tokens. Title extracted from first `# Heading` in output.
 - **Markdown XSS model**: Links and images with `javascript:` URLs are rendered as-is because Claude's output is trusted. If the app becomes user-editable or public-facing, add link sanitization (e.g., custom `marked` link renderer that rejects non-http(s) schemes).
+- **zod/mini for JSON parsing**: All `JSON.parse` of structured data uses `zod/mini` schema (`safeParse`). Never cast parsed JSON with `as`. Schemas live in `types.ts` next to derived types.
+- **@phosphor-icons/react**: All icons use `@phosphor-icons/react` with `weight="bold"`. No inline SVGs or Unicode icon characters.
 
 ## Testability architecture
 

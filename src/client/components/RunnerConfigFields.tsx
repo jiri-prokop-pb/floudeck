@@ -1,3 +1,4 @@
+import { X } from "@phosphor-icons/react";
 import { ENV_INHERIT_SENTINEL } from "../../types.ts";
 
 export type EnvEntry = {
@@ -188,7 +189,7 @@ export function RunnerConfigFields({
               onClick={() => removeEntry(envEntries, i, onEnvChange)}
               className="text-xs text-zinc-300 hover:text-red-500"
             >
-              x
+              <X size={12} weight="bold" />
             </button>
           </div>
         ))}
