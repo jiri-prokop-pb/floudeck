@@ -64,14 +64,14 @@ Record non-obvious decisions here as they come up during implementation. Format:
 - **Tailwind v4**: CSS uses `@import "tailwindcss"` (not v3 `@tailwind` directives). `tailwindcss` must be a runtime dependency.
 - **Bun HTML imports**: Server uses `import homepage from "./client/index.html"` + `routes: { "/": homepage }` for bundling. Raw `Bun.file()` serving won't bundle TSX/CSS.
 - **`--append-system-prompt`**: Runner uses `--append-system-prompt` (not `--system-prompt`) to keep Claude Code's default system prompt intact.
-- **`--dangerously-skip-permissions`**: Was hardcoded, now configurable. Default permission mode is `sandbox`.
-- **`--sandbox` not in CLI yet**: Claude Code CLI (v2.1.76) has no `--sandbox` flag. Sandbox mode omits any permission flag (Claude's default in `--print` mode is restricted). TODO: use `--sandbox` once available.
+- **`--dangerously-skip-permissions`**: Was hardcoded, now configurable. Default permission mode is `"default"`.
+- **Permission modes**: Two modes: `"default"` (no flag — respects user's Claude Code settings including sandbox) and `"dangerouslySkipPermissions"` (passes `--dangerously-skip-permissions`). Sandbox is configured in Claude Code's own settings.json, not by Floudeck.
 - **Runner config JSON column**: `blocks.runner_config` stores a nullable JSON `RunnerConfig` object. Lenient parsing — unknown keys are silently ignored.
 - **Global runner defaults**: Stored in `settings` table under key `runner_defaults`. Per-block config overrides global, global overrides hardcoded defaults.
 - **cwd not global**: Working directory is per-block only (block override or auto-generated `~/.floudeck/blocks-workspace/{uuid}`). Global settings don't include cwd.
 - **Env inherit sentinel**: `$__FLOUDECK_INHERIT__` sentinel value in env config means "read this key from the host process environment at runtime".
 - **Block UUIDs**: Each block gets a `uuid` column (generated via `crypto.randomUUID()`) used for workspace directory naming.
-- **Sandbox env isolation**: In sandbox mode, custom env vars only get `PATH` + `HOME` from parent (not full `process.env`). In skip-permissions mode, full parent env is spread.
+- **Default mode env isolation**: In `"default"` mode, custom env vars only get `PATH` + `HOME` from parent (not full `process.env`). In skip-permissions mode, full parent env is spread.
 - **Global settings exclude cwd**: `parseRunnerConfig` accepts `{ allowCwd }` option. Global settings endpoint passes `allowCwd: false` to prevent storing cwd (per-block only).
 - **`proc.killed` unreliable in Bun**: Timeout detection uses an explicit `timedOut` flag instead of `proc.killed` which reports true even for normally exited processes.
 - **SSE idle timeout**: `Bun.serve()` needs `idleTimeout: 255` to prevent SSE connections from being dropped after 10s default.

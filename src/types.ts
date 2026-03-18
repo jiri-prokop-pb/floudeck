@@ -1,6 +1,6 @@
 export type IntervalUnit = "minutes" | "hours" | "days";
 export type BlockStatus = "idle" | "running" | "success" | "error";
-export type PermissionMode = "sandbox" | "dangerouslySkipPermissions";
+export type PermissionMode = "default" | "dangerouslySkipPermissions";
 
 export const ENV_INHERIT_SENTINEL = "$__FLOUDECK_INHERIT__";
 

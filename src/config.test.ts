@@ -14,7 +14,7 @@ describe("resolveRunnerConfig", () => {
   test("returns hardcoded defaults when no global or block config", () => {
     const result = resolveRunnerConfig(null, null, uuid);
     expect(result.model).toBe("sonnet");
-    expect(result.permissions).toBe("sandbox");
+    expect(result.permissions).toBe("default");
     expect(result.timeout).toBe(60);
     expect(result.env).toEqual({});
     expect(result.cwd).toContain(uuid);
@@ -100,7 +100,7 @@ describe("buildCliArgs", () => {
   const baseConfig: ResolvedRunnerConfig = {
     cwd: "/tmp/test",
     model: "sonnet",
-    permissions: "sandbox",
+    permissions: "default",
     env: {},
     timeout: 60,
   };
@@ -144,7 +144,7 @@ describe("formatCliCommand", () => {
   const baseConfig: ResolvedRunnerConfig = {
     cwd: "/tmp/test",
     model: "sonnet",
-    permissions: "sandbox",
+    permissions: "default",
     env: {},
     timeout: 60,
   };

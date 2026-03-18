@@ -234,12 +234,12 @@ describe("POST /api/settings/runner", () => {
   test("saves valid config", async () => {
     const res = await router(
       req("POST", "/api/settings/runner", {
-        config: { model: "sonnet", permissions: "sandbox" },
+        config: { model: "sonnet", permissions: "default" },
       }),
     );
     const data = await res!.json();
     expect(data.ok).toBe(true);
-    expect(data.config).toEqual({ model: "sonnet", permissions: "sandbox" });
+    expect(data.config).toEqual({ model: "sonnet", permissions: "default" });
   });
 
   test("strips cwd from global settings", async () => {
@@ -286,7 +286,7 @@ describe("GET /api/blocks/:id enriched", () => {
     const data = await res!.json();
     expect(data.resolvedConfig).toBeDefined();
     expect(data.resolvedConfig.model).toBe("sonnet");
-    expect(data.resolvedConfig.permissions).toBe("sandbox");
+    expect(data.resolvedConfig.permissions).toBe("default");
     expect(data.cliCommand).toContain("claude");
     expect(data.cliCommand).toContain("--model");
   });

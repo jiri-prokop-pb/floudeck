@@ -35,13 +35,11 @@ export function createCliRunner(): RunBlockFn {
 
     // Env handling depends on permission mode:
     // - dangerouslySkipPermissions: full parent env + custom vars (unrestricted)
-    // - sandbox: minimal env (PATH + HOME) + custom vars only
+    // - default: minimal env (PATH + HOME) + custom vars only
     const hasCustomEnv = Object.keys(config.env).length > 0;
     let spawnEnv: Record<string, string | undefined> | undefined;
     if (config.permissions === "dangerouslySkipPermissions") {
-      spawnEnv = hasCustomEnv
-        ? { ...process.env, ...config.env }
-        : undefined;
+      spawnEnv = hasCustomEnv ? { ...process.env, ...config.env } : undefined;
     } else if (hasCustomEnv) {
       spawnEnv = {
         PATH: process.env.PATH,

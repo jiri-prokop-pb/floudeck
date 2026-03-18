@@ -117,8 +117,8 @@ export function RunnerConfigFields({
           onChange={(e) => onPermissionsChange(e.target.value)}
           className="w-full rounded border border-zinc-200 px-2 py-1.5 text-sm focus:border-zinc-400 focus:outline-none"
         >
-          <option value="">Default (sandbox)</option>
-          <option value="sandbox">Sandbox</option>
+          <option value="">Default</option>
+          <option value="default">Default (use Claude settings)</option>
           <option value="dangerouslySkipPermissions">Skip permissions</option>
         </select>
       </label>

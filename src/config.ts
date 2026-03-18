@@ -9,7 +9,7 @@ const WORKSPACE_ROOT = `${homedir()}/.floudeck/blocks-workspace`;
 const HARDCODED_DEFAULTS: ResolvedRunnerConfig = {
   cwd: "", // placeholder — resolved per-block via blockUuid
   model: "sonnet",
-  permissions: "sandbox",
+  permissions: "default",
   env: {},
   timeout: 60,
 };
@@ -62,8 +62,8 @@ export function buildCliArgs(
   if (config.permissions === "dangerouslySkipPermissions") {
     args.push("--dangerously-skip-permissions");
   }
-  // "sandbox" mode: no flag needed — Claude's default in --print mode is restricted.
-  // TODO: use --sandbox once it becomes available in the CLI.
+  // "default" mode: no permission flag — respects user's Claude Code settings
+  // (including sandbox if configured via /sandbox or settings.json).
 
   args.push("--model", config.model);
   args.push("--append-system-prompt", SYSTEM_PROMPT);

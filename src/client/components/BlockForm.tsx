@@ -68,7 +68,7 @@ export function BlockForm({
       hasKeys = true;
     }
     if (
-      permissions === "sandbox" ||
+      permissions === "default" ||
       permissions === "dangerouslySkipPermissions"
     ) {
       config.permissions = permissions;
