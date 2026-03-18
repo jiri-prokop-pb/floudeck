@@ -1,6 +1,10 @@
 import { z } from "zod/mini";
-import type { CreateBlockInput, RunnerConfig } from "./types.ts";
-import { RunnerConfigSchema } from "./types.ts";
+import type {
+  CreateBlockInput,
+  DisplaySettings,
+  RunnerConfig,
+} from "./types.ts";
+import { DisplaySettingsSchema, RunnerConfigSchema } from "./types.ts";
 
 const VALID_UNITS = ["minutes", "hours", "days"] as const;
 
@@ -146,4 +150,38 @@ export function safeParseRunnerConfig(
   } catch {
     return undefined;
   }
+}
+
+export function safeParseDisplaySettings(
+  raw: string | null,
+): DisplaySettings | undefined {
+  if (!raw) return undefined;
+  try {
+    const result = DisplaySettingsSchema.safeParse(JSON.parse(raw));
+    return result.success ? result.data : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function parseDisplaySettings(
+  raw: unknown,
+): DisplaySettings | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const result = DisplaySettingsSchema.safeParse(raw);
+  if (!result.success) return null;
+
+  const config: DisplaySettings = {};
+  let hasKeys = false;
+
+  if (result.data.dateFormat) {
+    config.dateFormat = result.data.dateFormat;
+    hasKeys = true;
+  }
+  if (result.data.timeFormat) {
+    config.timeFormat = result.data.timeFormat;
+    hasKeys = true;
+  }
+
+  return hasKeys ? config : null;
 }
