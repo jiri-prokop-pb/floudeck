@@ -1,9 +1,10 @@
 import { Gear } from "@phosphor-icons/react";
 import { useCallback, useEffect, useState } from "react";
-import type { BlockRecord } from "../../types.ts";
-import { fetchBlock, fetchBlocks } from "../lib/api.ts";
+import type { BlockRecord, DisplaySettings } from "../../types.ts";
+import { fetchBlock, fetchBlocks, fetchDisplaySettings } from "../lib/api.ts";
 import { CreateBlockForm } from "./CreateBlockForm.tsx";
 import { Feed } from "./Feed.tsx";
+import { HeaderClock } from "./HeaderClock.tsx";
 import { Modal } from "./Modal.tsx";
 import { SettingsModal } from "./SettingsModal.tsx";
 
@@ -11,6 +12,17 @@ export function App() {
   const [blocks, setBlocks] = useState<BlockRecord[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [displaySettings, setDisplaySettings] = useState<DisplaySettings>({
+    dateFormat: "D. M. YYYY",
+    timeFormat: "24h",
+  });
+
+  const refetchDisplaySettings = useCallback(async () => {
+    const settings = await fetchDisplaySettings();
+    if (settings) {
+      setDisplaySettings(settings);
+    }
+  }, []);
 
   const refetchBlocks = useCallback(async () => {
     const data = await fetchBlocks();
@@ -28,7 +40,8 @@ export function App() {
 
   useEffect(() => {
     void refetchBlocks();
-  }, [refetchBlocks]);
+    void refetchDisplaySettings();
+  }, [refetchBlocks, refetchDisplaySettings]);
 
   useEffect(() => {
     const es = new EventSource("/api/events");
@@ -67,14 +80,17 @@ export function App() {
               Your deck of signals and actions
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowSettings(true)}
-            className="mt-1 flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-200 hover:text-zinc-600"
-            title="Settings"
-          >
-            <Gear size={16} weight="bold" />
-          </button>
+          <div className="flex items-center gap-2">
+            <HeaderClock displaySettings={displaySettings} />
+            <button
+              type="button"
+              onClick={() => setShowSettings(true)}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-200 hover:text-zinc-600"
+              title="Settings"
+            >
+              <Gear size={16} weight="bold" />
+            </button>
+          </div>
         </header>
 
         <Feed blocks={blocks} onUpdate={handleUpdate} onDelete={handleDelete} />
@@ -97,7 +113,10 @@ export function App() {
         )}
 
         {showSettings && (
-          <SettingsModal onClose={() => setShowSettings(false)} />
+          <SettingsModal
+            onClose={() => setShowSettings(false)}
+            onDisplaySettingsChanged={refetchDisplaySettings}
+          />
         )}
       </div>
     </div>
