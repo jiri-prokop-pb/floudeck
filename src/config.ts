@@ -84,7 +84,7 @@ export function formatCliCommand(
   // Truncate prompt for display
   const maxPromptLen = 80;
   const lastIdx = args.length - 1;
-  const promptArg = args[lastIdx]!;
+  const promptArg = args[lastIdx] ?? "";
   if (promptArg.length > maxPromptLen) {
     args[lastIdx] = `${promptArg.slice(0, maxPromptLen)}...`;
   }

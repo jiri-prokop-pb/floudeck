@@ -1,7 +1,7 @@
 import { Info, List } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
 import type { BlockRecord } from "../../types.ts";
-import { safeParseRunnerConfig } from "../../types.ts";
+import { safeParseRunnerConfig } from "../../validate.ts";
 import { useClickOutside } from "../hooks/useClickOutside.ts";
 import { deleteBlockApi, refreshBlockApi, updateBlockApi } from "../lib/api.ts";
 import {
@@ -17,11 +17,6 @@ type BlockCardProps = {
   onUpdate: (block: BlockRecord) => void;
   onDelete: (id: number) => void;
 };
-
-function getBlockRunnerConfig(block: BlockRecord) {
-  if (!block.runner_config) return undefined;
-  return safeParseRunnerConfig(block.runner_config) ?? undefined;
-}
 
 export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
   const [editing, setEditing] = useState(false);
@@ -148,7 +143,7 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
             initialPrompt={block.prompt}
             initialIntervalValue={block.interval_value}
             initialIntervalUnit={block.interval_unit}
-            initialRunnerConfig={getBlockRunnerConfig(block)}
+            initialRunnerConfig={safeParseRunnerConfig(block.runner_config)}
             blockUuid={block.uuid}
             submitLabel="Save"
             onCancel={() => setEditing(false)}

@@ -20,6 +20,11 @@ beforeEach(() => {
   });
 });
 
+async function jsonBody(res: Response | null) {
+  expect(res).not.toBeNull();
+  return res?.json();
+}
+
 function req(method: string, path: string, body?: unknown): Request {
   const init: RequestInit = { method };
   if (body) {
@@ -32,8 +37,7 @@ function req(method: string, path: string, body?: unknown): Request {
 describe("GET /api/blocks", () => {
   test("returns empty list", async () => {
     const res = await router(req("GET", "/api/blocks"));
-    expect(res).not.toBeNull();
-    const data = await res!.json();
+    const data = await jsonBody(res);
     expect(data.ok).toBe(true);
     expect(data.blocks).toEqual([]);
   });
@@ -47,7 +51,7 @@ describe("GET /api/blocks", () => {
       }),
     );
     const res = await router(req("GET", "/api/blocks"));
-    const data = await res!.json();
+    const data = await jsonBody(res);
     expect(data.blocks).toHaveLength(1);
     expect(data.blocks[0].prompt).toBe("test");
   });
@@ -62,16 +66,16 @@ describe("GET /api/blocks/:id", () => {
         intervalUnit: "hours",
       }),
     );
-    const created = await createRes!.json();
+    const created = await jsonBody(createRes);
     const res = await router(req("GET", `/api/blocks/${created.block.id}`));
-    const data = await res!.json();
+    const data = await jsonBody(res);
     expect(data.ok).toBe(true);
     expect(data.block.prompt).toBe("find me");
   });
 
   test("returns 404 for missing id", async () => {
     const res = await router(req("GET", "/api/blocks/999"));
-    expect(res!.status).toBe(404);
+    expect(res?.status).toBe(404);
   });
 });
 
@@ -84,8 +88,8 @@ describe("POST /api/blocks", () => {
         intervalUnit: "minutes",
       }),
     );
-    expect(res!.status).toBe(201);
-    const data = await res!.json();
+    expect(res?.status).toBe(201);
+    const data = await jsonBody(res);
     expect(data.ok).toBe(true);
     expect(data.block.prompt).toBe("new block");
     expect(triggeredIds).toContain(data.block.id);
@@ -99,7 +103,7 @@ describe("POST /api/blocks", () => {
         intervalUnit: "weeks",
       }),
     );
-    expect(res!.status).toBe(400);
+    expect(res?.status).toBe(400);
   });
 
   test("rejects missing prompt", async () => {
@@ -109,7 +113,7 @@ describe("POST /api/blocks", () => {
         intervalUnit: "hours",
       }),
     );
-    expect(res!.status).toBe(400);
+    expect(res?.status).toBe(400);
   });
 });
 
@@ -122,7 +126,7 @@ describe("POST /api/blocks/:id/update", () => {
         intervalUnit: "hours",
       }),
     );
-    const { block } = await createRes!.json();
+    const { block } = await jsonBody(createRes);
 
     const res = await router(
       req("POST", `/api/blocks/${block.id}/update`, {
@@ -131,8 +135,8 @@ describe("POST /api/blocks/:id/update", () => {
         intervalUnit: "days",
       }),
     );
-    expect(res!.status).toBe(200);
-    const data = await res!.json();
+    expect(res?.status).toBe(200);
+    const data = await jsonBody(res);
     expect(data.block.prompt).toBe("new");
     expect(data.block.interval_value).toBe(2);
   });
@@ -145,7 +149,7 @@ describe("POST /api/blocks/:id/update", () => {
         intervalUnit: "hours",
       }),
     );
-    expect(res!.status).toBe(404);
+    expect(res?.status).toBe(404);
   });
 });
 
@@ -158,21 +162,21 @@ describe("POST /api/blocks/:id/delete", () => {
         intervalUnit: "hours",
       }),
     );
-    const { block } = await createRes!.json();
+    const { block } = await jsonBody(createRes);
 
     const res = await router(req("POST", `/api/blocks/${block.id}/delete`));
-    expect(res!.status).toBe(200);
-    const data = await res!.json();
+    expect(res?.status).toBe(200);
+    const data = await jsonBody(res);
     expect(data.ok).toBe(true);
 
     // Verify deleted
     const getRes = await router(req("GET", `/api/blocks/${block.id}`));
-    expect(getRes!.status).toBe(404);
+    expect(getRes?.status).toBe(404);
   });
 
   test("returns 404 for missing id", async () => {
     const res = await router(req("POST", "/api/blocks/999/delete"));
-    expect(res!.status).toBe(404);
+    expect(res?.status).toBe(404);
   });
 });
 
@@ -185,17 +189,17 @@ describe("POST /api/blocks/:id/refresh", () => {
         intervalUnit: "hours",
       }),
     );
-    const { block } = await createRes!.json();
+    const { block } = await jsonBody(createRes);
     triggeredIds = [];
 
     const res = await router(req("POST", `/api/blocks/${block.id}/refresh`));
-    expect(res!.status).toBe(200);
+    expect(res?.status).toBe(200);
     expect(triggeredIds).toContain(block.id);
   });
 
   test("returns 404 for missing id", async () => {
     const res = await router(req("POST", "/api/blocks/999/refresh"));
-    expect(res!.status).toBe(404);
+    expect(res?.status).toBe(404);
   });
 });
 
@@ -203,7 +207,7 @@ describe("GET /api/events", () => {
   test("returns SSE response headers", async () => {
     const res = await router(req("GET", "/api/events"));
     expect(res).not.toBeNull();
-    expect(res!.headers.get("Content-Type")).toBe("text/event-stream");
+    expect(res?.headers.get("Content-Type")).toBe("text/event-stream");
     sse.close();
   });
 });
@@ -211,7 +215,7 @@ describe("GET /api/events", () => {
 describe("GET /api/settings/runner", () => {
   test("returns null config when no settings set", async () => {
     const res = await router(req("GET", "/api/settings/runner"));
-    const data = await res!.json();
+    const data = await jsonBody(res);
     expect(data.ok).toBe(true);
     expect(data.config).toBeNull();
   });
@@ -223,7 +227,7 @@ describe("GET /api/settings/runner", () => {
       }),
     );
     const res = await router(req("GET", "/api/settings/runner"));
-    const data = await res!.json();
+    const data = await jsonBody(res);
     expect(data.ok).toBe(true);
     expect(data.config.model).toBe("opus");
     expect(data.config.timeout).toBe(120);
@@ -237,7 +241,7 @@ describe("POST /api/settings/runner", () => {
         config: { model: "sonnet", permissions: "default" },
       }),
     );
-    const data = await res!.json();
+    const data = await jsonBody(res);
     expect(data.ok).toBe(true);
     expect(data.config).toEqual({ model: "sonnet", permissions: "default" });
   });
@@ -248,12 +252,12 @@ describe("POST /api/settings/runner", () => {
         config: { model: "opus", cwd: "/should/be/stripped" },
       }),
     );
-    const data = await res!.json();
+    const data = await jsonBody(res);
     expect(data.ok).toBe(true);
     expect(data.config).toEqual({ model: "opus" });
     // Verify it's not stored
     const getRes = await router(req("GET", "/api/settings/runner"));
-    const getData = await getRes!.json();
+    const getData = await getRes?.json();
     expect(getData.config.cwd).toBeUndefined();
   });
 
@@ -267,7 +271,7 @@ describe("POST /api/settings/runner", () => {
     // Then clear it
     await router(req("POST", "/api/settings/runner", { config: null }));
     const res = await router(req("GET", "/api/settings/runner"));
-    const data = await res!.json();
+    const data = await jsonBody(res);
     expect(data.config).toBeNull();
   });
 });
@@ -281,9 +285,9 @@ describe("GET /api/blocks/:id enriched", () => {
         intervalUnit: "hours",
       }),
     );
-    const { block } = await createRes!.json();
+    const { block } = await jsonBody(createRes);
     const res = await router(req("GET", `/api/blocks/${block.id}`));
-    const data = await res!.json();
+    const data = await jsonBody(res);
     expect(data.resolvedConfig).toBeDefined();
     expect(data.resolvedConfig.model).toBe("sonnet");
     expect(data.resolvedConfig.permissions).toBe("default");
@@ -302,7 +306,7 @@ describe("POST /api/blocks with runnerConfig", () => {
         runnerConfig: { model: "opus", cwd: "/my/project" },
       }),
     );
-    const data = await res!.json();
+    const data = await jsonBody(res);
     expect(data.ok).toBe(true);
     const parsed = JSON.parse(data.block.runner_config);
     expect(parsed).toEqual({ model: "opus", cwd: "/my/project" });

@@ -1,5 +1,6 @@
 import { z } from "zod/mini";
 import type { CreateBlockInput, RunnerConfig } from "./types.ts";
+import { RunnerConfigSchema } from "./types.ts";
 
 const VALID_UNITS = ["minutes", "hours", "days"] as const;
 
@@ -133,4 +134,16 @@ export function parseRunnerConfig(
   }
 
   return hasKeys ? config : null;
+}
+
+export function safeParseRunnerConfig(
+  raw: string | null,
+): RunnerConfig | undefined {
+  if (!raw) return undefined;
+  try {
+    const result = RunnerConfigSchema.safeParse(JSON.parse(raw));
+    return result.success ? result.data : undefined;
+  } catch {
+    return undefined;
+  }
 }
