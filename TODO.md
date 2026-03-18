@@ -1,10 +1,56 @@
 # TODO
 
-## ~~Use markdown output instead of HTML~~ DONE
-
 ## Runner configuration
 
 - Allow configuring the `claude` invocation: `--dangerously-skip-permissions`, `--sandbox`, `cwd`, and other useful flags per block or globally
+
+## Date & time
+
+- Add date & time (24h format for now; later configurable) to the header (on the right side)
+- When date is hovered, show a tiny calendar widget in popover (nice-to-have; we will re-use it later on when implementing reminders, exceptions etc.)
+
+## Improve how scheduling works
+
+- For "days" unit, have field for at what hour, it should be triggered
+- For "hours" and "minutes", it should start at 0 of sub-units and always calculated from 0 of the unit itself
+- In order to avoid problems with rate limits, make sure that we queue update requests; do it serially or in small batches (2-3 updates at the time, but always offset slightly)
+  - This mechanism will be base for "Optimize scheduling" section, where we need similar thing
+- We just need eventual consistency, no perfect timing!
+- The queue should be smart enough to understand there is pending update for the same block and either remove it so only one remains or just "group" them and do a single update for it!
+- Client will show "refresh" indicator at the point when it asks for update (or rather when it's appears in queue and until it's fully processed!)
+
+## Optimize scheduling
+
+- Rework how scheduling works, controlled from the client and only update when Floudeck is visible
+- This is to optimize how often we trigger the updates
+- Basically when user have Floudeck somewhere on secondary monitor, update as frequently as possible (and as defined) 
+- We need some "smart" logic that will understand block requires an update (ie. when it becomes visible again) and it schedules it in background (and it indicates it on the block)
+- This also means, the server can continue running but if no client is opened, don't do any updates!
+- If there are more clients, only do one update per block on server! It's triggered by client but guarded and executed by server!
+
+## Manual refresh
+
+- Add ability to manually trigger an update of all blocks
+- Be aware of possible rate limits => update blocks serially or in batches; if there are 20 blocks, updating all of them at exactly same moment wouldn't be good idea!
+
+## Settings
+
+— Have settings page with default for:
+  - runner
+  - date & time formats
+  - other stuff, if needed (should be flexible and easy to add more)
+
+## Packaging
+
+— Research and figure out how to bundle the project as a standalone binary
+  - bun compile: could be initial version; only bundles the server, then used in browser
+  - Tauri: better option, both server & client are bundled; this makes sure only one instance is running
+- Things to figure out:
+  - Where to save persistent data?
+  - Can we easily run any commands?
+  - How about MacOS & notarization?
+  - Where to release?
+  - How to do updates? At that point, we need db migrations?
 
 ## Custom actions
 
@@ -22,10 +68,10 @@
 - **Reminders** — one time or regular reminders that should show one time card at the top of the feed, in different style/color, (can be just a message, some calculated info and can contain actions), play sound and show a notification, all optional
 - **Decks/pages/tabs** — multiple feeds with different card sets
 - **Notifications** — sound & browser notifications, configurable per card
+- **CI** — set up CI pipeline with lint, unit tests, and E2E checks
 - **Logging & debugging** — proper structured logging system for development
-- **Cost tracking** — track API cost for the whole system and per card
 - **History** — per-card run history with timestamps and past outputs
 - **Advanced scheduling** — exceptions, start/end dates, self-destroying cards, cron-like expressions
-- **CI** — Set up CI pipeline with lint, unit tests, and E2E checks
-- **Packaging** — Figure out how to bundle as a standalone binary (Bun compile or Tauri)
-- **Other tools/AI** — Allow user to specify what tool/script to use/run; eventually we can also support regular AI over API/Ollama and so on (but that's quite complex)
+- **Cost tracking** — track API cost for the whole system and per card
+- **Claude Code SDK** — should we use CC SDK instead of CLI?
+- **Other tools/AI** — allow user to specify what tool/script to use/run; eventually we can also support regular AI over API/Ollama and so on (but that's quite complex)
