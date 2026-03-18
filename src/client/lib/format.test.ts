@@ -2,32 +2,33 @@ import { describe, expect, test } from "bun:test";
 import { formatDate, formatTime } from "./format.ts";
 
 describe("formatDate", () => {
-  const date = new Date(2026, 2, 18); // March 18, 2026
+  // March 18, 2026 is a Wednesday
+  const date = new Date(2026, 2, 18);
 
-  test("D. M. YYYY", () => {
-    expect(formatDate(date, "D. M. YYYY")).toBe("18. 3. 2026");
+  test("D. M.", () => {
+    expect(formatDate(date, "D. M.")).toBe("Wed 18. 3.");
   });
 
-  test("YYYY-MM-DD", () => {
-    expect(formatDate(date, "YYYY-MM-DD")).toBe("2026-03-18");
+  test("MM-DD", () => {
+    expect(formatDate(date, "MM-DD")).toBe("Wed 03-18");
   });
 
-  test("DD/MM/YYYY", () => {
-    expect(formatDate(date, "DD/MM/YYYY")).toBe("18/03/2026");
+  test("DD/MM", () => {
+    expect(formatDate(date, "DD/MM")).toBe("Wed 18/03");
   });
 
-  test("MM/DD/YYYY", () => {
-    expect(formatDate(date, "MM/DD/YYYY")).toBe("03/18/2026");
+  test("MM/DD", () => {
+    expect(formatDate(date, "MM/DD")).toBe("Wed 03/18");
   });
 
-  test("pads single-digit day and month in ISO format", () => {
-    const d = new Date(2026, 0, 5); // Jan 5
-    expect(formatDate(d, "YYYY-MM-DD")).toBe("2026-01-05");
+  test("pads single-digit day and month", () => {
+    const d = new Date(2026, 0, 5); // Jan 5, Mon
+    expect(formatDate(d, "MM-DD")).toBe("Mon 01-05");
   });
 
-  test("does not pad in D. M. YYYY format", () => {
-    const d = new Date(2026, 0, 5); // Jan 5
-    expect(formatDate(d, "D. M. YYYY")).toBe("5. 1. 2026");
+  test("does not pad in D. M. format", () => {
+    const d = new Date(2026, 0, 5); // Jan 5, Mon
+    expect(formatDate(d, "D. M.")).toBe("Mon 5. 1.");
   });
 });
 

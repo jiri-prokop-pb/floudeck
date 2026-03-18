@@ -60,9 +60,7 @@ export type RunResult =
   | { ok: false; error: string; stderr?: string };
 
 export const DisplaySettingsSchema = z.object({
-  dateFormat: z.optional(
-    z.enum(["D. M. YYYY", "YYYY-MM-DD", "DD/MM/YYYY", "MM/DD/YYYY"]),
-  ),
+  dateFormat: z.optional(z.enum(["D. M.", "MM-DD", "DD/MM", "MM/DD"])),
   timeFormat: z.optional(z.enum(["24h", "12h"])),
 });
 

@@ -27,13 +27,13 @@ export function CalendarPopover({ today }: CalendarPopoverProps) {
   });
 
   return (
-    <div className="absolute left-0 top-full z-50 mt-1 rounded-lg border border-zinc-200 bg-white p-3 shadow-lg">
+    <div className="absolute left-0 top-full z-50 mt-1 w-52 rounded-lg border border-zinc-200 bg-white p-3 shadow-lg">
       <p className="mb-2 text-center text-xs font-semibold text-zinc-700">
         {monthName} {year}
       </p>
-      <div className="grid grid-cols-7 gap-px text-center text-xs">
+      <div className="grid grid-cols-7 text-center text-xs">
         {DAY_LABELS.map((label) => (
-          <div key={label} className="w-6 pb-1 font-medium text-zinc-400">
+          <div key={label} className="pb-1 font-medium text-zinc-400">
             {label}
           </div>
         ))}
@@ -42,7 +42,7 @@ export function CalendarPopover({ today }: CalendarPopoverProps) {
           return (
             <div
               key={cell.key}
-              className={`flex h-6 w-6 items-center justify-center rounded ${
+              className={`flex h-7 items-center justify-center rounded ${
                 isToday
                   ? "bg-zinc-800 font-bold text-white"
                   : cell.day

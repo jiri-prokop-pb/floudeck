@@ -197,13 +197,13 @@ function DisplaySection({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [dateFormat, setDateFormat] = useState("D. M. YYYY");
+  const [dateFormat, setDateFormat] = useState("D. M.");
   const [timeFormat, setTimeFormat] = useState("24h");
 
   useEffect(() => {
     fetchDisplaySettings().then((config) => {
       if (config) {
-        setDateFormat(config.dateFormat ?? "D. M. YYYY");
+        setDateFormat(config.dateFormat ?? "D. M.");
         setTimeFormat(config.timeFormat ?? "24h");
       }
       setLoading(false);
@@ -243,10 +243,10 @@ function DisplaySection({
           onChange={(e) => setDateFormat(e.target.value)}
           className="w-full rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-800"
         >
-          <option value="D. M. YYYY">D. M. YYYY</option>
-          <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-          <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-          <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+          <option value="D. M.">Wed 18. 3.</option>
+          <option value="MM-DD">Wed 03-18</option>
+          <option value="DD/MM">Wed 18/03</option>
+          <option value="MM/DD">Wed 03/18</option>
         </select>
       </label>
 

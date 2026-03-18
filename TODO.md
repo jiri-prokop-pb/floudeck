@@ -1,15 +1,15 @@
 # TODO
 
-## Date & time
+## ~~Date & time~~ (done)
 
-- Add date & time (24h format for now; later configurable) to the header (on the right side)
-- When date is hovered, show a tiny calendar widget in popover (nice-to-have; we will re-use it later on when implementing reminders, exceptions etc.)
+- ~~Add date & time (24h format for now; later configurable) to the header (on the right side)~~
+- ~~When date is hovered, show a tiny calendar widget in popover~~
 
-## Settings
+## ~~Settings~~ (done)
 
 — Have settings modal with default for:
   - ~~runner~~ (done — global runner settings modal)
-  - date & time formats
+  - ~~date & time formats~~ (done — tabbed settings modal with Runner and Display sections)
   - other stuff, if needed (should be flexible and easy to add more)
   
 ---

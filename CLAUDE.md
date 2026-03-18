@@ -86,6 +86,10 @@ Record non-obvious decisions here as they come up during implementation. Format:
 - **Markdown XSS model**: Links and images with `javascript:` URLs are rendered as-is because Claude's output is trusted. If the app becomes user-editable or public-facing, add link sanitization (e.g., custom `marked` link renderer that rejects non-http(s) schemes).
 - **zod/mini for JSON parsing**: All `JSON.parse` of structured data uses `zod/mini` schema (`safeParse`). Never cast parsed JSON with `as`. Schemas live in `types.ts` next to derived types.
 - **@phosphor-icons/react**: All icons use `@phosphor-icons/react` with `weight="bold"`. No inline SVGs or Unicode icon characters.
+- **Display settings**: Stored in the same `settings` key-value table as runner defaults, under key `"display"`. Schema in `types.ts`, validated via `validate.ts`.
+- **Date format in clock**: Day name prefix (e.g. "Wed"), no year. Formats: `"D. M."`, `"MM-DD"`, `"DD/MM"`, `"MM/DD"`.
+- **Settings modal tabs**: Vertical tab layout with left sidebar. Each tab section has independent load/save state.
+- **Dev server watch mode**: `bun --watch run src/server.ts` auto-restarts on file changes.
 
 ## Testability architecture
 
