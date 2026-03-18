@@ -4,6 +4,7 @@ import { nowIso } from "./time.ts";
 import type {
   BlockRecord,
   CreateBlockInput,
+  RunnerConfig,
   UpdateBlockInput,
 } from "./types.ts";
 
@@ -20,12 +21,14 @@ export function initDb(path?: string): Database {
   db.run(`
     CREATE TABLE IF NOT EXISTS blocks (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      uuid TEXT NOT NULL,
       prompt TEXT NOT NULL,
       interval_value INTEGER NOT NULL,
       interval_unit TEXT NOT NULL CHECK(interval_unit IN ('minutes', 'hours', 'days')),
       status TEXT NOT NULL DEFAULT 'idle' CHECK(status IN ('idle', 'running', 'success', 'error')),
       output_markdown TEXT,
       error_text TEXT,
+      runner_config TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       last_run_at TEXT,
@@ -36,6 +39,12 @@ export function initDb(path?: string): Database {
   db.run(
     "CREATE INDEX IF NOT EXISTS idx_blocks_next_run_at ON blocks(next_run_at)",
   );
+  db.run(`
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    )
+  `);
   return db;
 }
 
@@ -57,16 +66,22 @@ export function createBlock(
   input: CreateBlockInput,
 ): BlockRecord {
   const now = nowIso();
+  const uuid = crypto.randomUUID();
+  const runnerConfigJson = input.runnerConfig
+    ? JSON.stringify(input.runnerConfig)
+    : null;
   const result = db
     .query(
-      `INSERT INTO blocks (prompt, interval_value, interval_unit, status, created_at, updated_at, next_run_at)
-       VALUES (?, ?, ?, 'idle', ?, ?, ?)
+      `INSERT INTO blocks (uuid, prompt, interval_value, interval_unit, status, runner_config, created_at, updated_at, next_run_at)
+       VALUES (?, ?, ?, ?, 'idle', ?, ?, ?, ?)
        RETURNING *`,
     )
     .get(
+      uuid,
       input.prompt.trim(),
       input.intervalValue,
       input.intervalUnit,
+      runnerConfigJson,
       now,
       now,
       now,
@@ -80,15 +95,19 @@ export function updateBlock(
   input: UpdateBlockInput,
 ): BlockRecord | null {
   const now = nowIso();
+  const runnerConfigJson = input.runnerConfig
+    ? JSON.stringify(input.runnerConfig)
+    : null;
   const result = db
     .query(
-      `UPDATE blocks SET prompt = ?, interval_value = ?, interval_unit = ?, updated_at = ?, next_run_at = ?
+      `UPDATE blocks SET prompt = ?, interval_value = ?, interval_unit = ?, runner_config = ?, updated_at = ?, next_run_at = ?
        WHERE id = ? RETURNING *`,
     )
     .get(
       input.prompt.trim(),
       input.intervalValue,
       input.intervalUnit,
+      runnerConfigJson,
       now,
       now,
       id,
@@ -191,4 +210,31 @@ export function resetStaleRunningBlocks(db: Database, now: string): number {
     now,
   );
   return result.changes;
+}
+
+export function getSetting(db: Database, key: string): string | null {
+  const row = db.query("SELECT value FROM settings WHERE key = ?").get(key) as {
+    value: string;
+  } | null;
+  return row?.value ?? null;
+}
+
+export function setSetting(db: Database, key: string, value: string): void {
+  db.run(
+    "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = ?",
+    key,
+    value,
+    value,
+  );
+}
+
+export function parseBlockRunnerConfig(
+  block: BlockRecord,
+): RunnerConfig | null {
+  if (!block.runner_config) return null;
+  try {
+    return JSON.parse(block.runner_config) as RunnerConfig;
+  } catch {
+    return null;
+  }
 }
