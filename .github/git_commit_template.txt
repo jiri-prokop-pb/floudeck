@@ -1,0 +1,20 @@
+# <Subject Line: Max 50 chars | Capitalized | Imperative | No Period>
+# Example: Add authentication to the login endpoint
+
+# <Blank Line Required Below>
+
+# <Detailed explanatory text (Body): Why is this change necessary?>
+# - Wrap lines at 72 characters.
+# - Focus on motivation: What problem does this solve?
+# - Impact: Note side effects or dependencies introduced.
+# - Scope: Mention specific modules, components, or services affected.
+# - Use bullet points (-) for multiple changes.
+
+# <Blank Line Required Below>
+
+# <Footer: Issue references or breaking change notes>
+# Resolves: #
+# See also: #
+#
+# **Add Co-Authored By** phrase to indicate which Claude model helped.
+# (Example: Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>)
