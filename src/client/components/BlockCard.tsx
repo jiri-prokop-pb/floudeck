@@ -1,7 +1,16 @@
-import { useRef, useState } from "react";
-import type { BlockRecord } from "../../types.ts";
+import { useEffect, useRef, useState } from "react";
+import type {
+  BlockRecord,
+  ResolvedRunnerConfig,
+  RunnerConfig,
+} from "../../types.ts";
 import { useClickOutside } from "../hooks/useClickOutside.ts";
-import { deleteBlockApi, refreshBlockApi, updateBlockApi } from "../lib/api.ts";
+import {
+  deleteBlockApi,
+  fetchBlockDetail,
+  refreshBlockApi,
+  updateBlockApi,
+} from "../lib/api.ts";
 import {
   formatSchedule,
   formatTimeAgo,
@@ -16,16 +25,39 @@ type BlockCardProps = {
   onDelete: (id: number) => void;
 };
 
+function parseRunnerConfig(block: BlockRecord): RunnerConfig | undefined {
+  if (!block.runner_config) return undefined;
+  try {
+    return JSON.parse(block.runner_config) as RunnerConfig;
+  } catch {
+    return undefined;
+  }
+}
+
 export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [cliCommand, setCliCommand] = useState<string | null>(null);
+  const [resolvedConfig, setResolvedConfig] =
+    useState<ResolvedRunnerConfig | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const infoRef = useRef<HTMLDivElement>(null);
 
   useClickOutside(menuRef, () => setShowMenu(false));
   useClickOutside(infoRef, () => setShowInfo(false));
+
+  useEffect(() => {
+    if (showInfo) {
+      fetchBlockDetail(block.id).then((detail) => {
+        if (detail) {
+          setCliCommand(detail.cliCommand);
+          setResolvedConfig(detail.resolvedConfig);
+        }
+      });
+    }
+  }, [showInfo, block.id]);
 
   async function handleRefresh() {
     setShowMenu(false);
@@ -57,11 +89,11 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
             {block.status === "running" ? (
               <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-green-300 border-t-green-600" />
             ) : (
-              "ⓘ"
+              "\u24D8"
             )}
           </button>
           {showInfo && (
-            <div className="absolute right-0 top-8 w-56 rounded-lg border border-zinc-200 bg-white p-3 shadow-lg text-xs text-zinc-600 space-y-1">
+            <div className="absolute right-0 top-8 w-72 rounded-lg border border-zinc-200 bg-white p-3 shadow-lg text-xs text-zinc-600 space-y-1 z-20">
               {block.status === "running" && (
                 <div className="flex items-center gap-1.5 text-green-600 font-medium">
                   <span className="inline-block h-3 w-3 animate-spin rounded-full border border-green-300 border-t-green-600" />
@@ -84,8 +116,42 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
                   ? "Running now"
                   : block.next_run_at
                     ? formatTimeUntil(block.next_run_at)
-                    : "—"}
+                    : "\u2014"}
               </div>
+              {resolvedConfig && (
+                <div className="mt-2 border-t border-zinc-100 pt-2 space-y-1">
+                  <div>
+                    <span className="font-medium text-zinc-500">Model: </span>
+                    {resolvedConfig.model}
+                  </div>
+                  <div>
+                    <span className="font-medium text-zinc-500">
+                      Permissions:{" "}
+                    </span>
+                    {resolvedConfig.permissions === "sandbox"
+                      ? "Sandbox"
+                      : "Skip permissions"}
+                  </div>
+                  <div>
+                    <span className="font-medium text-zinc-500">Timeout: </span>
+                    {resolvedConfig.timeout}s
+                  </div>
+                  <div>
+                    <span className="font-medium text-zinc-500">CWD: </span>
+                    <span className="font-mono text-[10px] break-all">
+                      {resolvedConfig.cwd}
+                    </span>
+                  </div>
+                </div>
+              )}
+              {cliCommand && (
+                <div className="mt-2 border-t border-zinc-100 pt-2">
+                  <span className="font-medium text-zinc-500">Command: </span>
+                  <pre className="mt-1 overflow-x-auto rounded bg-zinc-50 p-1.5 text-[10px] font-mono text-zinc-600 whitespace-pre-wrap break-all">
+                    {cliCommand}
+                  </pre>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -107,6 +173,7 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
               strokeWidth="1.5"
               strokeLinecap="round"
             >
+              <title>Menu</title>
               <line x1="2" y1="3.5" x2="12" y2="3.5" />
               <line x1="2" y1="7" x2="12" y2="7" />
               <line x1="2" y1="10.5" x2="12" y2="10.5" />
@@ -151,6 +218,7 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
             initialPrompt={block.prompt}
             initialIntervalValue={block.interval_value}
             initialIntervalUnit={block.interval_unit}
+            initialRunnerConfig={parseRunnerConfig(block)}
             submitLabel="Save"
             onCancel={() => setEditing(false)}
             onSubmit={async (data) => {

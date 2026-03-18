@@ -1,4 +1,8 @@
-import type { BlockRecord } from "../../types.ts";
+import type {
+  BlockRecord,
+  ResolvedRunnerConfig,
+  RunnerConfig,
+} from "../../types.ts";
 
 type ApiResponse<T> = ({ ok: true } & T) | { ok: false; error: string };
 
@@ -20,11 +24,16 @@ export async function fetchBlock(id: number): Promise<BlockRecord | null> {
   return data.ok ? data.block : null;
 }
 
-export async function createBlockApi(input: {
+export type BlockFormInput = {
   prompt: string;
   intervalValue: number;
   intervalUnit: string;
-}): Promise<ApiResponse<{ block: BlockRecord }>> {
+  runnerConfig?: RunnerConfig;
+};
+
+export async function createBlockApi(
+  input: BlockFormInput,
+): Promise<ApiResponse<{ block: BlockRecord }>> {
   return apiFetch("/api/blocks", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -34,11 +43,7 @@ export async function createBlockApi(input: {
 
 export async function updateBlockApi(
   id: number,
-  input: {
-    prompt: string;
-    intervalValue: number;
-    intervalUnit: string;
-  },
+  input: BlockFormInput,
 ): Promise<ApiResponse<{ block: BlockRecord }>> {
   return apiFetch(`/api/blocks/${id}/update`, {
     method: "POST",
@@ -57,4 +62,34 @@ export async function refreshBlockApi(
   id: number,
 ): Promise<ApiResponse<{ block: BlockRecord }>> {
   return apiFetch(`/api/blocks/${id}/refresh`, { method: "POST" });
+}
+
+export async function fetchBlockDetail(id: number): Promise<{
+  block: BlockRecord;
+  resolvedConfig: ResolvedRunnerConfig;
+  cliCommand: string;
+} | null> {
+  const data = await apiFetch<{
+    block: BlockRecord;
+    resolvedConfig: ResolvedRunnerConfig;
+    cliCommand: string;
+  }>(`/api/blocks/${id}`);
+  return data.ok ? data : null;
+}
+
+export async function fetchRunnerSettings(): Promise<RunnerConfig | null> {
+  const data = await apiFetch<{ config: RunnerConfig | null }>(
+    "/api/settings/runner",
+  );
+  return data.ok ? data.config : null;
+}
+
+export async function saveRunnerSettings(
+  config: RunnerConfig | null,
+): Promise<ApiResponse<{ config: RunnerConfig | null }>> {
+  return apiFetch("/api/settings/runner", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ config }),
+  });
 }

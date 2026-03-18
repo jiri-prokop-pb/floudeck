@@ -1,23 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { RunnerConfig } from "../../types.ts";
 import { ENV_INHERIT_SENTINEL } from "../../types.ts";
-
-type BlockFormData = {
-  prompt: string;
-  intervalValue: number;
-  intervalUnit: string;
-  runnerConfig?: RunnerConfig;
-};
-
-type BlockFormProps = {
-  initialPrompt?: string;
-  initialIntervalValue?: number;
-  initialIntervalUnit?: string;
-  initialRunnerConfig?: RunnerConfig;
-  submitLabel: string;
-  onSubmit: (data: BlockFormData) => Promise<{ error?: string }>;
-  onCancel?: () => void;
-};
+import { fetchRunnerSettings, saveRunnerSettings } from "../lib/api.ts";
+import { Modal } from "./Modal.tsx";
 
 type EnvEntry = { id: number; key: string; value: string; inherit: boolean };
 
@@ -43,47 +28,41 @@ function entriesToEnv(entries: EnvEntry[]): Record<string, string> | undefined {
   return env;
 }
 
-export function BlockForm({
-  initialPrompt = "",
-  initialIntervalValue = 15,
-  initialIntervalUnit = "minutes",
-  initialRunnerConfig,
-  submitLabel,
-  onSubmit,
-  onCancel,
-}: BlockFormProps) {
-  const [prompt, setPrompt] = useState(initialPrompt);
-  const [intervalValue, setIntervalValue] = useState(initialIntervalValue);
-  const [intervalUnit, setIntervalUnit] = useState(initialIntervalUnit);
-  const [loading, setLoading] = useState(false);
+type SettingsModalProps = {
+  onClose: () => void;
+};
+
+export function SettingsModal({ onClose }: SettingsModalProps) {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showAdvanced, setShowAdvanced] = useState(
-    initialRunnerConfig !== undefined,
-  );
 
-  // Advanced fields
-  const [model, setModel] = useState(initialRunnerConfig?.model ?? "");
-  const [cwd, setCwd] = useState(initialRunnerConfig?.cwd ?? "");
-  const [permissions, setPermissions] = useState(
-    initialRunnerConfig?.permissions ?? "",
-  );
-  const [timeout, setTimeout_] = useState(
-    initialRunnerConfig?.timeout?.toString() ?? "",
-  );
-  const [envEntries, setEnvEntries] = useState<EnvEntry[]>(
-    parseEnvEntries(initialRunnerConfig?.env),
-  );
+  const [model, setModel] = useState("");
+  const [permissions, setPermissions] = useState("");
+  const [timeout, setTimeout_] = useState("");
+  const [envEntries, setEnvEntries] = useState<EnvEntry[]>([]);
 
-  function buildRunnerConfig(): RunnerConfig | undefined {
+  useEffect(() => {
+    fetchRunnerSettings().then((config) => {
+      if (config) {
+        setModel(config.model ?? "");
+        setPermissions(config.permissions ?? "");
+        setTimeout_(config.timeout?.toString() ?? "");
+        setEnvEntries(parseEnvEntries(config.env));
+      }
+      setLoading(false);
+    });
+  }, []);
+
+  async function handleSave() {
+    setError(null);
+    setSaving(true);
+
     const config: RunnerConfig = {};
     let hasKeys = false;
 
     if (model.trim()) {
       config.model = model.trim();
-      hasKeys = true;
-    }
-    if (cwd.trim()) {
-      config.cwd = cwd.trim();
       hasKeys = true;
     }
     if (
@@ -104,34 +83,13 @@ export function BlockForm({
       hasKeys = true;
     }
 
-    return hasKeys ? config : undefined;
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-
-    if (!prompt.trim()) {
-      setError("Prompt is required");
-      return;
+    const res = await saveRunnerSettings(hasKeys ? config : null);
+    setSaving(false);
+    if (res.ok) {
+      onClose();
+    } else {
+      setError(res.error);
     }
-    if (!Number.isInteger(intervalValue) || intervalValue <= 0) {
-      setError("Interval must be a positive integer");
-      return;
-    }
-
-    setLoading(true);
-    const runnerConfig = buildRunnerConfig();
-    const result = await onSubmit({
-      prompt,
-      intervalValue,
-      intervalUnit,
-      ...(runnerConfig ? { runnerConfig } : {}),
-    });
-    if (result.error) {
-      setError(result.error);
-    }
-    setLoading(false);
   }
 
   function addEnvEntry() {
@@ -154,63 +112,15 @@ export function BlockForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
-      <textarea
-        value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
-        placeholder="What should this block do?"
-        className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none"
-        rows={3}
-      />
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-zinc-600">Every</span>
-        <input
-          type="number"
-          min={1}
-          value={intervalValue}
-          onChange={(e) => setIntervalValue(Number(e.target.value))}
-          className="w-20 rounded-lg border border-zinc-200 px-2 py-1.5 text-sm focus:border-zinc-400 focus:outline-none"
-        />
-        <select
-          value={intervalUnit}
-          onChange={(e) => setIntervalUnit(e.target.value)}
-          className="rounded-lg border border-zinc-200 px-2 py-1.5 text-sm focus:border-zinc-400 focus:outline-none"
-        >
-          <option value="minutes">minutes</option>
-          <option value="hours">hours</option>
-          <option value="days">days</option>
-        </select>
-        <div className="ml-auto flex gap-2">
-          {onCancel && (
-            <button
-              type="button"
-              onClick={onCancel}
-              className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100"
-            >
-              Cancel
-            </button>
-          )}
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded-lg bg-zinc-800 px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50"
-          >
-            {loading ? "Saving..." : submitLabel}
-          </button>
-        </div>
-      </div>
+    <Modal title="Global runner settings" onClose={onClose}>
+      {loading ? (
+        <p className="text-sm text-zinc-400">Loading...</p>
+      ) : (
+        <div className="space-y-4">
+          <p className="text-xs text-zinc-400">
+            These defaults apply to all blocks unless overridden per-block.
+          </p>
 
-      {/* Advanced toggle */}
-      <button
-        type="button"
-        onClick={() => setShowAdvanced(!showAdvanced)}
-        className="text-xs text-zinc-400 hover:text-zinc-600"
-      >
-        {showAdvanced ? "Hide" : "Show"} advanced settings
-      </button>
-
-      {showAdvanced && (
-        <div className="space-y-3 rounded-lg border border-zinc-100 bg-zinc-50/50 p-3">
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-zinc-500">
@@ -221,7 +131,7 @@ export function BlockForm({
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
                 placeholder="sonnet"
-                className="w-full rounded border border-zinc-200 px-2 py-1 text-sm placeholder:text-zinc-300 focus:border-zinc-400 focus:outline-none"
+                className="w-full rounded border border-zinc-200 px-2 py-1.5 text-sm placeholder:text-zinc-300 focus:border-zinc-400 focus:outline-none"
               />
             </label>
             <label className="block">
@@ -234,23 +144,10 @@ export function BlockForm({
                 value={timeout}
                 onChange={(e) => setTimeout_(e.target.value)}
                 placeholder="60"
-                className="w-full rounded border border-zinc-200 px-2 py-1 text-sm placeholder:text-zinc-300 focus:border-zinc-400 focus:outline-none"
+                className="w-full rounded border border-zinc-200 px-2 py-1.5 text-sm placeholder:text-zinc-300 focus:border-zinc-400 focus:outline-none"
               />
             </label>
           </div>
-
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium text-zinc-500">
-              Working directory
-            </span>
-            <input
-              type="text"
-              value={cwd}
-              onChange={(e) => setCwd(e.target.value)}
-              placeholder="Default: ~/.floudeck/blocks-workspace/{uuid}"
-              className="w-full rounded border border-zinc-200 px-2 py-1 text-sm placeholder:text-zinc-300 focus:border-zinc-400 focus:outline-none"
-            />
-          </label>
 
           <label className="block">
             <span className="mb-1 block text-xs font-medium text-zinc-500">
@@ -259,7 +156,7 @@ export function BlockForm({
             <select
               value={permissions}
               onChange={(e) => setPermissions(e.target.value)}
-              className="w-full rounded border border-zinc-200 px-2 py-1 text-sm focus:border-zinc-400 focus:outline-none"
+              className="w-full rounded border border-zinc-200 px-2 py-1.5 text-sm focus:border-zinc-400 focus:outline-none"
             >
               <option value="">Default (sandbox)</option>
               <option value="sandbox">Sandbox</option>
@@ -329,10 +226,28 @@ export function BlockForm({
               </div>
             ))}
           </div>
+
+          {error && <p className="text-sm text-red-600">{error}</p>}
+
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              className="rounded-lg bg-zinc-800 px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+          </div>
         </div>
       )}
-
-      {error && <p className="text-sm text-red-600">{error}</p>}
-    </form>
+    </Modal>
   );
 }
