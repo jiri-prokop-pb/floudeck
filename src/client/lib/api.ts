@@ -1,5 +1,6 @@
 import type {
   BlockRecord,
+  DisplaySettings,
   ResolvedRunnerConfig,
   RunnerConfig,
 } from "../../types.ts";
@@ -88,6 +89,23 @@ export async function saveRunnerSettings(
   config: RunnerConfig | null,
 ): Promise<ApiResponse<{ config: RunnerConfig | null }>> {
   return apiFetch("/api/settings/runner", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ config }),
+  });
+}
+
+export async function fetchDisplaySettings(): Promise<DisplaySettings | null> {
+  const data = await apiFetch<{ config: DisplaySettings | null }>(
+    "/api/settings/display",
+  );
+  return data.ok ? data.config : null;
+}
+
+export async function saveDisplaySettings(
+  config: DisplaySettings | null,
+): Promise<ApiResponse<{ config: DisplaySettings | null }>> {
+  return apiFetch("/api/settings/display", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ config }),
