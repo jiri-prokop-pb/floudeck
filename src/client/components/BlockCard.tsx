@@ -53,106 +53,108 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
 
   return (
     <div className="relative rounded-2xl border border-zinc-200 bg-white shadow-sm">
-      {/* Icon buttons */}
-      <div className="absolute right-3 top-3 flex items-center gap-1 z-10">
-        {/* Info button */}
-        <div ref={infoRef} className="relative">
-          <button
-            type="button"
-            onClick={() => setShowInfo(!showInfo)}
-            className="flex h-7 w-7 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 text-sm"
-            title="Info"
-          >
-            {block.status === "running" ? (
-              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-green-300 border-t-green-600" />
-            ) : (
-              "\u24D8"
-            )}
-          </button>
-          {showInfo && (
-            <div className="absolute right-0 top-8 w-56 rounded-lg border border-zinc-200 bg-white p-3 shadow-lg text-xs text-zinc-600 space-y-1 z-20">
-              {block.status === "running" && (
-                <div className="flex items-center gap-1.5 text-green-600 font-medium">
-                  <span className="inline-block h-3 w-3 animate-spin rounded-full border border-green-300 border-t-green-600" />
-                  Refreshing...
-                </div>
-              )}
-              <div>
-                <span className="font-medium text-zinc-500">Refresh: </span>
-                {formatSchedule(block.interval_value, block.interval_unit)}
-              </div>
-              <div>
-                <span className="font-medium text-zinc-500">Last run: </span>
-                {block.last_run_at
-                  ? formatTimeAgo(block.last_run_at)
-                  : "Not yet run"}
-              </div>
-              <div>
-                <span className="font-medium text-zinc-500">Next run: </span>
-                {block.status === "running"
-                  ? "Running now"
-                  : block.next_run_at
-                    ? formatTimeUntil(block.next_run_at)
-                    : "\u2014"}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Menu button */}
-        <div ref={menuRef} className="relative">
-          <button
-            type="button"
-            onClick={() => setShowMenu(!showMenu)}
-            className="flex h-7 w-7 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 text-sm"
-            title="Menu"
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 14 14"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
+      {/* Icon buttons — hidden while editing */}
+      {!editing && (
+        <div className="absolute right-3 top-3 flex items-center gap-1 z-10">
+          {/* Info button */}
+          <div ref={infoRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setShowInfo(!showInfo)}
+              className="flex h-7 w-7 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 text-sm"
+              title="Info"
             >
-              <title>Menu</title>
-              <line x1="2" y1="3.5" x2="12" y2="3.5" />
-              <line x1="2" y1="7" x2="12" y2="7" />
-              <line x1="2" y1="10.5" x2="12" y2="10.5" />
-            </svg>
-          </button>
-          {showMenu && (
-            <div className="absolute right-0 top-8 w-36 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg">
-              <button
-                type="button"
-                onClick={handleRefresh}
-                disabled={loading || block.status === "running"}
-                className="w-full px-3 py-1.5 text-left text-sm text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+              {block.status === "running" ? (
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-green-300 border-t-green-600" />
+              ) : (
+                "\u24D8"
+              )}
+            </button>
+            {showInfo && (
+              <div className="absolute right-0 top-8 w-56 rounded-lg border border-zinc-200 bg-white p-3 shadow-lg text-xs text-zinc-600 space-y-1 z-20">
+                {block.status === "running" && (
+                  <div className="flex items-center gap-1.5 text-green-600 font-medium">
+                    <span className="inline-block h-3 w-3 animate-spin rounded-full border border-green-300 border-t-green-600" />
+                    Refreshing...
+                  </div>
+                )}
+                <div>
+                  <span className="font-medium text-zinc-500">Refresh: </span>
+                  {formatSchedule(block.interval_value, block.interval_unit)}
+                </div>
+                <div>
+                  <span className="font-medium text-zinc-500">Last run: </span>
+                  {block.last_run_at
+                    ? formatTimeAgo(block.last_run_at)
+                    : "Not yet run"}
+                </div>
+                <div>
+                  <span className="font-medium text-zinc-500">Next run: </span>
+                  {block.status === "running"
+                    ? "Running now"
+                    : block.next_run_at
+                      ? formatTimeUntil(block.next_run_at)
+                      : "\u2014"}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Menu button */}
+          <div ref={menuRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setShowMenu(!showMenu)}
+              className="flex h-7 w-7 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 text-sm"
+              title="Menu"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 14 14"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
               >
-                Refresh
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowMenu(false);
-                  setEditing(!editing);
-                }}
-                className="w-full px-3 py-1.5 text-left text-sm text-zinc-700 hover:bg-zinc-50"
-              >
-                Edit
-              </button>
-              <button
-                type="button"
-                onClick={handleDelete}
-                className="w-full px-3 py-1.5 text-left text-sm text-red-600 hover:bg-red-50"
-              >
-                Delete
-              </button>
-            </div>
-          )}
+                <title>Menu</title>
+                <line x1="2" y1="3.5" x2="12" y2="3.5" />
+                <line x1="2" y1="7" x2="12" y2="7" />
+                <line x1="2" y1="10.5" x2="12" y2="10.5" />
+              </svg>
+            </button>
+            {showMenu && (
+              <div className="absolute right-0 top-8 w-36 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg">
+                <button
+                  type="button"
+                  onClick={handleRefresh}
+                  disabled={loading || block.status === "running"}
+                  className="w-full px-3 py-1.5 text-left text-sm text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+                >
+                  Refresh
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMenu(false);
+                    setEditing(!editing);
+                  }}
+                  className="w-full px-3 py-1.5 text-left text-sm text-zinc-700 hover:bg-zinc-50"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  className="w-full px-3 py-1.5 text-left text-sm text-red-600 hover:bg-red-50"
+                >
+                  Delete
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Edit form */}
       {editing && (
