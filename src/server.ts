@@ -57,6 +57,7 @@ export function createApp(options: AppOptions = {}): App {
 
   const server = serve({
     port,
+    development: true, // enables HMR and disables asset caching
     idleTimeout: 255, // max value — prevents SSE connections from being killed
     routes: {
       "/": homepage,
