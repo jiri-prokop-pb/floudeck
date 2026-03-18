@@ -208,6 +208,94 @@ describe("GET /api/events", () => {
   });
 });
 
+describe("GET /api/settings/runner", () => {
+  test("returns null config when no settings set", async () => {
+    const res = await router(req("GET", "/api/settings/runner"));
+    const data = await res!.json();
+    expect(data.ok).toBe(true);
+    expect(data.config).toBeNull();
+  });
+
+  test("returns saved config", async () => {
+    await router(
+      req("POST", "/api/settings/runner", {
+        config: { model: "opus", timeout: 120 },
+      }),
+    );
+    const res = await router(req("GET", "/api/settings/runner"));
+    const data = await res!.json();
+    expect(data.ok).toBe(true);
+    expect(data.config.model).toBe("opus");
+    expect(data.config.timeout).toBe(120);
+  });
+});
+
+describe("POST /api/settings/runner", () => {
+  test("saves valid config", async () => {
+    const res = await router(
+      req("POST", "/api/settings/runner", {
+        config: { model: "sonnet", permissions: "sandbox" },
+      }),
+    );
+    const data = await res!.json();
+    expect(data.ok).toBe(true);
+    expect(data.config).toEqual({ model: "sonnet", permissions: "sandbox" });
+  });
+
+  test("clears config when null/empty", async () => {
+    // First set something
+    await router(
+      req("POST", "/api/settings/runner", {
+        config: { model: "opus" },
+      }),
+    );
+    // Then clear it
+    await router(
+      req("POST", "/api/settings/runner", { config: null }),
+    );
+    const res = await router(req("GET", "/api/settings/runner"));
+    const data = await res!.json();
+    expect(data.config).toBeNull();
+  });
+});
+
+describe("GET /api/blocks/:id enriched", () => {
+  test("includes resolvedConfig and cliCommand", async () => {
+    const createRes = await router(
+      req("POST", "/api/blocks", {
+        prompt: "test",
+        intervalValue: 1,
+        intervalUnit: "hours",
+      }),
+    );
+    const { block } = await createRes!.json();
+    const res = await router(req("GET", `/api/blocks/${block.id}`));
+    const data = await res!.json();
+    expect(data.resolvedConfig).toBeDefined();
+    expect(data.resolvedConfig.model).toBe("sonnet");
+    expect(data.resolvedConfig.permissions).toBe("sandbox");
+    expect(data.cliCommand).toContain("claude");
+    expect(data.cliCommand).toContain("--sandbox");
+  });
+});
+
+describe("POST /api/blocks with runnerConfig", () => {
+  test("creates block with runner config", async () => {
+    const res = await router(
+      req("POST", "/api/blocks", {
+        prompt: "test",
+        intervalValue: 1,
+        intervalUnit: "hours",
+        runnerConfig: { model: "opus", cwd: "/my/project" },
+      }),
+    );
+    const data = await res!.json();
+    expect(data.ok).toBe(true);
+    const parsed = JSON.parse(data.block.runner_config);
+    expect(parsed).toEqual({ model: "opus", cwd: "/my/project" });
+  });
+});
+
 describe("unknown routes", () => {
   test("returns null for unmatched route", async () => {
     const res = await router(req("GET", "/unknown"));
