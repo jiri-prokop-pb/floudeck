@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
-import type { RunnerConfig } from "../../types.ts";
-import { fetchRunnerSettings, saveRunnerSettings } from "../lib/api.ts";
+import type { DisplaySettings, RunnerConfig } from "../../types.ts";
+import {
+  fetchDisplaySettings,
+  fetchRunnerSettings,
+  saveDisplaySettings,
+  saveRunnerSettings,
+} from "../lib/api.ts";
 import { Modal } from "./Modal.tsx";
 import {
   type EnvEntry,
@@ -9,11 +14,75 @@ import {
   RunnerConfigFields,
 } from "./RunnerConfigFields.tsx";
 
+type Tab = "runner" | "display";
+
 type SettingsModalProps = {
   onClose: () => void;
+  onDisplaySettingsChanged?: () => void;
 };
 
-export function SettingsModal({ onClose }: SettingsModalProps) {
+export function SettingsModal({
+  onClose,
+  onDisplaySettingsChanged,
+}: SettingsModalProps) {
+  const [activeTab, setActiveTab] = useState<Tab>("runner");
+
+  return (
+    <Modal title="Settings" onClose={onClose} wide>
+      <div className="flex gap-6">
+        <nav className="flex w-28 shrink-0 flex-col gap-1 border-r border-zinc-100 pr-4">
+          <TabButton
+            active={activeTab === "runner"}
+            onClick={() => setActiveTab("runner")}
+          >
+            Runner
+          </TabButton>
+          <TabButton
+            active={activeTab === "display"}
+            onClick={() => setActiveTab("display")}
+          >
+            Display
+          </TabButton>
+        </nav>
+        <div className="min-w-0 flex-1">
+          {activeTab === "runner" && <RunnerSection onClose={onClose} />}
+          {activeTab === "display" && (
+            <DisplaySection
+              onClose={onClose}
+              onSaved={onDisplaySettingsChanged}
+            />
+          )}
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-lg px-3 py-1.5 text-left text-sm ${
+        active
+          ? "bg-zinc-100 font-medium text-zinc-900"
+          : "text-zinc-500 hover:text-zinc-700"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function RunnerSection({ onClose }: { onClose: () => void }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,48 +142,148 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     }
   }
 
+  if (loading) {
+    return <p className="text-sm text-zinc-400">Loading...</p>;
+  }
+
   return (
-    <Modal title="Global runner settings" onClose={onClose}>
-      {loading ? (
-        <p className="text-sm text-zinc-400">Loading...</p>
-      ) : (
-        <div className="space-y-4">
-          <p className="text-xs text-zinc-400">
-            These defaults apply to all blocks unless overridden per-block.
-          </p>
+    <div className="space-y-4">
+      <p className="text-xs text-zinc-400">
+        These defaults apply to all blocks unless overridden per-block.
+      </p>
 
-          <RunnerConfigFields
-            model={model}
-            onModelChange={setModel}
-            timeout={timeout}
-            onTimeoutChange={setTimeout_}
-            permissions={permissions}
-            onPermissionsChange={setPermissions}
-            envEntries={envEntries}
-            onEnvChange={setEnvEntries}
-          />
+      <RunnerConfigFields
+        model={model}
+        onModelChange={setModel}
+        timeout={timeout}
+        onTimeoutChange={setTimeout_}
+        permissions={permissions}
+        onPermissionsChange={setPermissions}
+        envEntries={envEntries}
+        onEnvChange={setEnvEntries}
+      />
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-600">{error}</p>}
 
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={saving}
-              className="rounded-lg bg-zinc-800 px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50"
-            >
-              {saving ? "Saving..." : "Save"}
-            </button>
-          </div>
-        </div>
-      )}
-    </Modal>
+      <div className="flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          className="rounded-lg bg-zinc-800 px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50"
+        >
+          {saving ? "Saving..." : "Save"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function DisplaySection({
+  onClose,
+  onSaved,
+}: {
+  onClose: () => void;
+  onSaved?: () => void;
+}) {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [dateFormat, setDateFormat] = useState("D. M. YYYY");
+  const [timeFormat, setTimeFormat] = useState("24h");
+
+  useEffect(() => {
+    fetchDisplaySettings().then((config) => {
+      if (config) {
+        setDateFormat(config.dateFormat ?? "D. M. YYYY");
+        setTimeFormat(config.timeFormat ?? "24h");
+      }
+      setLoading(false);
+    });
+  }, []);
+
+  async function handleSave() {
+    setError(null);
+    setSaving(true);
+
+    const config: DisplaySettings = { dateFormat, timeFormat } as DisplaySettings;
+    const res = await saveDisplaySettings(config);
+    setSaving(false);
+    if (res.ok) {
+      onSaved?.();
+      onClose();
+    } else {
+      setError(res.error);
+    }
+  }
+
+  if (loading) {
+    return <p className="text-sm text-zinc-400">Loading...</p>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-zinc-400">
+        Configure how dates and times are displayed.
+      </p>
+
+      <div>
+        <label className="mb-1 block text-xs font-medium text-zinc-600">
+          Date format
+        </label>
+        <select
+          value={dateFormat}
+          onChange={(e) => setDateFormat(e.target.value)}
+          className="w-full rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-800"
+        >
+          <option value="D. M. YYYY">D. M. YYYY</option>
+          <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+          <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+          <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+        </select>
+      </div>
+
+      <div>
+        <label className="mb-1 block text-xs font-medium text-zinc-600">
+          Time format
+        </label>
+        <select
+          value={timeFormat}
+          onChange={(e) => setTimeFormat(e.target.value)}
+          className="w-full rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-800"
+        >
+          <option value="24h">24-hour</option>
+          <option value="12h">12-hour</option>
+        </select>
+      </div>
+
+      {error && <p className="text-sm text-red-600">{error}</p>}
+
+      <div className="flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          className="rounded-lg bg-zinc-800 px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50"
+        >
+          {saving ? "Saving..." : "Save"}
+        </button>
+      </div>
+    </div>
   );
 }
