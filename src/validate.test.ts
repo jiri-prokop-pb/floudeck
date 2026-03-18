@@ -184,4 +184,25 @@ describe("parseRunnerConfig", () => {
     });
     expect(result).toEqual({ cwd: "/path", model: "sonnet" });
   });
+
+  test("allowCwd: false strips cwd from result", () => {
+    const result = parseRunnerConfig(
+      { cwd: "/my/path", model: "opus" },
+      { allowCwd: false },
+    );
+    expect(result).toEqual({ model: "opus" });
+  });
+
+  test("allowCwd: false returns null if only cwd was present", () => {
+    const result = parseRunnerConfig(
+      { cwd: "/my/path" },
+      { allowCwd: false },
+    );
+    expect(result).toBeNull();
+  });
+
+  test("allowCwd defaults to true", () => {
+    const result = parseRunnerConfig({ cwd: "/my/path" });
+    expect(result).toEqual({ cwd: "/my/path" });
+  });
 });

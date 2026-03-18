@@ -232,7 +232,7 @@ export function createRouter(
           );
         }
         const { config: rawConfig } = body as Record<string, unknown>;
-        const config = parseRunnerConfig(rawConfig);
+        const config = parseRunnerConfig(rawConfig, { allowCwd: false });
         if (config) {
           setSetting(db, "runner_defaults", JSON.stringify(config));
         } else {
