@@ -58,6 +58,7 @@ No block history, no exceptions, no advanced schedules, no actions, no connector
 - visible error state instead of normal block content
 - SSE notifications when a block changes
 - catch-up behavior after sleep/wake or downtime: **run once only** if overdue
+- per-block and global runner configuration (model, cwd, timeout, permissions, env vars)
 
 ### Excluded
 

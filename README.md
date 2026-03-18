@@ -20,6 +20,7 @@ Requires `claude` CLI in your PATH.
 - Output is GFM markdown rendered in a card
 - SSE pushes updates to the browser in real time
 - Blocks can be edited, refreshed, or deleted
+- Per-block and global runner configuration (model, timeout, permissions, cwd, env vars)
 
 ## Development
 
