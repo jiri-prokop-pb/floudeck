@@ -128,8 +128,8 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
                     <span className="font-medium text-zinc-500">
                       Permissions:{" "}
                     </span>
-                    {resolvedConfig.permissions === "sandbox"
-                      ? "Sandbox"
+                    {resolvedConfig.permissions === "default"
+                      ? "Default"
                       : "Skip permissions"}
                   </div>
                   <div>

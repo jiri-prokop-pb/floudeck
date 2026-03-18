@@ -7,7 +7,7 @@ import type {
 
 const VALID_UNITS = new Set<IntervalUnit>(["minutes", "hours", "days"]);
 const VALID_PERMISSIONS = new Set<PermissionMode>([
-  "sandbox",
+  "default",
   "dangerouslySkipPermissions",
 ]);
 

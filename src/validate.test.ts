@@ -128,13 +128,13 @@ describe("parseRunnerConfig", () => {
     const result = parseRunnerConfig({
       model: "opus",
       cwd: "/my/path",
-      permissions: "sandbox",
+      permissions: "default",
       timeout: 120,
     });
     expect(result).toEqual({
       model: "opus",
       cwd: "/my/path",
-      permissions: "sandbox",
+      permissions: "default",
       timeout: 120,
     });
   });
@@ -150,8 +150,8 @@ describe("parseRunnerConfig", () => {
 
   test("validates permissions enum", () => {
     expect(parseRunnerConfig({ permissions: "invalid" })).toBeNull();
-    expect(parseRunnerConfig({ permissions: "sandbox" })).toEqual({
-      permissions: "sandbox",
+    expect(parseRunnerConfig({ permissions: "default" })).toEqual({
+      permissions: "default",
     });
     expect(
       parseRunnerConfig({ permissions: "dangerouslySkipPermissions" }),
@@ -194,10 +194,7 @@ describe("parseRunnerConfig", () => {
   });
 
   test("allowCwd: false returns null if only cwd was present", () => {
-    const result = parseRunnerConfig(
-      { cwd: "/my/path" },
-      { allowCwd: false },
-    );
+    const result = parseRunnerConfig({ cwd: "/my/path" }, { allowCwd: false });
     expect(result).toBeNull();
   });
 
