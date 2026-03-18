@@ -1,16 +1,7 @@
-import { useEffect, useRef, useState } from "react";
-import type {
-  BlockRecord,
-  ResolvedRunnerConfig,
-  RunnerConfig,
-} from "../../types.ts";
+import { useRef, useState } from "react";
+import type { BlockRecord, RunnerConfig } from "../../types.ts";
 import { useClickOutside } from "../hooks/useClickOutside.ts";
-import {
-  deleteBlockApi,
-  fetchBlockDetail,
-  refreshBlockApi,
-  updateBlockApi,
-} from "../lib/api.ts";
+import { deleteBlockApi, refreshBlockApi, updateBlockApi } from "../lib/api.ts";
 import {
   formatSchedule,
   formatTimeAgo,
@@ -39,25 +30,11 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
   const [loading, setLoading] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
-  const [cliCommand, setCliCommand] = useState<string | null>(null);
-  const [resolvedConfig, setResolvedConfig] =
-    useState<ResolvedRunnerConfig | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const infoRef = useRef<HTMLDivElement>(null);
 
   useClickOutside(menuRef, () => setShowMenu(false));
   useClickOutside(infoRef, () => setShowInfo(false));
-
-  useEffect(() => {
-    if (showInfo) {
-      fetchBlockDetail(block.id).then((detail) => {
-        if (detail) {
-          setCliCommand(detail.cliCommand);
-          setResolvedConfig(detail.resolvedConfig);
-        }
-      });
-    }
-  }, [showInfo, block.id]);
 
   async function handleRefresh() {
     setShowMenu(false);
@@ -93,7 +70,7 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
             )}
           </button>
           {showInfo && (
-            <div className="absolute right-0 top-8 w-72 rounded-lg border border-zinc-200 bg-white p-3 shadow-lg text-xs text-zinc-600 space-y-1 z-20">
+            <div className="absolute right-0 top-8 w-56 rounded-lg border border-zinc-200 bg-white p-3 shadow-lg text-xs text-zinc-600 space-y-1 z-20">
               {block.status === "running" && (
                 <div className="flex items-center gap-1.5 text-green-600 font-medium">
                   <span className="inline-block h-3 w-3 animate-spin rounded-full border border-green-300 border-t-green-600" />
@@ -118,40 +95,6 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
                     ? formatTimeUntil(block.next_run_at)
                     : "\u2014"}
               </div>
-              {resolvedConfig && (
-                <div className="mt-2 border-t border-zinc-100 pt-2 space-y-1">
-                  <div>
-                    <span className="font-medium text-zinc-500">Model: </span>
-                    {resolvedConfig.model}
-                  </div>
-                  <div>
-                    <span className="font-medium text-zinc-500">
-                      Permissions:{" "}
-                    </span>
-                    {resolvedConfig.permissions === "default"
-                      ? "Default"
-                      : "Skip permissions"}
-                  </div>
-                  <div>
-                    <span className="font-medium text-zinc-500">Timeout: </span>
-                    {resolvedConfig.timeout}s
-                  </div>
-                  <div>
-                    <span className="font-medium text-zinc-500">CWD: </span>
-                    <span className="font-mono text-[10px] break-all">
-                      {resolvedConfig.cwd}
-                    </span>
-                  </div>
-                </div>
-              )}
-              {cliCommand && (
-                <div className="mt-2 border-t border-zinc-100 pt-2">
-                  <span className="font-medium text-zinc-500">Command: </span>
-                  <pre className="mt-1 overflow-x-auto rounded bg-zinc-50 p-1.5 text-[10px] font-mono text-zinc-600 whitespace-pre-wrap break-all">
-                    {cliCommand}
-                  </pre>
-                </div>
-              )}
             </div>
           )}
         </div>
@@ -219,6 +162,7 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
             initialIntervalValue={block.interval_value}
             initialIntervalUnit={block.interval_unit}
             initialRunnerConfig={parseRunnerConfig(block)}
+            blockUuid={block.uuid}
             submitLabel="Save"
             onCancel={() => setEditing(false)}
             onSubmit={async (data) => {

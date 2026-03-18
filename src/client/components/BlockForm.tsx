@@ -19,6 +19,7 @@ type BlockFormProps = {
   initialIntervalValue?: number;
   initialIntervalUnit?: string;
   initialRunnerConfig?: RunnerConfig;
+  blockUuid?: string;
   submitLabel: string;
   onSubmit: (data: BlockFormData) => Promise<{ error?: string }>;
   onCancel?: () => void;
@@ -29,6 +30,7 @@ export function BlockForm({
   initialIntervalValue = 15,
   initialIntervalUnit = "minutes",
   initialRunnerConfig,
+  blockUuid,
   submitLabel,
   onSubmit,
   onCancel,
@@ -192,7 +194,11 @@ export function BlockForm({
               type="text"
               value={cwd}
               onChange={(e) => setCwd(e.target.value)}
-              placeholder="Default: ~/.floudeck/blocks-workspace/{uuid}"
+              placeholder={
+                blockUuid
+                  ? `~/.floudeck/blocks-workspace/${blockUuid}`
+                  : "Will be auto-generated"
+              }
               className="w-full rounded border border-zinc-200 px-2 py-1.5 text-sm placeholder:text-zinc-300 focus:border-zinc-400 focus:outline-none"
             />
           </label>
