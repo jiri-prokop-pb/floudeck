@@ -1,3 +1,41 @@
+export type DateFormat = "D. M. YYYY" | "YYYY-MM-DD" | "DD/MM/YYYY" | "MM/DD/YYYY";
+export type TimeFormat = "24h" | "12h";
+
+export function formatDate(
+  date: Date,
+  format: DateFormat,
+): string {
+  const d = date.getDate();
+  const dd = String(d).padStart(2, "0");
+  const m = date.getMonth() + 1;
+  const mm = String(m).padStart(2, "0");
+  const yyyy = String(date.getFullYear());
+  switch (format) {
+    case "D. M. YYYY":
+      return `${d}. ${m}. ${yyyy}`;
+    case "YYYY-MM-DD":
+      return `${yyyy}-${mm}-${dd}`;
+    case "DD/MM/YYYY":
+      return `${dd}/${mm}/${yyyy}`;
+    case "MM/DD/YYYY":
+      return `${mm}/${dd}/${yyyy}`;
+  }
+}
+
+export function formatTime(
+  date: Date,
+  format: TimeFormat,
+): string {
+  const h = date.getHours();
+  const min = String(date.getMinutes()).padStart(2, "0");
+  if (format === "24h") {
+    return `${String(h).padStart(2, "0")}:${min}`;
+  }
+  const h12 = h % 12 || 12;
+  const ampm = h < 12 ? "AM" : "PM";
+  return `${h12}:${min} ${ampm}`;
+}
+
 export function formatSchedule(value: number, unit: string): string {
   if (value === 1) {
     const singular = unit.replace(/s$/, "");
