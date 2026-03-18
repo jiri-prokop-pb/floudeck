@@ -1,10 +1,20 @@
 # Floudeck - CLAUDE.md
 
-**This file is a living document.** Whenever you hit a non-obvious problem, make a decision, or discover something that deviates from the spec/plan, record it here immediately. Future agents and sessions must check this file first and follow what's written. This prevents re-discovering the same issues and flip-flopping on decisions.
+**This file is a living document.** Whenever you hit a non-obvious problem, make a decision, or discover something that deviates from the spec, record it here immediately. Future agents and sessions must check this file first and follow what's written. This prevents re-discovering the same issues and flip-flopping on decisions.
 
 ## What is this
 
-Floudeck is a local PoC: a Bun app that runs scheduled prompts through Claude Code CLI and renders GFM markdown output in a feed. See SPEC.md for product spec.
+Floudeck is a local app: a Bun server that runs scheduled prompts through Claude Code CLI and renders GFM markdown output in a feed.
+
+## Key project documents
+
+These documents are **living** and must be kept in sync with the codebase after every implementation phase:
+
+- **SPEC.md** — product spec. What Floudeck does from a user/product perspective. No implementation details. Update when features are added, changed, or removed.
+- **README.md** — public-facing overview, quick start, feature list. Update when user-visible functionality changes.
+- **CLAUDE.md** (this file) — technical rules, decisions, architecture for agents. Update when implementation patterns or decisions change.
+- **TODO.md** — upcoming work. Remove completed items, add new ones as they emerge.
+- **docs/screenshot.png** — regenerate (`bun run scripts/screenshot.ts`) when app visuals change.
 
 ## Stack
 
