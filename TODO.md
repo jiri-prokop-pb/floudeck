@@ -1,5 +1,13 @@
 # TODO
 
+## Drag & drop block reordering
+
+- Add drag handle (e.g. `DotsSixVertical` icon from Phosphor) to the left of each card, outside the card boundary, visible on hover
+- Dragging immediately swaps order with surrounding cards visually (optimistic UI) but only persists on drop
+- DB: add integer `position` column to `blocks` table; on drop, update positions of affected blocks in a single transaction
+- API: `POST /blocks/reorder` accepts `{ id, position }` or a full ordered id array; server recalculates positions
+- Keep positions sparse (e.g. multiples of 1000) to avoid rewriting all rows on every reorder
+
 ## Real-time output streaming
 
 - Stream claude's stdout in real-time so users can watch blocks being processed
