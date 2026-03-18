@@ -164,9 +164,7 @@ export function safeParseDisplaySettings(
   }
 }
 
-export function parseDisplaySettings(
-  raw: unknown,
-): DisplaySettings | null {
+export function parseDisplaySettings(raw: unknown): DisplaySettings | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const result = DisplaySettingsSchema.safeParse(raw);
   if (!result.success) return null;

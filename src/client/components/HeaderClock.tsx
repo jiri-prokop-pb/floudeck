@@ -21,6 +21,7 @@ export function HeaderClock({ displaySettings }: HeaderClockProps) {
 
   return (
     <div className="flex items-center gap-2 text-sm tabular-nums text-zinc-500">
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: hover-only tooltip, not interactive */}
       <div
         className="relative"
         onMouseEnter={() => setShowCalendar(true)}

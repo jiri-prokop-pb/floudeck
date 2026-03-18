@@ -14,12 +14,12 @@ export function CalendarPopover({ today }: CalendarPopoverProps) {
   const startOffset = (firstDay + 6) % 7; // Mon=0
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-  const cells: Array<{ day: number | null }> = [];
+  const cells: Array<{ day: number | null; key: string }> = [];
   for (let i = 0; i < startOffset; i++) {
-    cells.push({ day: null });
+    cells.push({ day: null, key: `empty-${i}` });
   }
   for (let d = 1; d <= daysInMonth; d++) {
-    cells.push({ day: d });
+    cells.push({ day: d, key: `day-${d}` });
   }
 
   const monthName = new Date(year, month).toLocaleString("en", {
@@ -33,18 +33,15 @@ export function CalendarPopover({ today }: CalendarPopoverProps) {
       </p>
       <div className="grid grid-cols-7 gap-px text-center text-xs">
         {DAY_LABELS.map((label) => (
-          <div
-            key={label}
-            className="w-6 pb-1 font-medium text-zinc-400"
-          >
+          <div key={label} className="w-6 pb-1 font-medium text-zinc-400">
             {label}
           </div>
         ))}
-        {cells.map((cell, i) => {
+        {cells.map((cell) => {
           const isToday = cell.day === todayDate;
           return (
             <div
-              key={i}
+              key={cell.key}
               className={`flex h-6 w-6 items-center justify-center rounded ${
                 isToday
                   ? "bg-zinc-800 font-bold text-white"
