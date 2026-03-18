@@ -2,7 +2,9 @@ import { describe, expect, test } from "bun:test";
 import {
   isBlockInputError,
   parseBlockInput,
+  parseDisplaySettings,
   parseRunnerConfig,
+  safeParseDisplaySettings,
 } from "./validate.ts";
 
 describe("parseBlockInput", () => {
@@ -201,5 +203,62 @@ describe("parseRunnerConfig", () => {
   test("allowCwd defaults to true", () => {
     const result = parseRunnerConfig({ cwd: "/my/path" });
     expect(result).toEqual({ cwd: "/my/path" });
+  });
+});
+
+describe("safeParseDisplaySettings", () => {
+  test("returns undefined for null", () => {
+    expect(safeParseDisplaySettings(null)).toBeUndefined();
+  });
+
+  test("returns undefined for invalid JSON", () => {
+    expect(safeParseDisplaySettings("not json")).toBeUndefined();
+  });
+
+  test("parses valid settings", () => {
+    const raw = JSON.stringify({ dateFormat: "YYYY-MM-DD", timeFormat: "12h" });
+    expect(safeParseDisplaySettings(raw)).toEqual({
+      dateFormat: "YYYY-MM-DD",
+      timeFormat: "12h",
+    });
+  });
+
+  test("returns undefined for invalid enum values", () => {
+    const raw = JSON.stringify({ dateFormat: "invalid" });
+    expect(safeParseDisplaySettings(raw)).toBeUndefined();
+  });
+});
+
+describe("parseDisplaySettings", () => {
+  test("returns null for non-object", () => {
+    expect(parseDisplaySettings(null)).toBeNull();
+    expect(parseDisplaySettings("string")).toBeNull();
+    expect(parseDisplaySettings([])).toBeNull();
+  });
+
+  test("returns null for empty object", () => {
+    expect(parseDisplaySettings({})).toBeNull();
+  });
+
+  test("parses valid date format", () => {
+    expect(parseDisplaySettings({ dateFormat: "DD/MM/YYYY" })).toEqual({
+      dateFormat: "DD/MM/YYYY",
+    });
+  });
+
+  test("parses valid time format", () => {
+    expect(parseDisplaySettings({ timeFormat: "12h" })).toEqual({
+      timeFormat: "12h",
+    });
+  });
+
+  test("parses both fields", () => {
+    expect(
+      parseDisplaySettings({ dateFormat: "YYYY-MM-DD", timeFormat: "24h" }),
+    ).toEqual({ dateFormat: "YYYY-MM-DD", timeFormat: "24h" });
+  });
+
+  test("returns null for invalid enum values", () => {
+    expect(parseDisplaySettings({ dateFormat: "nope" })).toBeNull();
   });
 });
