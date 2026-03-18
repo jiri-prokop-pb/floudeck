@@ -250,9 +250,7 @@ describe("POST /api/settings/runner", () => {
       }),
     );
     // Then clear it
-    await router(
-      req("POST", "/api/settings/runner", { config: null }),
-    );
+    await router(req("POST", "/api/settings/runner", { config: null }));
     const res = await router(req("GET", "/api/settings/runner"));
     const data = await res!.json();
     expect(data.config).toBeNull();
@@ -275,7 +273,7 @@ describe("GET /api/blocks/:id enriched", () => {
     expect(data.resolvedConfig.model).toBe("sonnet");
     expect(data.resolvedConfig.permissions).toBe("sandbox");
     expect(data.cliCommand).toContain("claude");
-    expect(data.cliCommand).toContain("--sandbox");
+    expect(data.cliCommand).toContain("--model");
   });
 });
 

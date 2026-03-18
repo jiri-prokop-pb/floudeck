@@ -61,9 +61,9 @@ export function buildCliArgs(
 
   if (config.permissions === "dangerouslySkipPermissions") {
     args.push("--dangerously-skip-permissions");
-  } else {
-    args.push("--sandbox");
   }
+  // "sandbox" mode: no flag needed — Claude's default in --print mode is restricted.
+  // TODO: use --sandbox once it becomes available in the CLI.
 
   args.push("--model", config.model);
   args.push("--append-system-prompt", SYSTEM_PROMPT);

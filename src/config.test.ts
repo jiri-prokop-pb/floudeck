@@ -105,14 +105,17 @@ describe("buildCliArgs", () => {
     timeout: 60,
   };
 
-  test("sandbox mode uses --sandbox flag", () => {
+  test("sandbox mode does not push any permission flag", () => {
     const args = buildCliArgs(baseConfig, "test prompt");
-    expect(args).toContain("--sandbox");
+    expect(args).not.toContain("--sandbox");
     expect(args).not.toContain("--dangerously-skip-permissions");
   });
 
   test("dangerouslySkipPermissions mode uses correct flag", () => {
-    const config = { ...baseConfig, permissions: "dangerouslySkipPermissions" as const };
+    const config = {
+      ...baseConfig,
+      permissions: "dangerouslySkipPermissions" as const,
+    };
     const args = buildCliArgs(config, "test prompt");
     expect(args).toContain("--dangerously-skip-permissions");
     expect(args).not.toContain("--sandbox");
@@ -149,7 +152,6 @@ describe("formatCliCommand", () => {
   test("returns a string containing claude", () => {
     const cmd = formatCliCommand(baseConfig, "test");
     expect(cmd).toContain("claude");
-    expect(cmd).toContain("--sandbox");
     expect(cmd).toContain("--model");
   });
 
