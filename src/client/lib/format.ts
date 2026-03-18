@@ -1,25 +1,23 @@
-export type DateFormat =
-  | "D. M. YYYY"
-  | "YYYY-MM-DD"
-  | "DD/MM/YYYY"
-  | "MM/DD/YYYY";
+export type DateFormat = "D. M." | "MM-DD" | "DD/MM" | "MM/DD";
 export type TimeFormat = "24h" | "12h";
 
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
 export function formatDate(date: Date, format: DateFormat): string {
+  const day = DAY_NAMES[date.getDay()];
   const d = date.getDate();
   const dd = String(d).padStart(2, "0");
   const m = date.getMonth() + 1;
   const mm = String(m).padStart(2, "0");
-  const yyyy = String(date.getFullYear());
   switch (format) {
-    case "D. M. YYYY":
-      return `${d}. ${m}. ${yyyy}`;
-    case "YYYY-MM-DD":
-      return `${yyyy}-${mm}-${dd}`;
-    case "DD/MM/YYYY":
-      return `${dd}/${mm}/${yyyy}`;
-    case "MM/DD/YYYY":
-      return `${mm}/${dd}/${yyyy}`;
+    case "D. M.":
+      return `${day} ${d}. ${m}.`;
+    case "MM-DD":
+      return `${day} ${mm}-${dd}`;
+    case "DD/MM":
+      return `${day} ${dd}/${mm}`;
+    case "MM/DD":
+      return `${day} ${mm}/${dd}`;
   }
 }
 

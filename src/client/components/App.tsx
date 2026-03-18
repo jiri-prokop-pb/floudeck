@@ -13,7 +13,7 @@ export function App() {
   const [showCreate, setShowCreate] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [displaySettings, setDisplaySettings] = useState<DisplaySettings>({
-    dateFormat: "D. M. YYYY",
+    dateFormat: "D. M.",
     timeFormat: "24h",
   });
 

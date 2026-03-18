@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun run src/server.ts",
+    "dev": "bun --watch run src/server.ts",
     "test": "bun test src/",
     "lint": "bun biome check .",
     "format": "bun biome check --fix .",

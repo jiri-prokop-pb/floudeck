@@ -53,7 +53,10 @@ The feed is ordered by creation time (not last update), keeping the layout stabl
 - Single page, centered feed layout
 - Block cards show rendered markdown, error state, or loading spinner
 - Inline edit form with collapsible "Advanced settings" for runner config
-- Global settings modal (gear icon in header) for runner defaults
+- **Header clock** — live date & time display (day name + date + time); calendar popover on hover showing current month with today highlighted
+- **Settings modal** — tabbed layout (Runner, Display) with gear icon in header
+  - Runner tab: global runner defaults (model, permissions, timeout, env)
+  - Display tab: date format and time format (24h/12h) preferences
 - Block info popover with schedule, resolved config, and CLI command
 
 ### Error handling
@@ -70,6 +73,7 @@ The feed is ordered by creation time (not last update), keeping the layout stabl
 - Multiple users or authentication
 - Interactive permission handling (planned via Claude Code SDK)
 - Drag-and-drop ordering, folders, tags
+- Month navigation in calendar popover
 - Notifications (sound/browser)
 
 ## Planned
@@ -77,10 +81,10 @@ The feed is ordered by creation time (not last update), keeping the layout stabl
 See TODO.md for the full list. Key upcoming areas:
 
 - **Real-time output streaming** — watch Claude's output as it runs
-- **Date & time** — header clock, calendar widget
+- ~~**Date & time** — header clock, calendar widget~~ (done)
 - **Improved scheduling** — time-of-day for daily blocks, smarter queuing
 - **Visibility-based scheduling** — only update when Floudeck is visible
-- **Settings expansion** — date/time formats and other preferences
+- ~~**Settings expansion** — date/time formats and other preferences~~ (done)
 - **Custom actions** — per-card prompt-based or shell actions
 - **Script-based prompts** — generate scripts instead of always calling Claude
 - **Packaging** — standalone binary via bun compile or Tauri

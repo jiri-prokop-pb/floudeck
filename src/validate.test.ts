@@ -216,9 +216,9 @@ describe("safeParseDisplaySettings", () => {
   });
 
   test("parses valid settings", () => {
-    const raw = JSON.stringify({ dateFormat: "YYYY-MM-DD", timeFormat: "12h" });
+    const raw = JSON.stringify({ dateFormat: "MM-DD", timeFormat: "12h" });
     expect(safeParseDisplaySettings(raw)).toEqual({
-      dateFormat: "YYYY-MM-DD",
+      dateFormat: "MM-DD",
       timeFormat: "12h",
     });
   });
@@ -241,8 +241,8 @@ describe("parseDisplaySettings", () => {
   });
 
   test("parses valid date format", () => {
-    expect(parseDisplaySettings({ dateFormat: "DD/MM/YYYY" })).toEqual({
-      dateFormat: "DD/MM/YYYY",
+    expect(parseDisplaySettings({ dateFormat: "DD/MM" })).toEqual({
+      dateFormat: "DD/MM",
     });
   });
 
@@ -254,8 +254,8 @@ describe("parseDisplaySettings", () => {
 
   test("parses both fields", () => {
     expect(
-      parseDisplaySettings({ dateFormat: "YYYY-MM-DD", timeFormat: "24h" }),
-    ).toEqual({ dateFormat: "YYYY-MM-DD", timeFormat: "24h" });
+      parseDisplaySettings({ dateFormat: "MM-DD", timeFormat: "24h" }),
+    ).toEqual({ dateFormat: "MM-DD", timeFormat: "24h" });
   });
 
   test("returns null for invalid enum values", () => {

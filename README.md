@@ -21,6 +21,8 @@ Requires `claude` CLI in your PATH.
 - SSE pushes updates to the browser in real time
 - Blocks can be edited, refreshed, or deleted
 - Per-block and global runner configuration (model, timeout, permissions, cwd, env vars)
+- Live date/time clock in header with calendar popover on hover
+- Tabbed settings modal (Runner defaults, Display preferences)
 
 ## Development
 

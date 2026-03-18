@@ -324,13 +324,13 @@ describe("GET /api/settings/display", () => {
   test("returns saved config", async () => {
     await router(
       req("POST", "/api/settings/display", {
-        config: { dateFormat: "YYYY-MM-DD", timeFormat: "12h" },
+        config: { dateFormat: "MM-DD", timeFormat: "12h" },
       }),
     );
     const res = await router(req("GET", "/api/settings/display"));
     const data = await jsonBody(res);
     expect(data.ok).toBe(true);
-    expect(data.config.dateFormat).toBe("YYYY-MM-DD");
+    expect(data.config.dateFormat).toBe("MM-DD");
     expect(data.config.timeFormat).toBe("12h");
   });
 });
@@ -339,13 +339,13 @@ describe("POST /api/settings/display", () => {
   test("saves valid config", async () => {
     const res = await router(
       req("POST", "/api/settings/display", {
-        config: { dateFormat: "DD/MM/YYYY", timeFormat: "24h" },
+        config: { dateFormat: "DD/MM", timeFormat: "24h" },
       }),
     );
     const data = await jsonBody(res);
     expect(data.ok).toBe(true);
     expect(data.config).toEqual({
-      dateFormat: "DD/MM/YYYY",
+      dateFormat: "DD/MM",
       timeFormat: "24h",
     });
   });
@@ -353,7 +353,7 @@ describe("POST /api/settings/display", () => {
   test("clears config when null/empty", async () => {
     await router(
       req("POST", "/api/settings/display", {
-        config: { dateFormat: "YYYY-MM-DD" },
+        config: { dateFormat: "MM-DD" },
       }),
     );
     await router(req("POST", "/api/settings/display", { config: null }));
