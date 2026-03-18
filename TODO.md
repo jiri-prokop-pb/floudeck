@@ -1,8 +1,14 @@
 # TODO
 
-## Runner configuration
+## ~~Runner configuration~~ (done)
 
-- Allow configuring the `claude` invocation: `--dangerously-skip-permissions`, `--sandbox`, `cwd`, and other useful flags per block or globally
+- ~~Allow configuring the `claude` invocation: `--dangerously-skip-permissions`, `--sandbox`, `cwd`, and other useful flags per block or globally~~
+
+## Real-time output streaming
+
+- Stream claude's stdout in real-time so users can watch blocks being processed
+- Requires per-block SSE streaming or a log file the UI can tail
+- Helps users fine-tune prompts by seeing what's happening during execution
 
 ## Date & time
 
