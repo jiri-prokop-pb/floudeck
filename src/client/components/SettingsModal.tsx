@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { DisplaySettings, RunnerConfig } from "../../types.ts";
+import type { RunnerConfig } from "../../types.ts";
 import {
   fetchDisplaySettings,
   fetchRunnerSettings,
@@ -214,8 +214,7 @@ function DisplaySection({
     setError(null);
     setSaving(true);
 
-    const config: DisplaySettings = { dateFormat, timeFormat } as DisplaySettings;
-    const res = await saveDisplaySettings(config);
+    const res = await saveDisplaySettings({ dateFormat, timeFormat });
     setSaving(false);
     if (res.ok) {
       onSaved?.();
@@ -235,10 +234,10 @@ function DisplaySection({
         Configure how dates and times are displayed.
       </p>
 
-      <div>
-        <label className="mb-1 block text-xs font-medium text-zinc-600">
+      <label className="block">
+        <span className="mb-1 block text-xs font-medium text-zinc-600">
           Date format
-        </label>
+        </span>
         <select
           value={dateFormat}
           onChange={(e) => setDateFormat(e.target.value)}
@@ -249,12 +248,12 @@ function DisplaySection({
           <option value="DD/MM/YYYY">DD/MM/YYYY</option>
           <option value="MM/DD/YYYY">MM/DD/YYYY</option>
         </select>
-      </div>
+      </label>
 
-      <div>
-        <label className="mb-1 block text-xs font-medium text-zinc-600">
+      <label className="block">
+        <span className="mb-1 block text-xs font-medium text-zinc-600">
           Time format
-        </label>
+        </span>
         <select
           value={timeFormat}
           onChange={(e) => setTimeFormat(e.target.value)}
@@ -263,7 +262,7 @@ function DisplaySection({
           <option value="24h">24-hour</option>
           <option value="12h">12-hour</option>
         </select>
-      </div>
+      </label>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 

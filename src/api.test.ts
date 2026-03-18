@@ -344,7 +344,10 @@ describe("POST /api/settings/display", () => {
     );
     const data = await jsonBody(res);
     expect(data.ok).toBe(true);
-    expect(data.config).toEqual({ dateFormat: "DD/MM/YYYY", timeFormat: "24h" });
+    expect(data.config).toEqual({
+      dateFormat: "DD/MM/YYYY",
+      timeFormat: "24h",
+    });
   });
 
   test("clears config when null/empty", async () => {

@@ -20,7 +20,9 @@ export function Modal({ title, onClose, children, wide }: ModalProps) {
         if (e.key === "Escape") onClose();
       }}
     >
-      <div className={`w-full ${wide ? "max-w-xl" : "max-w-lg"} rounded-2xl bg-white p-6 shadow-xl`}>
+      <div
+        className={`w-full ${wide ? "max-w-xl" : "max-w-lg"} rounded-2xl bg-white p-6 shadow-xl`}
+      >
         <div className="mb-4 flex items-start justify-between">
           <h2 className="text-lg font-semibold text-zinc-900">{title}</h2>
           <button

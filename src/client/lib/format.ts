@@ -1,10 +1,11 @@
-export type DateFormat = "D. M. YYYY" | "YYYY-MM-DD" | "DD/MM/YYYY" | "MM/DD/YYYY";
+export type DateFormat =
+  | "D. M. YYYY"
+  | "YYYY-MM-DD"
+  | "DD/MM/YYYY"
+  | "MM/DD/YYYY";
 export type TimeFormat = "24h" | "12h";
 
-export function formatDate(
-  date: Date,
-  format: DateFormat,
-): string {
+export function formatDate(date: Date, format: DateFormat): string {
   const d = date.getDate();
   const dd = String(d).padStart(2, "0");
   const m = date.getMonth() + 1;
@@ -22,10 +23,7 @@ export function formatDate(
   }
 }
 
-export function formatTime(
-  date: Date,
-  format: TimeFormat,
-): string {
+export function formatTime(date: Date, format: TimeFormat): string {
   const h = date.getHours();
   const min = String(date.getMinutes()).padStart(2, "0");
   if (format === "24h") {
