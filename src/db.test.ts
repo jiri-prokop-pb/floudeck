@@ -7,12 +7,15 @@ import {
   deleteBlock,
   findDueBlocks,
   getBlock,
+  getSetting,
   initDb,
   listBlocks,
   markBlockError,
   markBlockRunning,
   markBlockSuccess,
+  parseBlockRunnerConfig,
   resetStaleRunningBlocks,
+  setSetting,
   updateBlock,
 } from "./db.ts";
 
@@ -266,5 +269,123 @@ describe("initDb", () => {
 
     fileDb.close();
     rmSync(tempRoot, { recursive: true, force: true });
+  });
+
+  test("creates settings table", () => {
+    const table = db
+      .query(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'settings'",
+      )
+      .get() as { name: string } | null;
+    expect(table).toEqual({ name: "settings" });
+  });
+});
+
+describe("uuid and runner_config", () => {
+  test("createBlock generates uuid", () => {
+    const b = createBlock(db, {
+      prompt: "test",
+      intervalValue: 1,
+      intervalUnit: "hours",
+    });
+    expect(b.uuid).toBeTruthy();
+    expect(b.uuid.length).toBeGreaterThan(10);
+  });
+
+  test("each block gets a unique uuid", () => {
+    const b1 = createBlock(db, {
+      prompt: "a",
+      intervalValue: 1,
+      intervalUnit: "hours",
+    });
+    const b2 = createBlock(db, {
+      prompt: "b",
+      intervalValue: 1,
+      intervalUnit: "hours",
+    });
+    expect(b1.uuid).not.toBe(b2.uuid);
+  });
+
+  test("createBlock stores runner_config as JSON", () => {
+    const b = createBlock(db, {
+      prompt: "test",
+      intervalValue: 1,
+      intervalUnit: "hours",
+      runnerConfig: { model: "opus", timeout: 120 },
+    });
+    expect(b.runner_config).toBe('{"model":"opus","timeout":120}');
+  });
+
+  test("createBlock with no runner_config stores null", () => {
+    const b = createBlock(db, {
+      prompt: "test",
+      intervalValue: 1,
+      intervalUnit: "hours",
+    });
+    expect(b.runner_config).toBeNull();
+  });
+
+  test("updateBlock stores runner_config", () => {
+    const b = createBlock(db, {
+      prompt: "test",
+      intervalValue: 1,
+      intervalUnit: "hours",
+    });
+    const updated = updateBlock(db, b.id, {
+      prompt: "updated",
+      intervalValue: 2,
+      intervalUnit: "days",
+      runnerConfig: { cwd: "/my/path" },
+    });
+    expect(updated).not.toBeNull();
+    expect(updated!.runner_config).toBe('{"cwd":"/my/path"}');
+  });
+
+  test("parseBlockRunnerConfig parses valid JSON", () => {
+    const b = createBlock(db, {
+      prompt: "test",
+      intervalValue: 1,
+      intervalUnit: "hours",
+      runnerConfig: { model: "opus" },
+    });
+    const config = parseBlockRunnerConfig(b);
+    expect(config).toEqual({ model: "opus" });
+  });
+
+  test("parseBlockRunnerConfig returns null for no config", () => {
+    const b = createBlock(db, {
+      prompt: "test",
+      intervalValue: 1,
+      intervalUnit: "hours",
+    });
+    expect(parseBlockRunnerConfig(b)).toBeNull();
+  });
+
+  test("parseBlockRunnerConfig returns null for invalid JSON", () => {
+    const b = createBlock(db, {
+      prompt: "test",
+      intervalValue: 1,
+      intervalUnit: "hours",
+    });
+    db.run("UPDATE blocks SET runner_config = 'not json' WHERE id = ?", b.id);
+    const fetched = getBlock(db, b.id)!;
+    expect(parseBlockRunnerConfig(fetched)).toBeNull();
+  });
+});
+
+describe("settings", () => {
+  test("getSetting returns null for missing key", () => {
+    expect(getSetting(db, "nonexistent")).toBeNull();
+  });
+
+  test("setSetting and getSetting roundtrip", () => {
+    setSetting(db, "test_key", "test_value");
+    expect(getSetting(db, "test_key")).toBe("test_value");
+  });
+
+  test("setSetting upserts on conflict", () => {
+    setSetting(db, "key", "first");
+    setSetting(db, "key", "second");
+    expect(getSetting(db, "key")).toBe("second");
   });
 });
