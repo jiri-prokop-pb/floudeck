@@ -66,14 +66,22 @@ export function isBlockInputError(
   return "field" in result;
 }
 
-export function parseRunnerConfig(raw: unknown): RunnerConfig | null {
+export type ParseRunnerConfigOptions = {
+  allowCwd?: boolean;
+};
+
+export function parseRunnerConfig(
+  raw: unknown,
+  options?: ParseRunnerConfigOptions,
+): RunnerConfig | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
 
+  const { allowCwd = true } = options ?? {};
   const obj = raw as Record<string, unknown>;
   const config: RunnerConfig = {};
   let hasKeys = false;
 
-  if (typeof obj.cwd === "string" && obj.cwd.trim()) {
+  if (allowCwd && typeof obj.cwd === "string" && obj.cwd.trim()) {
     config.cwd = obj.cwd.trim();
     hasKeys = true;
   }

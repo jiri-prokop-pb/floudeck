@@ -242,6 +242,21 @@ describe("POST /api/settings/runner", () => {
     expect(data.config).toEqual({ model: "sonnet", permissions: "sandbox" });
   });
 
+  test("strips cwd from global settings", async () => {
+    const res = await router(
+      req("POST", "/api/settings/runner", {
+        config: { model: "opus", cwd: "/should/be/stripped" },
+      }),
+    );
+    const data = await res!.json();
+    expect(data.ok).toBe(true);
+    expect(data.config).toEqual({ model: "opus" });
+    // Verify it's not stored
+    const getRes = await router(req("GET", "/api/settings/runner"));
+    const getData = await getRes!.json();
+    expect(getData.config.cwd).toBeUndefined();
+  });
+
   test("clears config when null/empty", async () => {
     // First set something
     await router(
