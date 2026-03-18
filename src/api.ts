@@ -1,14 +1,23 @@
 import type { Database } from "bun:sqlite";
+import { formatCliCommand, resolveRunnerConfig } from "./config.ts";
 import {
   createBlock,
   deleteBlock,
   getBlock,
+  getSetting,
   listBlocks,
+  parseBlockRunnerConfig,
+  setSetting,
   updateBlock,
 } from "./db.ts";
 import type { SseBroadcaster } from "./sse.ts";
 import { nowIso } from "./time.ts";
-import { isBlockInputError, parseBlockInput } from "./validate.ts";
+import type { RunnerConfig } from "./types.ts";
+import {
+  isBlockInputError,
+  parseBlockInput,
+  parseRunnerConfig,
+} from "./validate.ts";
 
 export type RouterDeps = {
   db: Database;
@@ -71,7 +80,25 @@ export function createRouter(
           return json({ ok: false, error: "Invalid id" }, 400);
         const block = getBlock(db, id);
         if (!block) return json({ ok: false, error: "Not found" }, 404);
-        return json({ ok: true, block });
+
+        const blockConfig = parseBlockRunnerConfig(block);
+        const globalRaw = getSetting(db, "runner_defaults");
+        let globalDefaults: RunnerConfig | null = null;
+        if (globalRaw) {
+          try {
+            globalDefaults = JSON.parse(globalRaw) as RunnerConfig;
+          } catch {
+            // ignore corrupt settings
+          }
+        }
+        const resolvedConfig = resolveRunnerConfig(
+          globalDefaults,
+          blockConfig,
+          block.uuid,
+        );
+        const cliCommand = formatCliCommand(resolvedConfig, block.prompt);
+
+        return json({ ok: true, block, resolvedConfig, cliCommand });
       },
     },
     {
@@ -170,6 +197,49 @@ export function createRouter(
         if (!deleted) return json({ ok: false, error: "Not found" }, 404);
         sse.broadcast("blocks-invalidated", {});
         return json({ ok: true });
+      },
+    },
+    {
+      method: "GET",
+      pattern: "/api/settings/runner",
+      handler: () => {
+        const raw = getSetting(db, "runner_defaults");
+        let config: RunnerConfig | null = null;
+        if (raw) {
+          try {
+            config = JSON.parse(raw) as RunnerConfig;
+          } catch {
+            // ignore corrupt data
+          }
+        }
+        return json({ ok: true, config });
+      },
+    },
+    {
+      method: "POST",
+      pattern: "/api/settings/runner",
+      handler: async (req) => {
+        let body: unknown;
+        try {
+          body = await req.json();
+        } catch {
+          return json({ ok: false, error: "Invalid JSON" }, 400);
+        }
+        if (!body || typeof body !== "object") {
+          return json(
+            { ok: false, error: "Request body must be a JSON object" },
+            400,
+          );
+        }
+        const { config: rawConfig } = body as Record<string, unknown>;
+        const config = parseRunnerConfig(rawConfig);
+        if (config) {
+          setSetting(db, "runner_defaults", JSON.stringify(config));
+        } else {
+          // Clear settings if empty/null
+          db.run("DELETE FROM settings WHERE key = ?", "runner_defaults");
+        }
+        return json({ ok: true, config });
       },
     },
   ];

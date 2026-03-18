@@ -1,15 +1,18 @@
 import type { Database } from "bun:sqlite";
+import { resolveRunnerConfig } from "./config.ts";
 import {
   findDueBlocks,
   getBlock,
+  getSetting,
   markBlockError,
   markBlockPendingImmediateRun,
   markBlockRunning,
   markBlockSuccess,
+  parseBlockRunnerConfig,
 } from "./db.ts";
 import type { SseBroadcaster } from "./sse.ts";
 import { addInterval, nowIso } from "./time.ts";
-import type { RunBlockFn } from "./types.ts";
+import type { RunBlockFn, RunnerConfig } from "./types.ts";
 
 export type SchedulerDeps = {
   db: Database;
@@ -43,6 +46,16 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
     return new Date(updatedAt).getTime() > new Date(startedAt).getTime();
   }
 
+  function loadGlobalDefaults(): RunnerConfig | null {
+    const raw = getSetting(db, "runner_defaults");
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as RunnerConfig;
+    } catch {
+      return null;
+    }
+  }
+
   async function startRun(blockId: number, prompt: string): Promise<void> {
     runningBlockIds.add(blockId);
     activeRuns++;
@@ -50,10 +63,21 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
     let shouldRerun = false;
 
     try {
+      const currentBlock = getBlock(db, blockId);
+      if (!currentBlock) return;
+
+      const blockConfig = parseBlockRunnerConfig(currentBlock);
+      const globalDefaults = loadGlobalDefaults();
+      const resolvedConfig = resolveRunnerConfig(
+        globalDefaults,
+        blockConfig,
+        currentBlock.uuid,
+      );
+
       markBlockRunning(db, blockId, startedAt);
       sse.broadcast("block-updated", { blockId, status: "running" });
 
-      const result = await runBlock(prompt);
+      const result = await runBlock(prompt, resolvedConfig);
 
       const block = getBlock(db, blockId);
       if (!block) return;

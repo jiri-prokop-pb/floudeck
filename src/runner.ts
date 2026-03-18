@@ -1,8 +1,6 @@
+import { buildCliArgs, ensureCwd } from "./config.ts";
 import { extractMarkdownFromOutput } from "./extract.ts";
-import { SYSTEM_PROMPT } from "./prompts.ts";
-import type { RunBlockFn, RunResult } from "./types.ts";
-
-const RUN_TIMEOUT_MS = 60_000;
+import type { ResolvedRunnerConfig, RunBlockFn, RunResult } from "./types.ts";
 
 export function processCliOutput(
   stdout: string,
@@ -26,19 +24,25 @@ export function processCliOutput(
 }
 
 export function createCliRunner(): RunBlockFn {
-  return async (prompt: string): Promise<RunResult> => {
-    const args = [
-      "claude",
-      "--print",
-      "--dangerously-skip-permissions",
-      "--append-system-prompt",
-      SYSTEM_PROMPT,
-      prompt,
-    ];
+  return async (
+    prompt: string,
+    config: ResolvedRunnerConfig,
+  ): Promise<RunResult> => {
+    const args = buildCliArgs(config, prompt);
+    const timeoutMs = config.timeout * 1000;
+
+    ensureCwd(config.cwd);
+
+    const spawnEnv =
+      Object.keys(config.env).length > 0
+        ? { ...process.env, ...config.env }
+        : undefined;
 
     const proc = Bun.spawn(args, {
+      cwd: config.cwd,
       stdout: "pipe",
       stderr: "pipe",
+      ...(spawnEnv ? { env: spawnEnv } : {}),
     });
 
     let timedOut = false;
@@ -49,7 +53,7 @@ export function createCliRunner(): RunBlockFn {
       } catch {
         // ignore
       }
-    }, RUN_TIMEOUT_MS);
+    }, timeoutMs);
 
     try {
       const stdout = await new Response(proc.stdout).text();
@@ -61,7 +65,7 @@ export function createCliRunner(): RunBlockFn {
       if (timedOut) {
         return {
           ok: false,
-          error: `Task timed out after ${RUN_TIMEOUT_MS / 1000} seconds.`,
+          error: `Task timed out after ${config.timeout} seconds.`,
           stderr,
         };
       }
@@ -74,9 +78,15 @@ export function createCliRunner(): RunBlockFn {
 }
 
 export function createMockRunner(
-  handler: (prompt: string) => RunResult | Promise<RunResult>,
+  handler: (
+    prompt: string,
+    config: ResolvedRunnerConfig,
+  ) => RunResult | Promise<RunResult>,
 ): RunBlockFn {
-  return async (prompt: string): Promise<RunResult> => {
-    return handler(prompt);
+  return async (
+    prompt: string,
+    config: ResolvedRunnerConfig,
+  ): Promise<RunResult> => {
+    return handler(prompt, config);
   };
 }
