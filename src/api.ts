@@ -15,7 +15,9 @@ import { nowIso } from "./time.ts";
 import {
   isBlockInputError,
   parseBlockInput,
+  parseDisplaySettings,
   parseRunnerConfig,
+  safeParseDisplaySettings,
   safeParseRunnerConfig,
 } from "./validate.ts";
 
@@ -225,6 +227,41 @@ export function createRouter(
         } else {
           // Clear settings if empty/null
           db.run("DELETE FROM settings WHERE key = ?", "runner_defaults");
+        }
+        return json({ ok: true, config });
+      },
+    },
+    {
+      method: "GET",
+      pattern: "/api/settings/display",
+      handler: () => {
+        const config =
+          safeParseDisplaySettings(getSetting(db, "display")) ?? null;
+        return json({ ok: true, config });
+      },
+    },
+    {
+      method: "POST",
+      pattern: "/api/settings/display",
+      handler: async (req) => {
+        let body: unknown;
+        try {
+          body = await req.json();
+        } catch {
+          return json({ ok: false, error: "Invalid JSON" }, 400);
+        }
+        if (!body || typeof body !== "object") {
+          return json(
+            { ok: false, error: "Request body must be a JSON object" },
+            400,
+          );
+        }
+        const { config: rawConfig } = body as Record<string, unknown>;
+        const config = parseDisplaySettings(rawConfig);
+        if (config) {
+          setSetting(db, "display", JSON.stringify(config));
+        } else {
+          db.run("DELETE FROM settings WHERE key = ?", "display");
         }
         return json({ ok: true, config });
       },
