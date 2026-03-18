@@ -1,19 +1,5 @@
 # TODO
 
-## ~~Date & time~~ (done)
-
-- ~~Add date & time (24h format for now; later configurable) to the header (on the right side)~~
-- ~~When date is hovered, show a tiny calendar widget in popover~~
-
-## ~~Settings~~ (done)
-
-— Have settings modal with default for:
-  - ~~runner~~ (done — global runner settings modal)
-  - ~~date & time formats~~ (done — tabbed settings modal with Runner and Display sections)
-  - other stuff, if needed (should be flexible and easy to add more)
-  
----
-
 ## Drag & drop block reordering
 
 - Add drag handle (e.g. `DotsSixVertical` icon from Phosphor) to the left of each card, outside the card boundary, visible on hover

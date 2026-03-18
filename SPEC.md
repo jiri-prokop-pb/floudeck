@@ -81,10 +81,8 @@ The feed is ordered by creation time (not last update), keeping the layout stabl
 See TODO.md for the full list. Key upcoming areas:
 
 - **Real-time output streaming** — watch Claude's output as it runs
-- ~~**Date & time** — header clock, calendar widget~~ (done)
 - **Improved scheduling** — time-of-day for daily blocks, smarter queuing
 - **Visibility-based scheduling** — only update when Floudeck is visible
-- ~~**Settings expansion** — date/time formats and other preferences~~ (done)
 - **Custom actions** — per-card prompt-based or shell actions
 - **Script-based prompts** — generate scripts instead of always calling Claude
 - **Packaging** — standalone binary via bun compile or Tauri
