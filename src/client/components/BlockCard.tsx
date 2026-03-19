@@ -47,7 +47,9 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
   }
 
   return (
-    <div className="relative rounded-2xl border border-zinc-200 bg-white shadow-sm">
+    <div
+      className={`relative rounded-2xl border border-zinc-200 bg-white shadow-sm ${showMenu || showInfo ? "z-30" : ""}`}
+    >
       {/* Icon buttons — hidden while editing */}
       {!editing && (
         <div className="absolute right-3 top-3 flex items-center gap-1 z-10">
@@ -183,7 +185,6 @@ export function SortableBlockCard(props: BlockCardProps) {
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : undefined,
   };
 
   return (
