@@ -31,6 +31,42 @@ describe("renderMarkdown", () => {
     expect(result).toContain("https://example.com");
   });
 
+  test("renders action links as colored pills", () => {
+    const result = renderMarkdown(
+      "[Run task|blue](/action/abc-123/run?mode=fast)",
+    );
+    expect(result).toContain("rounded-full");
+    expect(result).toContain("bg-blue-100");
+    expect(result).toContain("text-blue-700");
+    expect(result).toContain('data-action-link="true"');
+    expect(result).toContain("Run task");
+    expect(result).not.toContain("|blue");
+  });
+
+  test("renders action links with default green color", () => {
+    const result = renderMarkdown("[Do it](/action/abc-123/do)");
+    expect(result).toContain("bg-green-100");
+    expect(result).toContain("text-green-700");
+  });
+
+  test("renders regular links with color tag as colored text", () => {
+    const result = renderMarkdown("[Open docs|blue](https://example.com/docs)");
+    expect(result).toContain("text-blue-600");
+    expect(result).toContain("underline");
+    expect(result).toContain("Open docs");
+    expect(result).not.toContain("|blue");
+    expect(result).not.toContain("rounded-full");
+    expect(result).toContain('target="_blank"');
+  });
+
+  test("renders regular links without color tag using default prose style", () => {
+    const result = renderMarkdown("[click](https://example.com)");
+    expect(result).not.toContain("text-blue-600");
+    expect(result).not.toContain("text-green-600");
+    expect(result).toContain("click");
+    expect(result).toContain("https://example.com");
+  });
+
   test("strips raw HTML in markdown input", () => {
     const result = renderMarkdown("hello <script>alert(1)</script> world");
     expect(result).not.toContain("<script");
