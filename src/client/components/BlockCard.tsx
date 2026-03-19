@@ -200,16 +200,16 @@ export function SortableBlockCard(props: BlockCardProps) {
       {...attributes}
       className={`group/sortable relative ${isDragging ? "z-50" : ""}`}
     >
-      <button
-        type="button"
-        {...listeners}
-        className="absolute -left-8 top-0 bottom-0 flex w-8 items-center justify-center text-zinc-300 opacity-0 group-hover/sortable:opacity-100 focus:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
-      >
-        <DotsSixVertical size={18} weight="bold" />
-      </button>
       <div
-        className={`rounded-2xl transition-all duration-200 ${isDragging ? "scale-105 shadow-xl" : ""}`}
+        className={`relative rounded-2xl transition-all duration-200 ${isDragging ? "scale-105 shadow-xl" : ""}`}
       >
+        <button
+          type="button"
+          {...listeners}
+          className="absolute -left-8 top-0 bottom-0 flex w-8 items-center justify-center text-zinc-300 opacity-0 group-hover/sortable:opacity-100 focus:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
+        >
+          <DotsSixVertical size={18} weight="bold" />
+        </button>
         <BlockCard {...props} />
       </div>
     </div>
