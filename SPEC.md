@@ -8,7 +8,7 @@ A local feed of scheduled blocks that run prompts through Claude Code CLI and re
 
 Floudeck is a single-page web app running locally. Users create **blocks** — each block has a prompt, a repeat interval, and optional runner configuration. Blocks execute on schedule, and the latest result is rendered as a markdown card in a vertical feed.
 
-The feed is ordered by creation time (not last update), keeping the layout stable.
+The feed is ordered by user-defined position (drag-and-drop reorderable), keeping the layout stable.
 
 ## Features
 
@@ -50,7 +50,7 @@ The feed is ordered by creation time (not last update), keeping the layout stabl
 
 ### UI
 
-- Single page, centered feed layout
+- Single page, centered feed layout with drag-and-drop block reordering
 - Block cards show rendered markdown, error state, or loading spinner
 - Inline edit form with collapsible "Advanced settings" for runner config
 - **Header clock** — live date & time display (day name + date + time); calendar popover on hover showing current month with today highlighted
@@ -72,7 +72,7 @@ The feed is ordered by creation time (not last update), keeping the layout stabl
 - Real-time output streaming (planned)
 - Multiple users or authentication
 - Interactive permission handling (planned via Claude Code SDK)
-- Drag-and-drop ordering, folders, tags
+- Folders, tags
 - Month navigation in calendar popover
 - Notifications (sound/browser)
 
