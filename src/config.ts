@@ -1,10 +1,17 @@
 import { mkdirSync } from "node:fs";
-import { homedir } from "node:os";
 import { ACTION_SYSTEM_PROMPT, SYSTEM_PROMPT } from "./prompts.ts";
 import type { ResolvedRunnerConfig, RunnerConfig } from "./types.ts";
 import { ENV_INHERIT_SENTINEL } from "./types.ts";
 
-const WORKSPACE_ROOT = `${homedir()}/.floudeck/blocks-workspace`;
+function getHome(): string {
+  return Bun.env.HOME ?? "/tmp";
+}
+
+function expandTilde(path: string): string {
+  if (path === "~") return getHome();
+  if (path.startsWith("~/")) return `${getHome()}${path.slice(1)}`;
+  return path;
+}
 
 const HARDCODED_DEFAULTS: ResolvedRunnerConfig = {
   cwd: "", // placeholder — resolved per-block via blockUuid
@@ -24,7 +31,9 @@ export function resolveRunnerConfig(
   const block = blockConfig ?? {};
 
   // cwd: block override or default (global is skipped for cwd)
-  const cwd = block.cwd || `${WORKSPACE_ROOT}/${blockUuid}`;
+  const workspaceRoot = `${getHome()}/.floudeck/blocks-workspace`;
+  const rawCwd = block.cwd || `${workspaceRoot}/${blockUuid}`;
+  const cwd = expandTilde(rawCwd);
 
   const model = block.model || global.model || defaults.model;
   const permissions =
