@@ -1,7 +1,12 @@
 import { Gear } from "@phosphor-icons/react";
 import { useCallback, useEffect, useState } from "react";
 import type { BlockRecord, DisplaySettings } from "../../types.ts";
-import { fetchBlock, fetchBlocks, fetchDisplaySettings } from "../lib/api.ts";
+import {
+  fetchBlock,
+  fetchBlocks,
+  fetchDisplaySettings,
+  reorderBlocksApi,
+} from "../lib/api.ts";
 import { CreateBlockForm } from "./CreateBlockForm.tsx";
 import { Feed } from "./Feed.tsx";
 import { HeaderClock } from "./HeaderClock.tsx";
@@ -70,6 +75,19 @@ export function App() {
     setBlocks((prev) => prev.filter((b) => b.id !== id));
   }
 
+  function handleReorder(orderedIds: number[]) {
+    setBlocks((prev) => {
+      const blockMap = new Map(prev.map((b) => [b.id, b]));
+      const reordered: BlockRecord[] = [];
+      for (const id of orderedIds) {
+        const block = blockMap.get(id);
+        if (block) reordered.push(block);
+      }
+      return reordered;
+    });
+    void reorderBlocksApi(orderedIds);
+  }
+
   return (
     <div className="min-h-screen bg-zinc-50">
       <div className="mx-auto max-w-3xl px-4 py-10">
@@ -93,7 +111,12 @@ export function App() {
           </div>
         </header>
 
-        <Feed blocks={blocks} onUpdate={handleUpdate} onDelete={handleDelete} />
+        <Feed
+          blocks={blocks}
+          onUpdate={handleUpdate}
+          onDelete={handleDelete}
+          onReorder={handleReorder}
+        />
 
         <button
           type="button"
