@@ -59,6 +59,17 @@ The feed is ordered by user-defined position (drag-and-drop reorderable), keepin
   - Display tab: date format and time format (24h/12h) preferences
 - Block info popover with schedule, resolved config, and CLI command
 
+### Custom actions
+
+Blocks can include action links in their markdown output. Clicking an action link opens a dedicated action page that spawns a new Claude instance with the block's context.
+
+- **Action links:** `[Label|color](/action/{block-uuid}/{action-name}?params)` — rendered as colored pills
+- **Colors:** red, orange, yellow, green (default), blue, purple — Claude picks based on action intent
+- **Action page:** shows action result as rendered markdown, with back link to feed
+- **Execution:** idempotent by click-id, bypasses global concurrency cap, cached for reuse on refresh
+- **Block staleness:** parent block auto-refreshes when user returns to feed after an action
+- **Cleanup:** action runs expire after 24 hours
+
 ### Error handling
 
 - Error card replaces block content with clear message
@@ -83,7 +94,7 @@ See TODO.md for the full list. Key upcoming areas:
 - **Real-time output streaming** — watch Claude's output as it runs
 - **Improved scheduling** — time-of-day for daily blocks, smarter queuing
 - **Visibility-based scheduling** — only update when Floudeck is visible
-- **Custom actions** — per-card prompt-based or shell actions
+- **Custom actions improvements** — streaming, user-defined prompts, conversational follow-ups
 - **Script-based prompts** — generate scripts instead of always calling Claude
 - **Packaging** — standalone binary via bun compile or Tauri
 - **Claude Code SDK** — replace CLI with SDK for better permission handling and introspection
