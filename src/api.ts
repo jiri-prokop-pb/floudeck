@@ -41,6 +41,14 @@ function json(data: unknown, status = 200): Response {
   return Response.json(data, { status });
 }
 
+function extractBlockTitle(
+  block: { output_markdown: string | null } | null,
+): string | null {
+  if (!block?.output_markdown) return null;
+  const match = /^# (.+)$/m.exec(block.output_markdown);
+  return match ? match[1].trim() : null;
+}
+
 function matchRoute(
   pathname: string,
   pattern: string,
@@ -329,7 +337,9 @@ export function createRouter(
         // Check for existing run with this clickId
         const existing = getActionRun(db, clickId);
         if (existing) {
-          return json({ ok: true, actionRun: existing });
+          const existingBlock = getBlockByUuid(db, blockUuid);
+          const blockTitle = extractBlockTitle(existingBlock);
+          return json({ ok: true, actionRun: existing, blockTitle });
         }
 
         // Validate block exists
@@ -397,7 +407,8 @@ export function createRouter(
           }
         })();
 
-        return json({ ok: true, actionRun });
+        const blockTitle = extractBlockTitle(block);
+        return json({ ok: true, actionRun, blockTitle });
       },
     },
     {
@@ -408,7 +419,9 @@ export function createRouter(
         if (!actionRun) {
           return json({ ok: false, error: "Not found" }, 404);
         }
-        return json({ ok: true, actionRun });
+        const block = getBlock(db, actionRun.block_id);
+        const blockTitle = extractBlockTitle(block);
+        return json({ ok: true, actionRun, blockTitle });
       },
     },
   ];
