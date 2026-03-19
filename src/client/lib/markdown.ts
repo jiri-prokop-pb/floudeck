@@ -9,6 +9,15 @@ const ACTION_COLORS: Record<string, string> = {
   purple: "bg-purple-100 text-purple-700 hover:bg-purple-200",
 };
 
+const LINK_COLORS: Record<string, string> = {
+  red: "text-red-600 hover:text-red-800",
+  orange: "text-orange-600 hover:text-orange-800",
+  yellow: "text-yellow-600 hover:text-yellow-800",
+  green: "text-green-600 hover:text-green-800",
+  blue: "text-blue-600 hover:text-blue-800",
+  purple: "text-purple-600 hover:text-purple-800",
+};
+
 const DEFAULT_ACTION_COLOR = "green";
 
 function parseActionLabel(text: string): { label: string; color: string } {
@@ -49,7 +58,17 @@ marked.use({
           .replace(/>/g, "&gt;");
         return `<a href="${escapedHref}" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${classes} no-underline transition-colors cursor-pointer" data-action-link="true">${escapedLabel}</a>`;
       }
-      return false;
+      const { label, color } = parseActionLabel(token.text);
+      if (label === token.text) {
+        return false;
+      }
+      const classes = LINK_COLORS[color] ?? "";
+      const escapedHref = href.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+      const escapedLabel = label
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+      return `<a href="${escapedHref}" class="font-semibold underline ${classes}" target="_blank" rel="noopener noreferrer">${escapedLabel}</a>`;
     },
   },
 });

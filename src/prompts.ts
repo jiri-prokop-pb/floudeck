@@ -50,7 +50,7 @@ With optional color tag (pipe-separated before closing bracket):
 Color palette: red, orange, yellow, green, blue, purple. Default (no tag): green.
 Color guidance: red = destructive/dangerous, orange = caution, green = safe/constructive, blue = informational/navigation, purple = advanced/settings.
 
-IMPORTANT: The color tag syntax (e.g. [Label|blue]) is ONLY for action links (/action/... URLs). Regular links must use standard markdown: [Label](https://example.com). Do NOT use the pipe-color syntax on regular links — it will render the color tag as literal text.
+The color tag syntax also works on regular links: [Open docs|blue](https://example.com) renders as colored underlined text. Action links render as colored pills.
 
 Your block UUID is provided in the context. Use it when constructing action links.`;
 
