@@ -19,7 +19,7 @@ Requires `claude` CLI in your PATH.
 - Each block runs through Claude Code CLI on schedule
 - Output is GFM markdown rendered in a card
 - SSE pushes updates to the browser in real time
-- Blocks can be edited, refreshed, or deleted
+- Blocks can be edited, refreshed, deleted, or reordered via drag-and-drop
 - Per-block and global runner configuration (model, timeout, permissions, cwd, env vars)
 - Live date/time clock in header with calendar popover on hover
 - Tabbed settings modal (Runner defaults, Display preferences)
