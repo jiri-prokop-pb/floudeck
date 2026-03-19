@@ -46,9 +46,7 @@ export function initDb(path?: string): Database {
   }
   // Backfill: assign sparse positions to blocks that have position 0
   const unpositioned = db
-    .query(
-      "SELECT id FROM blocks WHERE position = 0 ORDER BY created_at ASC",
-    )
+    .query("SELECT id FROM blocks WHERE position = 0 ORDER BY created_at ASC")
     .all() as Array<{ id: number }>;
   if (unpositioned.length > 0) {
     const stmt = db.prepare("UPDATE blocks SET position = ? WHERE id = ?");
