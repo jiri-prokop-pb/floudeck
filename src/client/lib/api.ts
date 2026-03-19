@@ -65,6 +65,16 @@ export async function refreshBlockApi(
   return apiFetch(`/api/blocks/${id}/refresh`, { method: "POST" });
 }
 
+export async function reorderBlocksApi(
+  orderedIds: number[],
+): Promise<ApiResponse<Record<string, never>>> {
+  return apiFetch("/api/blocks/reorder", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ orderedIds }),
+  });
+}
+
 export async function fetchBlockDetail(id: number): Promise<{
   block: BlockRecord;
   resolvedConfig: ResolvedRunnerConfig;

@@ -34,9 +34,28 @@ export function initDb(path?: string): Database {
       updated_at TEXT NOT NULL,
       last_run_at TEXT,
       next_run_at TEXT,
-      running_started_at TEXT
+      running_started_at TEXT,
+      position INTEGER NOT NULL DEFAULT 0
     )
   `);
+  // Migration: add position column to existing databases
+  try {
+    db.run("ALTER TABLE blocks ADD COLUMN position INTEGER NOT NULL DEFAULT 0");
+  } catch {
+    // Column already exists
+  }
+  // Backfill: assign sparse positions to blocks that have position 0
+  const unpositioned = db
+    .query(
+      "SELECT id FROM blocks WHERE position = 0 ORDER BY created_at ASC",
+    )
+    .all() as Array<{ id: number }>;
+  if (unpositioned.length > 0) {
+    const stmt = db.prepare("UPDATE blocks SET position = ? WHERE id = ?");
+    for (let i = 0; i < unpositioned.length; i++) {
+      stmt.run((i + 1) * 1000, unpositioned[i].id);
+    }
+  }
   db.run(
     "CREATE INDEX IF NOT EXISTS idx_blocks_next_run_at ON blocks(next_run_at)",
   );
@@ -51,7 +70,7 @@ export function initDb(path?: string): Database {
 
 export function listBlocks(db: Database): BlockRecord[] {
   return db
-    .query("SELECT * FROM blocks ORDER BY created_at ASC")
+    .query("SELECT * FROM blocks ORDER BY position ASC, created_at ASC")
     .all() as BlockRecord[];
 }
 
@@ -73,8 +92,8 @@ export function createBlock(
     : null;
   const result = db
     .query(
-      `INSERT INTO blocks (uuid, prompt, interval_value, interval_unit, status, runner_config, created_at, updated_at, next_run_at)
-       VALUES (?, ?, ?, ?, 'idle', ?, ?, ?, ?)
+      `INSERT INTO blocks (uuid, prompt, interval_value, interval_unit, status, runner_config, created_at, updated_at, next_run_at, position)
+       VALUES (?, ?, ?, ?, 'idle', ?, ?, ?, ?, (SELECT COALESCE(MAX(position), 0) + 1000 FROM blocks))
        RETURNING *`,
     )
     .get(
@@ -227,6 +246,15 @@ export function setSetting(db: Database, key: string, value: string): void {
     value,
     value,
   );
+}
+
+export function reorderBlocks(db: Database, orderedIds: number[]): void {
+  const stmt = db.prepare("UPDATE blocks SET position = ? WHERE id = ?");
+  db.transaction(() => {
+    for (let i = 0; i < orderedIds.length; i++) {
+      stmt.run((i + 1) * 1000, orderedIds[i]);
+    }
+  })();
 }
 
 export function parseBlockRunnerConfig(

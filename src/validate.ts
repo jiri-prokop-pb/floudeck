@@ -152,6 +152,20 @@ export function safeParseRunnerConfig(
   }
 }
 
+const ReorderInputSchema = z.object({
+  orderedIds: z.array(z.number()),
+});
+
+export function parseReorderInput(
+  body: unknown,
+): { orderedIds: number[] } | null {
+  if (!body || typeof body !== "object") return null;
+  const result = ReorderInputSchema.safeParse(body);
+  if (!result.success) return null;
+  if (result.data.orderedIds.length === 0) return null;
+  return { orderedIds: result.data.orderedIds };
+}
+
 export function safeParseDisplaySettings(
   raw: string | null,
 ): DisplaySettings | undefined {

@@ -7,6 +7,7 @@ import {
   getSetting,
   listBlocks,
   parseBlockRunnerConfig,
+  reorderBlocks,
   setSetting,
   updateBlock,
 } from "./db.ts";
@@ -16,6 +17,7 @@ import {
   isBlockInputError,
   parseBlockInput,
   parseDisplaySettings,
+  parseReorderInput,
   parseRunnerConfig,
   safeParseDisplaySettings,
   safeParseRunnerConfig,
@@ -191,6 +193,25 @@ export function createRouter(
           return json({ ok: false, error: "Invalid id" }, 400);
         const deleted = deleteBlock(db, id);
         if (!deleted) return json({ ok: false, error: "Not found" }, 404);
+        sse.broadcast("blocks-invalidated", {});
+        return json({ ok: true });
+      },
+    },
+    {
+      method: "POST",
+      pattern: "/api/blocks/reorder",
+      handler: async (req) => {
+        let body: unknown;
+        try {
+          body = await req.json();
+        } catch {
+          return json({ ok: false, error: "Invalid JSON" }, 400);
+        }
+        const input = parseReorderInput(body);
+        if (!input) {
+          return json({ ok: false, error: "Invalid reorder input" }, 400);
+        }
+        reorderBlocks(db, input.orderedIds);
         sse.broadcast("blocks-invalidated", {});
         return json({ ok: true });
       },
