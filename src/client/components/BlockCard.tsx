@@ -203,7 +203,7 @@ export function SortableBlockCard(props: BlockCardProps) {
         <DotsSixVertical size={18} weight="bold" />
       </button>
       <div
-        className={`transition-all duration-200 ${isDragging ? "scale-105 shadow-xl" : ""}`}
+        className={`rounded-2xl transition-all duration-200 ${isDragging ? "scale-105 shadow-xl" : ""}`}
       >
         <BlockCard {...props} />
       </div>
