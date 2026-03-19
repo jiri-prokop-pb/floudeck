@@ -57,7 +57,10 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
           <div ref={infoRef} className="relative">
             <button
               type="button"
-              onClick={() => setShowInfo(!showInfo)}
+              onClick={() => {
+                setShowMenu(false);
+                setShowInfo(!showInfo);
+              }}
               className="flex h-7 w-7 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 text-sm"
               title="Info"
             >
@@ -101,7 +104,10 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
           <div ref={menuRef} className="relative">
             <button
               type="button"
-              onClick={() => setShowMenu(!showMenu)}
+              onClick={() => {
+                setShowInfo(false);
+                setShowMenu(!showMenu);
+              }}
               className="flex h-7 w-7 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 text-sm"
               title="Menu"
             >
@@ -197,8 +203,7 @@ export function SortableBlockCard(props: BlockCardProps) {
       <button
         type="button"
         {...listeners}
-        className="absolute -left-8 top-0 bottom-0 flex w-8 items-center justify-center text-zinc-300 opacity-0 group-hover/sortable:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
-        tabIndex={-1}
+        className="absolute -left-8 top-0 bottom-0 flex w-8 items-center justify-center text-zinc-300 opacity-0 group-hover/sortable:opacity-100 focus:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
       >
         <DotsSixVertical size={18} weight="bold" />
       </button>
