@@ -39,6 +39,7 @@ export type BlockRecord = {
   last_run_at: string | null;
   next_run_at: string | null;
   running_started_at: string | null;
+  position: number;
 };
 
 export type CreateBlockInput = {
