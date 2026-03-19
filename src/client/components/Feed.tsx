@@ -60,7 +60,7 @@ export function Feed({ blocks, onUpdate, onDelete, onReorder }: FeedProps) {
       onDragEnd={handleDragEnd}
     >
       <SortableContext items={blockIds} strategy={verticalListSortingStrategy}>
-        <div className="space-y-4 pl-8">
+        <div className="space-y-4">
           {blocks.map((block) => (
             <SortableBlockCard
               key={block.id}
