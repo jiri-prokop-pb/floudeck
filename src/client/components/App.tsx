@@ -182,6 +182,7 @@ export function App() {
   if (route.page === "action") {
     return (
       <ActionPage
+        key={`${route.blockUuid}/${route.actionName}?${new URLSearchParams(route.params).toString()}`}
         blockUuid={route.blockUuid}
         actionName={route.actionName}
         params={route.params}
