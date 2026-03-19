@@ -28,7 +28,24 @@
 
 ## Custom actions
 
-- Per-card and per-item actions (prompt-based, running another `claude` instance; or shell commands); can render additional UI in a modal or fullscreen
+Action links embedded in block markdown output. Clicking opens a dedicated action page that spawns a new Claude instance with block context. See **[docs/custom-actions-spec.md](docs/custom-actions-spec.md)** for the full technical spec.
+
+**V1 scope:**
+- Action links in markdown: `[Label|color](/action/{block-uuid}/{action-name}?params)`
+- Client-side routing (pushState SPA) with action page at `/action/:uuid/:name`
+- Styled action links (pastel-colored pill, distinct from regular links)
+- `action_runs` table with 24h TTL cleanup (idempotent by click-id)
+- Hardcoded action system prompt (same for all blocks)
+- Actions bypass global concurrency cap
+- Expandable "show prompt" debug section on action page
+
+**Future improvements:**
+- Real-time streaming of action output (SSE per action, no polling)
+- User-defined "actions prompt" per block or globally
+- Conversational follow-ups on action page (multi-turn chat)
+- Action link format linting (detect malformed links in block output)
+- Nested action history with breadcrumb navigation
+- Semantic color guidance in system prompt (red = destructive, green = safe)
 
 ---
 
