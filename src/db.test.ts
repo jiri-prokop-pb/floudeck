@@ -403,7 +403,7 @@ describe("position and reorder", () => {
   });
 
   test("listBlocks orders by position", () => {
-    const b1 = createBlock(db, {
+    createBlock(db, {
       prompt: "first",
       intervalValue: 1,
       intervalUnit: "hours",
