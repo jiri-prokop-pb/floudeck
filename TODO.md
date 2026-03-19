@@ -34,18 +34,20 @@ Action links embedded in block markdown output. Clicking opens a dedicated actio
 - Action links in markdown: `[Label|color](/action/{block-uuid}/{action-name}?params)`
 - Client-side routing (pushState SPA) with action page at `/action/:uuid/:name`
 - Styled action links (pastel-colored pill, distinct from regular links)
+- Semantic color guidance in system prompt (red = destructive, green = safe, blue = info, etc.)
 - `action_runs` table with 24h TTL cleanup (idempotent by click-id)
 - Hardcoded action system prompt (same for all blocks)
 - Actions bypass global concurrency cap
+- SSE `action-updated` event for action completion (reuses existing SSE endpoint)
+- Block marked stale after action; refreshed when user returns to feed
 - Expandable "show prompt" debug section on action page
 
 **Future improvements:**
-- Real-time streaming of action output (SSE per action, no polling)
+- Real-time streaming of action output (stream stdout via SSE instead of wait-for-completion)
 - User-defined "actions prompt" per block or globally
 - Conversational follow-ups on action page (multi-turn chat)
 - Action link format linting (detect malformed links in block output)
 - Nested action history with breadcrumb navigation
-- Semantic color guidance in system prompt (red = destructive, green = safe)
 
 ---
 

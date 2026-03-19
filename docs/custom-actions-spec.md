@@ -22,6 +22,8 @@ With optional color tag (pipe-separated before the closing bracket):
 
 **Color palette:** `red`, `orange`, `yellow`, `green`, `blue`, `purple`. Default (no tag): `green`.
 
+The system prompt includes guidance on semantic color usage: `red` for destructive/dangerous actions, `orange` for caution, `green` for safe/constructive, `blue` for informational/navigation, `purple` for advanced/settings. Claude picks the color based on the action's intent.
+
 The `{block-uuid}` is provided to each block via its system prompt, so the block "knows" its own identity for constructing links.
 
 ### 2. Client-side routing
@@ -50,11 +52,12 @@ When a user navigates to `/action/{uuid}/{name}?params`:
 3. **Server validates** the block UUID exists, loads the block's latest `output_markdown`.
 4. **Server checks** if an `action_runs` row with this `clickId` already exists:
    - If `status = "completed"` or `status = "error"` → return cached result immediately.
-   - If `status = "running"` → return running status (client polls).
+   - If `status = "running"` → return running status (client listens for SSE).
    - If not found → create row, spawn Claude CLI.
 5. **Server spawns Claude** with a composed prompt (see below), waits for completion, stores result in `action_runs`.
-6. **Client polls** `GET /api/actions/{clickId}` until status is `"completed"` or `"error"`.
-7. **Page renders** the result as rendered markdown (same `marked` pipeline as block cards). Action links in the result open new action pages (nested actions work naturally).
+6. **Server broadcasts** `"action-updated"` SSE event with `{ clickId, status }` on completion or error. The action page listens on the existing SSE endpoint — no new SSE channel needed.
+7. **Client receives SSE** → fetches result via `GET /api/actions/{clickId}`.
+8. **Page renders** the result as rendered markdown (same `marked` pipeline as block cards). Action links in the result open new action pages (nested actions work naturally).
 
 ### 5. Action prompt composition
 
@@ -96,14 +99,18 @@ CREATE TABLE IF NOT EXISTS action_runs (
 
 Action runs **bypass the global concurrency cap of 2**. They are user-initiated, interactive, and blocking the user behind scheduled runs would feel broken. The concurrency cap remains for scheduled block runs only.
 
-### 8. Action page UI
+### 8. Block staleness after action
+
+When an action completes successfully, the parent block is marked as **stale** client-side. When the user navigates back to the feed (`/`), stale blocks are automatically refreshed (via the existing `POST /api/blocks/:id/refresh` endpoint). This ensures the block reflects any external state changes caused by the action, without eagerly refreshing while the user is still on the action page.
+
+### 9. Action page UI
 
 - **Header:** action name + block title (extracted from block output), back link to feed (`/`)
 - **Body:** rendered markdown result (same styling as block cards), or skeleton/spinner while running
 - **Error state:** clear error message with "Go back to feed" link
 - **Debug section:** expandable "Show prompt" that displays the full composed prompt sent to Claude
 
-### 9. API endpoints
+### 10. API endpoints
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -115,12 +122,13 @@ Action runs **bypass the global concurrency cap of 2**. They are user-initiated,
 | Area | Changes |
 |------|---------|
 | `db.ts` | Add `action_runs` table to `initDb()` |
-| `api.ts` | Add action endpoints |
+| `api.ts` | Add action endpoints, broadcast `action-updated` SSE on completion |
 | `runner.ts` | Reuse `createCliRunner` — actions use the same runner with a different prompt |
 | `scheduler.ts` | Add cleanup job for expired `action_runs` on tick |
+| `sse.ts` | Add `"action-updated"` event type (no structural changes) |
 | `types.ts` | Add `ActionRun` type + zod schema |
 | `client/index.html` | Remains the single entry point |
-| `client/components/App.tsx` | Add client-side router (pushState-based) |
+| `client/components/App.tsx` | Add client-side router (pushState-based), track stale blocks, refresh on feed return |
 | `client/components/ActionPage.tsx` | New — action page component |
 | `client/lib/marked.ts` | Extend renderer to style action links + parse color tags |
 | `client/lib/api.ts` | Add action API fetch wrappers |
@@ -133,4 +141,3 @@ Action runs **bypass the global concurrency cap of 2**. They are user-initiated,
 - **Conversational actions** — ability to send follow-up messages on the action page (multi-turn conversation with Claude). The action page becomes a lightweight chat interface.
 - **Action link linting** — validate action link format in block output post-run. Flag malformed links (bad UUID, missing action name) and surface warnings in block info popover.
 - **Nested action history** — breadcrumb trail showing the chain of actions that led to the current page. Navigate back through parent actions.
-- **Action link color via Claude choice** — let Claude pick semantically meaningful colors (red for destructive, green for safe, etc.) with guidance in the system prompt.
