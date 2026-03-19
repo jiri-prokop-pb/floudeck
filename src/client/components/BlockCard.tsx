@@ -1,4 +1,6 @@
-import { Info, List } from "@phosphor-icons/react";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { DotsSixVertical, Info, List } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
 import type { BlockRecord } from "../../types.ts";
 import { safeParseRunnerConfig } from "../../validate.ts";
@@ -163,6 +165,44 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
       {/* Body */}
       <div className="px-5 py-4">
         <BlockBody block={block} />
+      </div>
+    </div>
+  );
+}
+
+export function SortableBlockCard(props: BlockCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: props.block.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : undefined,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      className="group/sortable flex items-stretch gap-0"
+    >
+      <button
+        type="button"
+        {...listeners}
+        className="flex w-6 shrink-0 items-center justify-center text-zinc-300 opacity-0 group-hover/sortable:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
+        tabIndex={-1}
+      >
+        <DotsSixVertical size={18} weight="bold" />
+      </button>
+      <div className="flex-1 min-w-0">
+        <BlockCard {...props} />
       </div>
     </div>
   );
