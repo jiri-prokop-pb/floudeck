@@ -26,7 +26,9 @@ const EXAMPLE_BLOCKS = [
 
 **UP** — All Systems Operational
 
-Git Operations, API Requests, Actions, Packages, Pages, Codespaces, Copilot — all normal`,
+Git Operations, API Requests, Actions, Packages, Pages, Codespaces, Copilot — all normal
+
+[Refresh now|blue](/action/BLOCK_UUID/refresh) [View incident history|purple](/action/BLOCK_UUID/history) [Report issue|red](/action/BLOCK_UUID/report)`,
   },
   {
     prompt:
@@ -35,11 +37,9 @@ Git Operations, API Requests, Actions, Packages, Pages, Codespaces, Copilot — 
     intervalUnit: "hours",
     mockMarkdown: `# Open PRs in pb-frontend
 
-| # | Title |
-|---|-------|
-| #142 | Fix sidebar collapse animation on mobile |
-| #139 | Add dark mode toggle to settings page |
-| #137 | Upgrade React Router to v7 |`,
+- **#142** Fix sidebar collapse animation on mobile — [Review|green](/action/BLOCK_UUID/review?pr=142)
+- **#139** Add dark mode toggle to settings page — [Review|green](/action/BLOCK_UUID/review?pr=139)
+- **#137** Upgrade React Router to v7 — [Review|green](/action/BLOCK_UUID/review?pr=137)`,
   },
 ];
 
