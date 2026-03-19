@@ -67,6 +67,34 @@ export const DisplaySettingsSchema = z.object({
 
 export type DisplaySettings = z.infer<typeof DisplaySettingsSchema>;
 
+export type ActionRunStatus = "pending" | "running" | "completed" | "error";
+
+export const ActionRunSchema = z.object({
+  id: z.number(),
+  click_id: z.string(),
+  block_id: z.number(),
+  action_name: z.string(),
+  params: z.optional(z.nullable(z.string())),
+  status: z.enum(["pending", "running", "completed", "error"]),
+  output_markdown: z.optional(z.nullable(z.string())),
+  error_text: z.optional(z.nullable(z.string())),
+  created_at: z.string(),
+  completed_at: z.optional(z.nullable(z.string())),
+});
+
+export type ActionRun = {
+  id: number;
+  click_id: string;
+  block_id: number;
+  action_name: string;
+  params: string | null;
+  status: ActionRunStatus;
+  output_markdown: string | null;
+  error_text: string | null;
+  created_at: string;
+  completed_at: string | null;
+};
+
 export type RunBlockFn = (
   prompt: string,
   config: ResolvedRunnerConfig,

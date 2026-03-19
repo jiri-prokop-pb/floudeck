@@ -2,6 +2,7 @@ import { Database } from "bun:sqlite";
 import { mkdirSync } from "node:fs";
 import { nowIso } from "./time.ts";
 import type {
+  ActionRun,
   BlockRecord,
   CreateBlockInput,
   RunnerConfig,
@@ -47,6 +48,23 @@ export function initDb(path?: string): Database {
       value TEXT NOT NULL
     )
   `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS action_runs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      click_id TEXT NOT NULL UNIQUE,
+      block_id INTEGER NOT NULL,
+      action_name TEXT NOT NULL,
+      params TEXT,
+      status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'running', 'completed', 'error')),
+      output_markdown TEXT,
+      error_text TEXT,
+      created_at TEXT NOT NULL,
+      completed_at TEXT
+    )
+  `);
+  db.run(
+    "CREATE INDEX IF NOT EXISTS idx_action_runs_click_id ON action_runs(click_id)",
+  );
   return db;
 }
 
@@ -243,4 +261,78 @@ export function parseBlockRunnerConfig(
   block: BlockRecord,
 ): RunnerConfig | null {
   return safeParseRunnerConfig(block.runner_config) ?? null;
+}
+
+// --- Action Runs ---
+
+export function getActionRun(db: Database, clickId: string): ActionRun | null {
+  return (
+    (db
+      .query("SELECT * FROM action_runs WHERE click_id = ?")
+      .get(clickId) as ActionRun) ?? null
+  );
+}
+
+export function createActionRun(
+  db: Database,
+  clickId: string,
+  blockId: number,
+  actionName: string,
+  params: string | null,
+  createdAt: string,
+): ActionRun {
+  return db
+    .query(
+      `INSERT INTO action_runs (click_id, block_id, action_name, params, status, created_at)
+       VALUES (?, ?, ?, ?, 'running', ?)
+       RETURNING *`,
+    )
+    .get(clickId, blockId, actionName, params, createdAt) as ActionRun;
+}
+
+export function markActionCompleted(
+  db: Database,
+  clickId: string,
+  outputMarkdown: string,
+  completedAt: string,
+): void {
+  db.run(
+    `UPDATE action_runs SET status = 'completed', output_markdown = ?, completed_at = ? WHERE click_id = ?`,
+    outputMarkdown,
+    completedAt,
+    clickId,
+  );
+}
+
+export function markActionError(
+  db: Database,
+  clickId: string,
+  errorText: string,
+  completedAt: string,
+): void {
+  db.run(
+    `UPDATE action_runs SET status = 'error', error_text = ?, completed_at = ? WHERE click_id = ?`,
+    errorText,
+    completedAt,
+    clickId,
+  );
+}
+
+export function cleanupExpiredActionRuns(
+  db: Database,
+  olderThan: string,
+): number {
+  const result = db.run(
+    "DELETE FROM action_runs WHERE created_at < ?",
+    olderThan,
+  );
+  return result.changes;
+}
+
+export function getBlockByUuid(db: Database, uuid: string): BlockRecord | null {
+  return (
+    (db
+      .query("SELECT * FROM blocks WHERE uuid = ?")
+      .get(uuid) as BlockRecord) ?? null
+  );
 }
