@@ -34,7 +34,7 @@ V1 is implemented. See **[docs/custom-actions-spec.md](docs/custom-actions-spec.
 - User-defined "actions prompt" per block or globally
 - Conversational follow-ups on action page (multi-turn chat)
 - Action link format linting (detect malformed links in block output)
-- Nested action history with breadcrumb navigation
+- Action page back navigation: track route history so "Back" goes to the previous action page (not always feed). Show "Back to feed" only when feed is the previous entry, otherwise "Back to {action name}"
 
 ---
 
