@@ -87,6 +87,10 @@ Record non-obvious decisions here as they come up during implementation. Format:
 - **zod/mini for JSON parsing**: All `JSON.parse` of structured data uses `zod/mini` schema (`safeParse`). Never cast parsed JSON with `as`. Schemas live in `types.ts` next to derived types.
 - **@phosphor-icons/react**: All icons use `@phosphor-icons/react` with `weight="bold"`. No inline SVGs or Unicode icon characters.
 - **@dnd-kit for drag-and-drop**: Using `@dnd-kit/core` + `@dnd-kit/sortable` + `@dnd-kit/utilities` for block reordering. Positions are sparse integers (multiples of 1000) stored in a `position` column. `SortableBlockCard` wraps `BlockCard` with a drag handle.
+- **Action links in markdown**: `[Label|color](/action/{block-uuid}/{action-name}?params)` — rendered as pastel-colored pills via `marked.use()` renderer extension (returning `false` falls back to default for non-action links).
+- **Client-side routing**: pushState-based SPA routing in `App.tsx`. Routes: `/` (feed), `/action/:uuid/:name` (action page). Server serves `index.html` for `/action/*` via Bun's `routes` config.
+- **Action runs bypass concurrency cap**: Actions are user-initiated and interactive; they run independently of the scheduler's max-2 concurrency.
+- **Action cleanup**: Scheduler piggybacks cleanup on tick (hourly check, deletes rows older than 24h).
 
 ## Testability architecture
 
