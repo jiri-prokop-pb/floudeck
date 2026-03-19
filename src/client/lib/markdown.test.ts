@@ -59,12 +59,14 @@ describe("renderMarkdown", () => {
     expect(result).toContain('target="_blank"');
   });
 
-  test("renders regular links without color tag using default prose style", () => {
+  test("renders regular links without color tag with target=_blank", () => {
     const result = renderMarkdown("[click](https://example.com)");
     expect(result).not.toContain("text-blue-600");
     expect(result).not.toContain("text-green-600");
     expect(result).toContain("click");
     expect(result).toContain("https://example.com");
+    expect(result).toContain('target="_blank"');
+    expect(result).toContain('rel="noopener noreferrer"');
   });
 
   test("strips raw HTML in markdown input", () => {

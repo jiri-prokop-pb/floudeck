@@ -59,16 +59,16 @@ marked.use({
         return `<a href="${escapedHref}" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${classes} no-underline transition-colors cursor-pointer" data-action-link="true">${escapedLabel}</a>`;
       }
       const { label, color } = parseActionLabel(token.text);
-      if (label === token.text) {
-        return false;
-      }
-      const classes = LINK_COLORS[color] ?? "";
+      const hasColor = label !== token.text;
+      const colorClasses = hasColor ? (LINK_COLORS[color] ?? "") : "";
+      const extraClasses = hasColor ? `font-semibold underline ${colorClasses}` : "";
       const escapedHref = href.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
-      const escapedLabel = label
+      const escapedLabel = (hasColor ? label : token.text)
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
-      return `<a href="${escapedHref}" class="font-semibold underline ${classes}" target="_blank" rel="noopener noreferrer">${escapedLabel}</a>`;
+      const classAttr = extraClasses ? ` class="${extraClasses}"` : "";
+      return `<a href="${escapedHref}"${classAttr} target="_blank" rel="noopener noreferrer">${escapedLabel}</a>`;
     },
   },
 });
