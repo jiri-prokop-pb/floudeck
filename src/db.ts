@@ -38,22 +38,6 @@ export function initDb(path?: string): Database {
       position INTEGER NOT NULL DEFAULT 0
     )
   `);
-  // Migration: add position column to existing databases
-  try {
-    db.run("ALTER TABLE blocks ADD COLUMN position INTEGER NOT NULL DEFAULT 0");
-  } catch {
-    // Column already exists
-  }
-  // Backfill: assign sparse positions to blocks that have position 0
-  const unpositioned = db
-    .query("SELECT id FROM blocks WHERE position = 0 ORDER BY created_at ASC")
-    .all() as Array<{ id: number }>;
-  if (unpositioned.length > 0) {
-    const stmt = db.prepare("UPDATE blocks SET position = ? WHERE id = ?");
-    for (let i = 0; i < unpositioned.length; i++) {
-      stmt.run((i + 1) * 1000, unpositioned[i].id);
-    }
-  }
   db.run(
     "CREATE INDEX IF NOT EXISTS idx_blocks_next_run_at ON blocks(next_run_at)",
   );
