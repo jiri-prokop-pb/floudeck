@@ -191,19 +191,17 @@ export function SortableBlockCard(props: BlockCardProps) {
       ref={setNodeRef}
       style={style}
       {...attributes}
-      className="group/sortable flex items-stretch gap-0"
+      className={`group/sortable relative ${isDragging ? "z-50" : ""}`}
     >
       <button
         type="button"
         {...listeners}
-        className="flex w-6 shrink-0 items-center justify-center text-zinc-300 opacity-0 group-hover/sortable:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
+        className="absolute -left-8 top-0 bottom-0 flex w-8 items-center justify-center text-zinc-300 opacity-0 group-hover/sortable:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
         tabIndex={-1}
       >
         <DotsSixVertical size={18} weight="bold" />
       </button>
-      <div className="flex-1 min-w-0">
-        <BlockCard {...props} />
-      </div>
+      <BlockCard {...props} />
     </div>
   );
 }
