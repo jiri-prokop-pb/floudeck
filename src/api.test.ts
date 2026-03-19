@@ -2,6 +2,7 @@ import type { Database } from "bun:sqlite";
 import { beforeEach, describe, expect, test } from "bun:test";
 import { createRouter } from "./api.ts";
 import { initDb } from "./db.ts";
+import { createMockRunner } from "./runner.ts";
 import { createSseBroadcaster, type SseBroadcaster } from "./sse.ts";
 
 let db: Database;
@@ -17,6 +18,11 @@ beforeEach(() => {
     db,
     sse,
     triggerRun: (id) => triggeredIds.push(id),
+    runAction: createMockRunner(() => ({
+      ok: true,
+      markdown: "# Action Result\n\nDone.",
+      reasoning: null,
+    })),
   });
 });
 

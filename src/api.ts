@@ -1,18 +1,25 @@
 import type { Database } from "bun:sqlite";
 import { formatCliCommand, resolveRunnerConfig } from "./config.ts";
 import {
+  createActionRun,
   createBlock,
   deleteBlock,
+  getActionRun,
   getBlock,
+  getBlockByUuid,
   getSetting,
   listBlocks,
+  markActionCompleted,
+  markActionError,
   parseBlockRunnerConfig,
   reorderBlocks,
   setSetting,
   updateBlock,
 } from "./db.ts";
+import { composeActionPrompt } from "./prompts.ts";
 import type { SseBroadcaster } from "./sse.ts";
 import { nowIso } from "./time.ts";
+import type { RunBlockFn } from "./types.ts";
 import {
   isBlockInputError,
   parseBlockInput,
@@ -27,6 +34,7 @@ export type RouterDeps = {
   db: Database;
   sse: SseBroadcaster;
   triggerRun: (blockId: number) => void;
+  runAction: RunBlockFn;
 };
 
 function json(data: unknown, status = 200): Response {
@@ -57,7 +65,7 @@ function matchRoute(
 export function createRouter(
   deps: RouterDeps,
 ): (req: Request) => Promise<Response | null> {
-  const { db, sse, triggerRun } = deps;
+  const { db, sse, triggerRun, runAction } = deps;
 
   const routes: Array<{
     method: string;
@@ -285,6 +293,117 @@ export function createRouter(
           db.run("DELETE FROM settings WHERE key = ?", "display");
         }
         return json({ ok: true, config });
+      },
+    },
+    {
+      method: "POST",
+      pattern: "/api/actions/run",
+      handler: async (req) => {
+        let body: unknown;
+        try {
+          body = await req.json();
+        } catch {
+          return json({ ok: false, error: "Invalid JSON" }, 400);
+        }
+        if (!body || typeof body !== "object") {
+          return json(
+            { ok: false, error: "Request body must be a JSON object" },
+            400,
+          );
+        }
+        const { clickId, blockUuid, actionName, params } = body as Record<
+          string,
+          unknown
+        >;
+        if (
+          typeof clickId !== "string" ||
+          typeof blockUuid !== "string" ||
+          typeof actionName !== "string"
+        ) {
+          return json(
+            { ok: false, error: "clickId, blockUuid, and actionName required" },
+            400,
+          );
+        }
+
+        // Check for existing run with this clickId
+        const existing = getActionRun(db, clickId);
+        if (existing) {
+          return json({ ok: true, actionRun: existing });
+        }
+
+        // Validate block exists
+        const block = getBlockByUuid(db, blockUuid);
+        if (!block) {
+          return json({ ok: false, error: "Block not found" }, 404);
+        }
+
+        const paramsObj =
+          params && typeof params === "object"
+            ? (params as Record<string, string>)
+            : {};
+        const paramsJson =
+          Object.keys(paramsObj).length > 0 ? JSON.stringify(paramsObj) : null;
+
+        const now = nowIso();
+        const actionRun = createActionRun(
+          db,
+          clickId,
+          block.id,
+          actionName,
+          paramsJson,
+          now,
+        );
+
+        // Spawn action run asynchronously
+        const blockOutput = block.output_markdown ?? "";
+        const prompt = composeActionPrompt(blockOutput, actionName, paramsObj);
+
+        const blockConfig = parseBlockRunnerConfig(block);
+        const globalDefaults =
+          safeParseRunnerConfig(getSetting(db, "runner_defaults")) ?? null;
+        const resolvedConfig = resolveRunnerConfig(
+          globalDefaults,
+          blockConfig,
+          block.uuid,
+        );
+
+        // Fire and forget — SSE will notify when done
+        void (async () => {
+          try {
+            const result = await runAction(prompt, resolvedConfig);
+            const completedAt = nowIso();
+            if (result.ok) {
+              markActionCompleted(db, clickId, result.markdown, completedAt);
+            } else {
+              markActionError(db, clickId, result.error, completedAt);
+            }
+          } catch (err: unknown) {
+            const message =
+              err instanceof Error ? err.message : "Unknown action error";
+            markActionError(db, clickId, message, nowIso());
+          }
+          const updated = getActionRun(db, clickId);
+          if (updated) {
+            sse.broadcast("action-updated", {
+              clickId,
+              status: updated.status,
+            });
+          }
+        })();
+
+        return json({ ok: true, actionRun });
+      },
+    },
+    {
+      method: "GET",
+      pattern: "/api/actions/:clickId",
+      handler: (_req, params) => {
+        const actionRun = getActionRun(db, params.clickId ?? "");
+        if (!actionRun) {
+          return json({ ok: false, error: "Not found" }, 404);
+        }
+        return json({ ok: true, actionRun });
       },
     },
   ];
