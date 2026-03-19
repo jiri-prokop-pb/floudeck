@@ -56,6 +56,25 @@ describe("resolveRunnerConfig", () => {
     expect(result.cwd).toBe("/my/project");
   });
 
+  test("block cwd with ~ expands to HOME", () => {
+    const block: RunnerConfig = { cwd: "~/my-project" };
+    const result = resolveRunnerConfig(null, block, uuid);
+    expect(result.cwd).toBe(`${Bun.env.HOME}/my-project`);
+    expect(result.cwd).not.toContain("~");
+  });
+
+  test("block cwd with bare ~ expands to HOME", () => {
+    const block: RunnerConfig = { cwd: "~" };
+    const result = resolveRunnerConfig(null, block, uuid);
+    expect(result.cwd).toBe(Bun.env.HOME);
+  });
+
+  test("default cwd uses HOME env var, not node:os homedir", () => {
+    const result = resolveRunnerConfig(null, null, uuid);
+    const home = Bun.env.HOME ?? "/tmp";
+    expect(result.cwd).toBe(`${home}/.floudeck/blocks-workspace/${uuid}`);
+  });
+
   test("env merge: global + block, block wins", () => {
     const global: RunnerConfig = {
       env: { API_KEY: "global-key", SHARED: "from-global" },
