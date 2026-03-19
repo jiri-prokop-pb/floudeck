@@ -1,6 +1,6 @@
 import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
-import { SYSTEM_PROMPT } from "./prompts.ts";
+import { ACTION_SYSTEM_PROMPT, SYSTEM_PROMPT } from "./prompts.ts";
 import type { ResolvedRunnerConfig, RunnerConfig } from "./types.ts";
 import { ENV_INHERIT_SENTINEL } from "./types.ts";
 
@@ -67,6 +67,23 @@ export function buildCliArgs(
 
   args.push("--model", config.model);
   args.push("--append-system-prompt", SYSTEM_PROMPT);
+  args.push(prompt);
+
+  return args;
+}
+
+export function buildActionCliArgs(
+  config: ResolvedRunnerConfig,
+  prompt: string,
+): string[] {
+  const args = ["claude", "--print"];
+
+  if (config.permissions === "dangerouslySkipPermissions") {
+    args.push("--dangerously-skip-permissions");
+  }
+
+  args.push("--model", config.model);
+  args.push("--append-system-prompt", ACTION_SYSTEM_PROMPT);
   args.push(prompt);
 
   return args;

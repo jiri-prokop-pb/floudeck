@@ -1,6 +1,7 @@
 import type { Database } from "bun:sqlite";
 import { resolveRunnerConfig } from "./config.ts";
 import {
+  cleanupExpiredActionRuns,
   findDueBlocks,
   getBlock,
   getSetting,
@@ -126,7 +127,23 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
     }
   }
 
+  let lastCleanup = 0;
+  const CLEANUP_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+
+  function maybeCleanupActions(): void {
+    const now = Date.now();
+    if (now - lastCleanup < CLEANUP_INTERVAL_MS) return;
+    lastCleanup = now;
+    const cutoff = new Date(now - 24 * 60 * 60 * 1000).toISOString();
+    const deleted = cleanupExpiredActionRuns(db, cutoff);
+    if (deleted > 0) {
+      console.log(`scheduler:cleanup deleted ${deleted} expired action runs`);
+    }
+  }
+
   async function tick(): Promise<void> {
+    maybeCleanupActions();
+
     if (activeRuns >= maxConcurrency) return;
 
     const capacity = maxConcurrency - activeRuns;

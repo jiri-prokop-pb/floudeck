@@ -1,7 +1,7 @@
 import { createRouter } from "./api.ts";
 import homepage from "./client/index.html";
 import { initDb, resetStaleRunningBlocks } from "./db.ts";
-import { createCliRunner } from "./runner.ts";
+import { createActionRunner, createCliRunner } from "./runner.ts";
 import { createScheduler } from "./scheduler.ts";
 import { createSseBroadcaster } from "./sse.ts";
 import { nowIso } from "./time.ts";
@@ -11,6 +11,7 @@ export type AppOptions = {
   dbPath?: string;
   port?: number;
   runBlock?: RunBlockFn;
+  runAction?: RunBlockFn;
   tickIntervalMs?: number;
   serve?: typeof Bun.serve;
 };
@@ -25,6 +26,7 @@ export function createApp(options: AppOptions = {}): App {
     dbPath,
     port = 3000,
     runBlock = createCliRunner(),
+    runAction = createActionRunner(),
     tickIntervalMs = 10_000,
     serve = Bun.serve,
   } = options;
@@ -53,6 +55,7 @@ export function createApp(options: AppOptions = {}): App {
         console.error("scheduler:trigger error", err);
       });
     },
+    runAction,
   });
 
   const server = serve({
@@ -61,6 +64,7 @@ export function createApp(options: AppOptions = {}): App {
     idleTimeout: 255, // max value — prevents SSE connections from being killed
     routes: {
       "/": homepage,
+      "/action/*": homepage,
     },
     async fetch(req) {
       const response = await router(req);
