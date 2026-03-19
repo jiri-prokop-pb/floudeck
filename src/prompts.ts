@@ -49,6 +49,7 @@ With optional color tag (pipe-separated before closing bracket):
 
 Color palette: red, orange, yellow, green, blue, purple. Default (no tag): green.
 Color guidance: red = destructive/dangerous, orange = caution, green = safe/constructive, blue = informational/navigation, purple = advanced/settings.
+IMPORTANT: Inside markdown tables, escape the pipe as \\| so it is not parsed as a cell delimiter: [Label\\|green](/action/...)
 
 The color tag syntax also works on regular links: [Open docs|blue](https://example.com) renders as colored underlined text. Action links render as colored pills.
 
@@ -85,6 +86,7 @@ With optional color tag (pipe-separated before closing bracket):
 [Label|red](/action/{block-uuid}/{action-name}?optional=query&params)
 
 Color palette: red, orange, yellow, green, blue, purple. Default (no tag): green.
+IMPORTANT: Inside markdown tables, escape the pipe as \\| so it is not parsed as a cell delimiter: [Label\\|green](/action/...)
 Your block UUID is provided in the context. Use it when constructing action links.`;
 
 export function composeActionPrompt(

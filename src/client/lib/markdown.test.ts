@@ -49,6 +49,16 @@ describe("renderMarkdown", () => {
     expect(result).toContain("text-green-700");
   });
 
+  test("renders action links with escaped pipe in table cells", () => {
+    const md =
+      "| Action |\n|---|\n| [Review\\|green](/action/abc-123/review) |";
+    const result = renderMarkdown(md);
+    expect(result).toContain("rounded-full");
+    expect(result).toContain("bg-green-100");
+    expect(result).toContain("Review");
+    expect(result).not.toContain("|green");
+  });
+
   test("renders regular links with color tag as colored text", () => {
     const result = renderMarkdown("[Open docs|blue](https://example.com/docs)");
     expect(result).toContain("text-blue-600");
