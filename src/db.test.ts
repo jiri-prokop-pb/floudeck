@@ -14,6 +14,7 @@ import {
   markBlockRunning,
   markBlockSuccess,
   parseBlockRunnerConfig,
+  reorderBlocks,
   resetStaleRunningBlocks,
   setSetting,
   updateBlock,
@@ -376,6 +377,79 @@ describe("uuid and runner_config", () => {
     db.run("UPDATE blocks SET runner_config = 'not json' WHERE id = ?", b.id);
     const fetched = mustGetBlock(db, b.id);
     expect(parseBlockRunnerConfig(fetched)).toBeNull();
+  });
+});
+
+describe("position and reorder", () => {
+  test("createBlock assigns incrementing positions", () => {
+    const b1 = createBlock(db, {
+      prompt: "a",
+      intervalValue: 1,
+      intervalUnit: "hours",
+    });
+    const b2 = createBlock(db, {
+      prompt: "b",
+      intervalValue: 1,
+      intervalUnit: "hours",
+    });
+    const b3 = createBlock(db, {
+      prompt: "c",
+      intervalValue: 1,
+      intervalUnit: "hours",
+    });
+    expect(b1.position).toBe(1000);
+    expect(b2.position).toBe(2000);
+    expect(b3.position).toBe(3000);
+  });
+
+  test("listBlocks orders by position", () => {
+    const b1 = createBlock(db, {
+      prompt: "first",
+      intervalValue: 1,
+      intervalUnit: "hours",
+    });
+    const b2 = createBlock(db, {
+      prompt: "second",
+      intervalValue: 1,
+      intervalUnit: "hours",
+    });
+    // Manually set b2 to lower position
+    db.run("UPDATE blocks SET position = 500 WHERE id = ?", b2.id);
+
+    const all = listBlocks(db);
+    expect(all[0].prompt).toBe("second");
+    expect(all[1].prompt).toBe("first");
+  });
+
+  test("reorderBlocks reassigns sparse positions", () => {
+    const b1 = createBlock(db, {
+      prompt: "a",
+      intervalValue: 1,
+      intervalUnit: "hours",
+    });
+    const b2 = createBlock(db, {
+      prompt: "b",
+      intervalValue: 1,
+      intervalUnit: "hours",
+    });
+    const b3 = createBlock(db, {
+      prompt: "c",
+      intervalValue: 1,
+      intervalUnit: "hours",
+    });
+
+    // Reverse order
+    reorderBlocks(db, [b3.id, b1.id, b2.id]);
+
+    const all = listBlocks(db);
+    expect(all[0].id).toBe(b3.id);
+    expect(all[1].id).toBe(b1.id);
+    expect(all[2].id).toBe(b2.id);
+
+    // Positions should be sparse multiples of 1000
+    expect(all[0].position).toBe(1000);
+    expect(all[1].position).toBe(2000);
+    expect(all[2].position).toBe(3000);
   });
 });
 
