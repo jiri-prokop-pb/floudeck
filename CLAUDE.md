@@ -28,7 +28,7 @@ These documents are **living** and must be kept in sync with the codebase after 
 
 ```bash
 bun run dev                # start the app (port 3000)
-bun run test               # unit tests (142 tests)
+bun run test               # unit tests (182 tests)
 bun run e2e                # Playwright E2E tests (9 tests)
 bun run check              # lint + unit tests + E2E
 bun run lint               # biome check
@@ -86,6 +86,7 @@ Record non-obvious decisions here as they come up during implementation. Format:
 - **Markdown XSS model**: Links and images with `javascript:` URLs are rendered as-is because Claude's output is trusted. If the app becomes user-editable or public-facing, add link sanitization (e.g., custom `marked` link renderer that rejects non-http(s) schemes).
 - **zod/mini for JSON parsing**: All `JSON.parse` of structured data uses `zod/mini` schema (`safeParse`). Never cast parsed JSON with `as`. Schemas live in `types.ts` next to derived types.
 - **@phosphor-icons/react**: All icons use `@phosphor-icons/react` with `weight="bold"`. No inline SVGs or Unicode icon characters.
+- **@dnd-kit for drag-and-drop**: Using `@dnd-kit/core` + `@dnd-kit/sortable` + `@dnd-kit/utilities` for block reordering. Positions are sparse integers (multiples of 1000) stored in a `position` column. `SortableBlockCard` wraps `BlockCard` with a drag handle.
 
 ## Testability architecture
 
