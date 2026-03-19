@@ -1,4 +1,5 @@
 import type {
+  ActionRun,
   BlockRecord,
   DisplaySettings,
   ResolvedRunnerConfig,
@@ -120,4 +121,28 @@ export async function saveDisplaySettings(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ config }),
   });
+}
+
+// --- Actions ---
+
+export async function runActionApi(input: {
+  clickId: string;
+  blockUuid: string;
+  actionName: string;
+  params: Record<string, string>;
+}): Promise<ApiResponse<{ actionRun: ActionRun }>> {
+  return apiFetch("/api/actions/run", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
+
+export async function fetchActionRun(
+  clickId: string,
+): Promise<ActionRun | null> {
+  const data = await apiFetch<{ actionRun: ActionRun }>(
+    `/api/actions/${clickId}`,
+  );
+  return data.ok ? data.actionRun : null;
 }
