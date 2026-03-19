@@ -23,6 +23,10 @@ function PulseSkeleton() {
   );
 }
 
+function isTerminal(run: ActionRun): boolean {
+  return run.status === "completed" || run.status === "error";
+}
+
 export function ActionPage({
   blockUuid,
   actionName,
@@ -45,6 +49,7 @@ export function ActionPage({
 
   useEffect(() => {
     let cancelled = false;
+    let es: EventSource | null = null;
 
     async function startAction() {
       const result = await runActionApi({
@@ -63,21 +68,19 @@ export function ActionPage({
 
       setActionRun(result.actionRun);
 
-      if (
-        result.actionRun.status === "completed" ||
-        result.actionRun.status === "error"
-      ) {
+      if (isTerminal(result.actionRun)) {
         onBlockStale(blockUuid);
         return;
       }
 
       // Listen for SSE completion
-      const es = new EventSource("/api/events");
+      es = new EventSource("/api/events");
       es.addEventListener("action-updated", async (event) => {
         const payload = JSON.parse((event as MessageEvent).data);
         if (payload.clickId !== clickId) return;
 
-        es.close();
+        es?.close();
+        es = null;
         if (cancelled) return;
 
         const updated = await fetchActionRun(clickId);
@@ -87,19 +90,23 @@ export function ActionPage({
         }
       });
 
-      return () => {
-        es.close();
-      };
+      // Poll once after SSE connects to catch results that completed
+      // before the EventSource was established (race condition)
+      const updated = await fetchActionRun(clickId);
+      if (cancelled) return;
+      if (updated && isTerminal(updated)) {
+        es?.close();
+        es = null;
+        setActionRun(updated);
+        onBlockStale(blockUuid);
+      }
     }
 
-    let cleanup: (() => void) | undefined;
-    void startAction().then((c) => {
-      if (typeof c === "function") cleanup = c;
-    });
+    void startAction();
 
     return () => {
       cancelled = true;
-      cleanup?.();
+      es?.close();
     };
   }, [clickId, blockUuid, actionName, params, onBlockStale]);
 
@@ -125,7 +132,7 @@ export function ActionPage({
           <button
             type="button"
             onClick={onNavigateHome}
-            className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-700 mb-3"
+            className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-700 mb-3 cursor-pointer"
           >
             <ArrowLeft size={14} weight="bold" />
             Back to feed
@@ -162,7 +169,7 @@ export function ActionPage({
           <button
             type="button"
             onClick={() => setShowPrompt(!showPrompt)}
-            className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600"
+            className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600 cursor-pointer"
           >
             {showPrompt ? (
               <CaretDown size={12} weight="bold" />
