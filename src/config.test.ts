@@ -1,10 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import {
+  buildActionCliArgs,
   buildCliArgs,
   formatCliCommand,
   resolveRunnerConfig,
 } from "./config.ts";
-import { SYSTEM_PROMPT } from "./prompts.ts";
+import { ACTION_SYSTEM_PROMPT, SYSTEM_PROMPT } from "./prompts.ts";
 import type { ResolvedRunnerConfig, RunnerConfig } from "./types.ts";
 import { ENV_INHERIT_SENTINEL } from "./types.ts";
 
@@ -134,9 +135,43 @@ describe("buildCliArgs", () => {
     expect(args).toContain(SYSTEM_PROMPT);
   });
 
-  test("prompt is last argument", () => {
+  test("prompt is last argument after -- separator", () => {
     const args = buildCliArgs(baseConfig, "my prompt");
     expect(args[args.length - 1]).toBe("my prompt");
+    expect(args[args.length - 2]).toBe("--");
+  });
+
+  test("prompt starting with dashes is safe after -- separator", () => {
+    const prompt = "--- Block Context ---\n# Title\nContent";
+    const args = buildCliArgs(baseConfig, prompt);
+    const dashDashIdx = args.indexOf("--");
+    expect(dashDashIdx).toBeGreaterThan(-1);
+    expect(args[dashDashIdx + 1]).toBe(prompt);
+  });
+});
+
+describe("buildActionCliArgs", () => {
+  const baseConfig: ResolvedRunnerConfig = {
+    cwd: "/tmp/test",
+    model: "sonnet",
+    permissions: "default",
+    env: {},
+    timeout: 60,
+  };
+
+  test("uses ACTION_SYSTEM_PROMPT", () => {
+    const args = buildActionCliArgs(baseConfig, "test");
+    expect(args).toContain(ACTION_SYSTEM_PROMPT);
+    expect(args).not.toContain(SYSTEM_PROMPT);
+  });
+
+  test("prompt starting with dashes is safe after -- separator", () => {
+    const prompt = "--- Block Context ---\n# Joke of the Day\nContent";
+    const args = buildActionCliArgs(baseConfig, prompt);
+    const dashDashIdx = args.indexOf("--");
+    expect(dashDashIdx).toBeGreaterThan(-1);
+    expect(args[dashDashIdx + 1]).toBe(prompt);
+    expect(args[args.length - 1]).toBe(prompt);
   });
 });
 

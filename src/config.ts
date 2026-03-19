@@ -67,7 +67,7 @@ export function buildCliArgs(
 
   args.push("--model", config.model);
   args.push("--append-system-prompt", SYSTEM_PROMPT);
-  args.push(prompt);
+  args.push("--", prompt);
 
   return args;
 }
@@ -84,7 +84,7 @@ export function buildActionCliArgs(
 
   args.push("--model", config.model);
   args.push("--append-system-prompt", ACTION_SYSTEM_PROMPT);
-  args.push(prompt);
+  args.push("--", prompt);
 
   return args;
 }
