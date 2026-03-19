@@ -50,6 +50,8 @@ With optional color tag (pipe-separated before closing bracket):
 Color palette: red, orange, yellow, green, blue, purple. Default (no tag): green.
 Color guidance: red = destructive/dangerous, orange = caution, green = safe/constructive, blue = informational/navigation, purple = advanced/settings.
 
+IMPORTANT: The color tag syntax (e.g. [Label|blue]) is ONLY for action links (/action/... URLs). Regular links must use standard markdown: [Label](https://example.com). Do NOT use the pipe-color syntax on regular links — it will render the color tag as literal text.
+
 Your block UUID is provided in the context. Use it when constructing action links.`;
 
 export const ACTION_SYSTEM_PROMPT = `CRITICAL: You MUST wrap your final answer in delimiters. No exceptions.
