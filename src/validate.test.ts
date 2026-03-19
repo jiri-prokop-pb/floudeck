@@ -3,6 +3,7 @@ import {
   isBlockInputError,
   parseBlockInput,
   parseDisplaySettings,
+  parseReorderInput,
   parseRunnerConfig,
   safeParseDisplaySettings,
 } from "./validate.ts";
@@ -203,6 +204,37 @@ describe("parseRunnerConfig", () => {
   test("allowCwd defaults to true", () => {
     const result = parseRunnerConfig({ cwd: "/my/path" });
     expect(result).toEqual({ cwd: "/my/path" });
+  });
+});
+
+describe("parseReorderInput", () => {
+  test("accepts valid input", () => {
+    const result = parseReorderInput({ orderedIds: [1, 2, 3] });
+    expect(result).toEqual({ orderedIds: [1, 2, 3] });
+  });
+
+  test("rejects null", () => {
+    expect(parseReorderInput(null)).toBeNull();
+  });
+
+  test("rejects non-object", () => {
+    expect(parseReorderInput("string")).toBeNull();
+  });
+
+  test("rejects missing orderedIds", () => {
+    expect(parseReorderInput({})).toBeNull();
+  });
+
+  test("rejects non-array orderedIds", () => {
+    expect(parseReorderInput({ orderedIds: "not-array" })).toBeNull();
+  });
+
+  test("rejects empty array", () => {
+    expect(parseReorderInput({ orderedIds: [] })).toBeNull();
+  });
+
+  test("rejects array with non-numbers", () => {
+    expect(parseReorderInput({ orderedIds: ["a", "b"] })).toBeNull();
   });
 });
 

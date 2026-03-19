@@ -363,6 +363,53 @@ describe("POST /api/settings/display", () => {
   });
 });
 
+describe("POST /api/blocks/reorder", () => {
+  test("reorders blocks and returns ok", async () => {
+    const r1 = await router(
+      req("POST", "/api/blocks", {
+        prompt: "a",
+        intervalValue: 1,
+        intervalUnit: "hours",
+      }),
+    );
+    const r2 = await router(
+      req("POST", "/api/blocks", {
+        prompt: "b",
+        intervalValue: 1,
+        intervalUnit: "hours",
+      }),
+    );
+    const b1 = (await jsonBody(r1)).block;
+    const b2 = (await jsonBody(r2)).block;
+
+    const res = await router(
+      req("POST", "/api/blocks/reorder", { orderedIds: [b2.id, b1.id] }),
+    );
+    const data = await jsonBody(res);
+    expect(data.ok).toBe(true);
+
+    // Verify order persisted
+    const listRes = await router(req("GET", "/api/blocks"));
+    const listData = await jsonBody(listRes);
+    expect(listData.blocks[0].id).toBe(b2.id);
+    expect(listData.blocks[1].id).toBe(b1.id);
+  });
+
+  test("returns 400 for invalid input", async () => {
+    const res = await router(
+      req("POST", "/api/blocks/reorder", { orderedIds: "not-array" }),
+    );
+    expect(res?.status).toBe(400);
+  });
+
+  test("returns 400 for empty array", async () => {
+    const res = await router(
+      req("POST", "/api/blocks/reorder", { orderedIds: [] }),
+    );
+    expect(res?.status).toBe(400);
+  });
+});
+
 describe("unknown routes", () => {
   test("returns null for unmatched route", async () => {
     const res = await router(req("GET", "/unknown"));
