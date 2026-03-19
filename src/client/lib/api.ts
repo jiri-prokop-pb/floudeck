@@ -130,7 +130,7 @@ export async function runActionApi(input: {
   blockUuid: string;
   actionName: string;
   params: Record<string, string>;
-}): Promise<ApiResponse<{ actionRun: ActionRun }>> {
+}): Promise<ApiResponse<{ actionRun: ActionRun; blockTitle: string | null }>> {
   return apiFetch("/api/actions/run", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -140,9 +140,12 @@ export async function runActionApi(input: {
 
 export async function fetchActionRun(
   clickId: string,
-): Promise<ActionRun | null> {
-  const data = await apiFetch<{ actionRun: ActionRun }>(
-    `/api/actions/${clickId}`,
-  );
-  return data.ok ? data.actionRun : null;
+): Promise<{ actionRun: ActionRun; blockTitle: string | null } | null> {
+  const data = await apiFetch<{
+    actionRun: ActionRun;
+    blockTitle: string | null;
+  }>(`/api/actions/${clickId}`);
+  return data.ok
+    ? { actionRun: data.actionRun, blockTitle: data.blockTitle }
+    : null;
 }

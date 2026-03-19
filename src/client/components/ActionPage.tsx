@@ -35,6 +35,7 @@ export function ActionPage({
   onBlockStale,
 }: ActionPageProps) {
   const [actionRun, setActionRun] = useState<ActionRun | null>(null);
+  const [blockTitle, setBlockTitle] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [clickId] = useState(() => {
@@ -67,6 +68,7 @@ export function ActionPage({
       }
 
       setActionRun(result.actionRun);
+      if (result.blockTitle) setBlockTitle(result.blockTitle);
 
       if (isTerminal(result.actionRun)) {
         onBlockStale(blockUuid);
@@ -85,7 +87,8 @@ export function ActionPage({
 
         const updated = await fetchActionRun(clickId);
         if (updated && !cancelled) {
-          setActionRun(updated);
+          setActionRun(updated.actionRun);
+          if (updated.blockTitle) setBlockTitle(updated.blockTitle);
           onBlockStale(blockUuid);
         }
       });
@@ -94,10 +97,11 @@ export function ActionPage({
       // before the EventSource was established (race condition)
       const updated = await fetchActionRun(clickId);
       if (cancelled) return;
-      if (updated && isTerminal(updated)) {
+      if (updated && isTerminal(updated.actionRun)) {
         es?.close();
         es = null;
-        setActionRun(updated);
+        setActionRun(updated.actionRun);
+        if (updated.blockTitle) setBlockTitle(updated.blockTitle);
         onBlockStale(blockUuid);
       }
     }
@@ -138,7 +142,15 @@ export function ActionPage({
             Back to feed
           </button>
           <h1 className="text-xl font-bold text-zinc-900">
-            {formatActionName(actionName)}
+            {blockTitle ? (
+              <>
+                <span className="text-zinc-400">{blockTitle}</span>
+                <span className="text-zinc-300 mx-1.5">/</span>
+                {formatActionName(actionName)}
+              </>
+            ) : (
+              formatActionName(actionName)
+            )}
           </h1>
         </header>
 
