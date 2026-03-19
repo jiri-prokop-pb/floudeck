@@ -73,7 +73,8 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
       markBlockRunning(db, blockId, startedAt);
       sse.broadcast("block-updated", { blockId, status: "running" });
 
-      const result = await runBlock(prompt, resolvedConfig);
+      const promptWithContext = `${prompt}\n\n[Block UUID: ${currentBlock.uuid}]`;
+      const result = await runBlock(promptWithContext, resolvedConfig);
 
       const block = getBlock(db, blockId);
       if (!block) return;

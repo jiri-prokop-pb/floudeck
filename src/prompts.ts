@@ -72,12 +72,24 @@ The FIRST line of the markdown section MUST be a level-1 heading (# Title).
 Keep it compact, readable, and actionable.
 Do NOT include raw HTML in the markdown section.
 
-REMEMBER: Your entire output MUST contain ===BEGIN_MARKDOWN=== and ===END_MARKDOWN=== delimiters or it will be rejected.`;
+REMEMBER: Your entire output MUST contain ===BEGIN_MARKDOWN=== and ===END_MARKDOWN=== delimiters or it will be rejected.
+
+You may include action links in your markdown output. Action links are special links that trigger interactive actions when clicked. Format:
+
+[Label](/action/{block-uuid}/{action-name}?optional=query&params)
+
+With optional color tag (pipe-separated before closing bracket):
+
+[Label|red](/action/{block-uuid}/{action-name}?optional=query&params)
+
+Color palette: red, orange, yellow, green, blue, purple. Default (no tag): green.
+Your block UUID is provided in the context. Use it when constructing action links.`;
 
 export function composeActionPrompt(
   blockOutputMarkdown: string,
   actionName: string,
   params: Record<string, string>,
+  blockUuid: string,
 ): string {
   const paramLines = Object.entries(params)
     .map(([k, v]) => `${k}=${v}`)
@@ -87,5 +99,7 @@ export function composeActionPrompt(
 ${blockOutputMarkdown}
 
 --- Action ---
-Action: ${actionName}${paramLines ? `\nParameters:\n${paramLines}` : ""}`;
+Action: ${actionName}${paramLines ? `\nParameters:\n${paramLines}` : ""}
+
+[Block UUID: ${blockUuid}]`;
 }

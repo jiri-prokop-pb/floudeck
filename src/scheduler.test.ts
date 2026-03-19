@@ -293,10 +293,12 @@ describe("scheduler", () => {
     await tickPromise;
 
     const block = mustGetBlock(db, b.id);
-    expect(promptsSeen).toEqual(["old prompt", "new prompt"]);
+    expect(promptsSeen).toHaveLength(2);
+    expect(promptsSeen[0]).toStartWith("old prompt");
+    expect(promptsSeen[1]).toStartWith("new prompt");
     expect(block.status).toBe("success");
     expect(block.prompt).toBe("new prompt");
-    expect(block.output_markdown).toBe("# Result\n\nnew prompt");
+    expect(block.output_markdown).toStartWith("# Result\n\nnew prompt");
     expect(block.last_run_at).not.toBeNull();
     expect(block.next_run_at).toBe(
       addInterval(block.last_run_at ?? "", 2, "days"),

@@ -357,7 +357,12 @@ export function createRouter(
 
         // Spawn action run asynchronously
         const blockOutput = block.output_markdown ?? "";
-        const prompt = composeActionPrompt(blockOutput, actionName, paramsObj);
+        const prompt = composeActionPrompt(
+          blockOutput,
+          actionName,
+          paramsObj,
+          block.uuid,
+        );
 
         const blockConfig = parseBlockRunnerConfig(block);
         const globalDefaults =
