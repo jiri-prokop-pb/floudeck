@@ -28,7 +28,7 @@ These documents are **living** and must be kept in sync with the codebase after 
 
 ```bash
 bun run dev                # start the app (port 3000)
-bun run test               # unit tests (182 tests)
+bun run test               # unit tests (193 tests)
 bun run e2e                # Playwright E2E tests (9 tests)
 bun run check              # lint + unit tests + E2E
 bun run lint               # biome check
@@ -88,7 +88,7 @@ Record non-obvious decisions here as they come up during implementation. Format:
 - **@phosphor-icons/react**: All icons use `@phosphor-icons/react` with `weight="bold"`. No inline SVGs or Unicode icon characters.
 - **@dnd-kit for drag-and-drop**: Using `@dnd-kit/core` + `@dnd-kit/sortable` + `@dnd-kit/utilities` for block reordering. Positions are sparse integers (multiples of 1000) stored in a `position` column. `SortableBlockCard` wraps `BlockCard` with a drag handle.
 - **Action links in markdown**: `[Label|color](/action/{block-uuid}/{action-name}?params)` — rendered as pastel-colored pills via `marked.use()` renderer extension. Color tags also work on regular links (`[Label|blue](https://...)`) — rendered as colored underlined text instead of pills. All external links open in a new tab.
-- **Client-side routing**: pushState-based SPA routing in `App.tsx`. Routes: `/` (feed), `/action/:uuid/:name` (action page). Server serves `index.html` for `/action/*` via Bun's `routes` config.
+- **Client-side routing**: pushState-based SPA routing via `useRouter` hook. Routes: `/` (feed), `/action/:uuid/:name` (action page). Server serves `index.html` for `/action/*` via Bun's `routes` config.
 - **Action runs bypass concurrency cap**: Actions are user-initiated and interactive; they run independently of the scheduler's max-2 concurrency.
 - **Action cleanup**: Scheduler piggybacks cleanup on tick (hourly check, deletes rows older than 24h).
 
@@ -100,7 +100,7 @@ Every module uses **dependency injection via factory functions** — no module-l
 |--------|----------------|---------------|
 | `db.ts` | All functions take `Database` param | `:memory:` SQLite per test |
 | `config.ts` | Pure functions: `resolveRunnerConfig`, `buildCliArgs` | Direct unit tests with config objects |
-| `runner.ts` | `RunBlockFn` type; `createCliRunner()` / `createMockRunner()` factories | Tests use mock runner or test `processCliOutput()` pure function directly |
+| `runner.ts` | `RunBlockFn` type; `createRunner(systemPrompt)` / `createMockRunner()` factories | Tests use mock runner or test `processCliOutput()` pure function directly |
 | `scheduler.ts` | `createScheduler(deps)` returns `{ start, stop, tick }` | Tests call `tick()` directly, no timers |
 | `api.ts` | `createRouter(deps)` takes db, sse, triggerRun | In-memory db + real SSE broadcaster |
 | `server.ts` | `createApp(deps)` factory; auto-starts only via `import.meta.main` | Tests create isolated instances on port 0 |
