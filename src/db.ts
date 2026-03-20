@@ -10,6 +10,37 @@ import type {
 } from "./types.ts";
 import { safeParseRunnerConfig } from "./validate.ts";
 
+export function getSchemaVersion(db: Database): number {
+  const row = db.query("PRAGMA user_version").get() as {
+    user_version: number;
+  } | null;
+  return row?.user_version ?? 0;
+}
+
+export function setSchemaVersion(db: Database, version: number): void {
+  db.run(`PRAGMA user_version = ${version}`);
+}
+
+type Migration = {
+  version: number;
+  up: (db: Database) => void;
+};
+
+// Add new migrations here. Each must have a sequential version number.
+const MIGRATIONS: Migration[] = [
+  // version 1 = initial schema (created by initDb below)
+];
+
+function runMigrations(db: Database): void {
+  const currentVersion = getSchemaVersion(db);
+  for (const migration of MIGRATIONS) {
+    if (migration.version > currentVersion) {
+      migration.up(db);
+      setSchemaVersion(db, migration.version);
+    }
+  }
+}
+
 export function initDb(path?: string): Database {
   if (path && path !== ":memory:") {
     const parentDir = path.substring(0, path.lastIndexOf("/"));
@@ -65,6 +96,15 @@ export function initDb(path?: string): Database {
   db.run(
     "CREATE INDEX IF NOT EXISTS idx_action_runs_click_id ON action_runs(click_id)",
   );
+
+  // Set initial schema version if this is a fresh DB
+  if (getSchemaVersion(db) === 0) {
+    setSchemaVersion(db, 1);
+  }
+
+  // Run any pending migrations
+  runMigrations(db);
+
   return db;
 }
 
