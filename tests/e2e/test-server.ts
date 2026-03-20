@@ -34,6 +34,7 @@ const app = createApp({
   port: PORT,
   runBlock: mockRunner,
   tickIntervalMs: 500, // fast ticks for testing
+  development: true, // enable HTML import routes for browser navigation
 });
 
 console.log(`e2e test server running on port ${app.server.port}`);

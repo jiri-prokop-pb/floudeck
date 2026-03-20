@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun --watch run src/server.ts",
+    "dev": "FLOUDECK_DEV=1 bun --watch run src/server.ts",
     "test": "bun test src/",
     "lint": "bun biome check .",
     "format": "bun biome check --fix .",
