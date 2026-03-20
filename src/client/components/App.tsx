@@ -96,11 +96,14 @@ export function App() {
       )}
       <div className="mx-auto max-w-3xl px-4 py-10" style={isTauri ? { paddingTop: "2.5rem" } : undefined}>
         <header className="mb-8 flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-zinc-900">Floudeck</h1>
-            <p className="text-sm text-zinc-500">
-              Your deck of signals and actions
-            </p>
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="" className="h-10 w-10" />
+            <div>
+              <h1 className="text-2xl font-bold text-zinc-900">Floudeck</h1>
+              <p className="text-sm text-zinc-500">
+                Your deck of signals and actions
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <HeaderClock displaySettings={displaySettings} />

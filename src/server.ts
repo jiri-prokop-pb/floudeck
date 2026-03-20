@@ -120,6 +120,13 @@ export function createApp(options: AppOptions = {}): App {
       if (hasClientAssets) {
         const staticResponse = serveStaticAssets(req, clientDir);
         if (staticResponse) return staticResponse;
+      } else if (development) {
+        // In dev mode, serve static assets from src/client/assets/
+        const devAssetsDir = join(import.meta.dir, "client", "assets");
+        const devFilePath = join(devAssetsDir, new URL(req.url).pathname);
+        if (existsSync(devFilePath)) {
+          return new Response(Bun.file(devFilePath));
+        }
       }
 
       return new Response("Not Found", { status: 404 });
