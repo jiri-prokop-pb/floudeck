@@ -221,7 +221,7 @@ function DisplaySection({
         <select
           value={dateFormat}
           onChange={(e) => setDateFormat(e.target.value)}
-          className="w-full rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-800"
+          className="h-9 w-full rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-800"
         >
           <option value="D. M.">Wed 18. 3.</option>
           <option value="MM-DD">Wed 03-18</option>
@@ -237,7 +237,7 @@ function DisplaySection({
         <select
           value={timeFormat}
           onChange={(e) => setTimeFormat(e.target.value)}
-          className="w-full rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-800"
+          className="h-9 w-full rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-800"
         >
           <option value="24h">24-hour</option>
           <option value="12h">12-hour</option>

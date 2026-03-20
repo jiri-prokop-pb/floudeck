@@ -12,6 +12,21 @@ import { HeaderClock } from "./HeaderClock.tsx";
 import { Modal } from "./Modal.tsx";
 import { SettingsModal } from "./SettingsModal.tsx";
 
+const isTauri = "__TAURI_INTERNALS__" in window;
+
+function startDrag(e: React.MouseEvent) {
+  e.preventDefault();
+  if (isTauri) {
+    (window as any).__TAURI_INTERNALS__.invoke("drag_window");
+  }
+}
+
+function toggleMaximize() {
+  if (isTauri) {
+    (window as any).__TAURI_INTERNALS__.invoke("toggle_maximize");
+  }
+}
+
 export function App() {
   const { route, navigateHome } = useRouter();
   const {
@@ -71,7 +86,15 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-zinc-50">
-      <div className="mx-auto max-w-3xl px-4 py-10">
+      {isTauri && (
+        <div
+          onMouseDown={startDrag}
+          onDoubleClick={toggleMaximize}
+          className="fixed top-0 left-0 right-0 h-8 z-50"
+          style={{ cursor: "default" }}
+        />
+      )}
+      <div className="mx-auto max-w-3xl px-4 py-10" style={isTauri ? { paddingTop: "2.5rem" } : undefined}>
         <header className="mb-8 flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold text-zinc-900">Floudeck</h1>

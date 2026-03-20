@@ -111,7 +111,7 @@ export function BlockForm({
         <select
           value={intervalUnit}
           onChange={(e) => setIntervalUnit(e.target.value)}
-          className="rounded-lg border border-zinc-200 px-2 py-1.5 text-sm focus:border-zinc-400 focus:outline-none"
+          className="h-9 rounded-lg border border-zinc-200 px-2 py-1.5 text-sm focus:border-zinc-400 focus:outline-none"
         >
           <option value="minutes">minutes</option>
           <option value="hours">hours</option>

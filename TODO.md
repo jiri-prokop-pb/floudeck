@@ -38,17 +38,13 @@ V1 is implemented. See **[docs/custom-actions-spec.md](docs/custom-actions-spec.
 
 ---
 
-## Packaging
+## Packaging — future improvements
 
-— Research and figure out how to bundle the project as a standalone binary
-  - bun compile: could be initial version; only bundles the server, then used in browser
-  - Tauri: better option, both server & client are bundled; this makes sure only one instance is running
-- Things to figure out:
-  - Where to save persistent data?
-  - Can we easily run any commands?
-  - How about MacOS & notarization?
-  - Where to release?
-  - How to do updates? At that point, we need db migrations?
+- **Code signing & notarization** — required for clean distribution (no Gatekeeper warnings). Needs Apple Developer Program ($99/year). Configure in `tauri.conf.json` `bundle.macOS.signing`.
+- **Auto-updater** — Tauri has built-in updater support. Only worth adding if app gains traction.
+- **Homebrew tap** — once repo is public
+- **Tray icon / background mode** — keep running when window is closed
+- **Windows/Linux builds** — Tauri supports all three platforms
 
 ---
 
