@@ -21,6 +21,7 @@ const isDev = !!Bun.env.FLOUDECK_DEV;
 export type AppOptions = {
   dbPath?: string;
   port?: number;
+  clientDir?: string;
   runBlock?: RunBlockFn;
   runAction?: RunBlockFn;
   tickIntervalMs?: number;
@@ -63,6 +64,7 @@ export function createApp(options: AppOptions = {}): App {
   const {
     dbPath,
     port = 3000,
+    clientDir: clientDirOverride,
     runBlock = createRunner(SYSTEM_PROMPT),
     runAction = createRunner(ACTION_SYSTEM_PROMPT, "Action"),
     tickIntervalMs = 10_000,
@@ -96,7 +98,7 @@ export function createApp(options: AppOptions = {}): App {
     runAction,
   });
 
-  const clientDir = getClientAssetsDir();
+  const clientDir = clientDirOverride ?? getClientAssetsDir();
   const hasClientAssets =
     !development && existsSync(join(clientDir, "index.html"));
 
@@ -140,10 +142,12 @@ export function createApp(options: AppOptions = {}): App {
 function parseArgs(argv: string[]): {
   port: number | undefined;
   dataDir: string | undefined;
+  clientDir: string | undefined;
   version: boolean;
 } {
   let port: number | undefined;
   let dataDir: string | undefined;
+  let clientDir: string | undefined;
   let version = false;
 
   for (let i = 2; i < argv.length; i++) {
@@ -152,12 +156,14 @@ function parseArgs(argv: string[]): {
       port = Number.parseInt(argv[++i], 10);
     } else if (arg === "--data-dir" && i + 1 < argv.length) {
       dataDir = argv[++i];
+    } else if (arg === "--client-dir" && i + 1 < argv.length) {
+      clientDir = argv[++i];
     } else if (arg === "--version") {
       version = true;
     }
   }
 
-  return { port, dataDir, version };
+  return { port, dataDir, clientDir, version };
 }
 
 async function findDevPort(): Promise<number> {
@@ -206,5 +212,6 @@ if (import.meta.main) {
   createApp({
     dbPath: getDbPath(),
     port,
+    clientDir: args.clientDir,
   });
 }

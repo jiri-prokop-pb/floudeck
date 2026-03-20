@@ -5,16 +5,43 @@ use tauri_plugin_shell::process::CommandChild;
 
 struct SidecarState(Mutex<Option<CommandChild>>);
 
+#[tauri::command]
+fn drag_window(window: tauri::WebviewWindow) -> Result<(), String> {
+    window.start_dragging().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn toggle_maximize(window: tauri::WebviewWindow) -> Result<(), String> {
+    if window.is_maximized().unwrap_or(false) {
+        window.unmaximize().map_err(|e| e.to_string())
+    } else {
+        window.maximize().map_err(|e| e.to_string())
+    }
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .manage(SidecarState(Mutex::new(None)))
+        .invoke_handler(tauri::generate_handler![drag_window, toggle_maximize])
         .setup(|app| {
             let shell = app.shell();
             let sidecar = shell.sidecar("floudeck-server").unwrap();
 
+            // Resolve client assets directory from Tauri's bundled resources
+            let resource_path = app
+                .path()
+                .resource_dir()
+                .expect("failed to resolve resource dir");
+            let client_dir = resource_path.join("client");
+
             let (mut rx, child) = sidecar
-                .args(["--port", "0"])
+                .args([
+                    "--port",
+                    "0",
+                    "--client-dir",
+                    &client_dir.to_string_lossy(),
+                ])
                 .spawn()
                 .expect("failed to spawn floudeck-server sidecar");
 
@@ -59,7 +86,8 @@ pub fn run() {
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::Destroyed = event {
                 let state = window.state::<SidecarState>();
-                if let Some(child) = state.0.lock().unwrap().take() {
+                let child = state.0.lock().unwrap().take();
+                if let Some(child) = child {
                     let _ = child.kill();
                 }
             }

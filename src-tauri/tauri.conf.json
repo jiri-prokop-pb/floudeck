@@ -4,18 +4,20 @@
   "version": "0.1.0",
   "identifier": "com.floudeck.app",
   "build": {
+    "beforeDevCommand": "bun run build:server",
     "beforeBuildCommand": "bun run build:server",
     "frontendDist": "../dist/client"
   },
   "app": {
     "windows": [
       {
-        "title": "Floudeck",
+        "title": "",
         "width": 1024,
         "height": 768,
         "minWidth": 800,
         "minHeight": 600,
-        "url": "about:blank"
+        "url": "about:blank",
+        "titleBarStyle": "Overlay"
       }
     ],
     "security": {
@@ -33,16 +35,16 @@
       "icons/128x128@2x.png"
     ],
     "externalBin": ["binaries/floudeck-server"],
+    "resources": {
+      "../dist/client": "client/"
+    },
     "macOS": {
       "minimumSystemVersion": "10.15"
     }
   },
   "plugins": {
     "shell": {
-      "open": true,
-      "scope": {
-        "sidecar": true
-      }
+      "open": true
     }
   }
 }
