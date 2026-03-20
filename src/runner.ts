@@ -40,10 +40,7 @@ function buildSpawnEnv(
   return undefined;
 }
 
-export function createRunner(
-  systemPrompt: string,
-  label = "Task",
-): RunBlockFn {
+export function createRunner(systemPrompt: string, label = "Task"): RunBlockFn {
   return async (
     prompt: string,
     config: ResolvedRunnerConfig,

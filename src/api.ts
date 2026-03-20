@@ -1,4 +1,5 @@
 import type { Database } from "bun:sqlite";
+import { z } from "zod/mini";
 import { formatCliCommand, resolveRunnerConfig } from "./config.ts";
 import {
   createActionRun,
@@ -70,10 +71,86 @@ function matchRoute(
   return params;
 }
 
+async function parseJsonBody(
+  req: Request,
+): Promise<{ ok: true; body: unknown } | Response> {
+  try {
+    const body: unknown = await req.json();
+    return { ok: true, body };
+  } catch {
+    return json({ ok: false, error: "Invalid JSON" }, 400);
+  }
+}
+
+function requireBlockId(params: Record<string, string>): number | Response {
+  const id = Number(params.id);
+  if (Number.isNaN(id)) return json({ ok: false, error: "Invalid id" }, 400);
+  return id;
+}
+
+function requireJsonObject(
+  parsed: { ok: true; body: unknown } | Response,
+): Record<string, unknown> | Response {
+  if (parsed instanceof Response) return parsed;
+  const { body } = parsed;
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return json(
+      { ok: false, error: "Request body must be a JSON object" },
+      400,
+    );
+  }
+  return body as Record<string, unknown>;
+}
+
+const ActionRunBodySchema = z.object({
+  clickId: z.string(),
+  blockUuid: z.string(),
+  actionName: z.string(),
+  params: z.optional(z.record(z.string(), z.string())),
+});
+
+function settingsHandlers(
+  db: Database,
+  key: string,
+  safeParse: (raw: string | null) => unknown | undefined,
+  parse: (raw: unknown) => unknown | null,
+) {
+  return {
+    get: () => {
+      const config = safeParse(getSetting(db, key)) ?? null;
+      return json({ ok: true, config });
+    },
+    post: async (req: Request) => {
+      const obj = requireJsonObject(await parseJsonBody(req));
+      if (obj instanceof Response) return obj;
+      const config = parse(obj.config);
+      if (config) {
+        setSetting(db, key, JSON.stringify(config));
+      } else {
+        db.run("DELETE FROM settings WHERE key = ?", key);
+      }
+      return json({ ok: true, config });
+    },
+  };
+}
+
 export function createRouter(
   deps: RouterDeps,
 ): (req: Request) => Promise<Response | null> {
   const { db, sse, triggerRun, runAction } = deps;
+
+  const runnerSettings = settingsHandlers(
+    db,
+    "runner_defaults",
+    safeParseRunnerConfig,
+    (raw) => parseRunnerConfig(raw, { allowCwd: false }),
+  );
+  const displaySettings = settingsHandlers(
+    db,
+    "display",
+    safeParseDisplaySettings,
+    parseDisplaySettings,
+  );
 
   const routes: Array<{
     method: string;
@@ -95,9 +172,8 @@ export function createRouter(
       method: "GET",
       pattern: "/api/blocks/:id",
       handler: (_req, params) => {
-        const id = Number(params.id);
-        if (Number.isNaN(id))
-          return json({ ok: false, error: "Invalid id" }, 400);
+        const id = requireBlockId(params);
+        if (id instanceof Response) return id;
         const block = getBlock(db, id);
         if (!block) return json({ ok: false, error: "Not found" }, 404);
 
@@ -125,13 +201,9 @@ export function createRouter(
       method: "POST",
       pattern: "/api/blocks",
       handler: async (req) => {
-        let body: unknown;
-        try {
-          body = await req.json();
-        } catch {
-          return json({ ok: false, error: "Invalid JSON" }, 400);
-        }
-        const input = parseBlockInput(body);
+        const parsed = await parseJsonBody(req);
+        if (parsed instanceof Response) return parsed;
+        const input = parseBlockInput(parsed.body);
         if (isBlockInputError(input)) {
           return json({ ok: false, error: input.message }, 400);
         }
@@ -150,9 +222,8 @@ export function createRouter(
       method: "POST",
       pattern: "/api/blocks/:id/refresh",
       handler: (_req, params) => {
-        const id = Number(params.id);
-        if (Number.isNaN(id))
-          return json({ ok: false, error: "Invalid id" }, 400);
+        const id = requireBlockId(params);
+        if (id instanceof Response) return id;
         const block = getBlock(db, id);
         if (!block) return json({ ok: false, error: "Not found" }, 404);
         if (block.status === "running") {
@@ -175,16 +246,11 @@ export function createRouter(
       method: "POST",
       pattern: "/api/blocks/:id/update",
       handler: async (req, params) => {
-        const id = Number(params.id);
-        if (Number.isNaN(id))
-          return json({ ok: false, error: "Invalid id" }, 400);
-        let body: unknown;
-        try {
-          body = await req.json();
-        } catch {
-          return json({ ok: false, error: "Invalid JSON" }, 400);
-        }
-        const input = parseBlockInput(body);
+        const id = requireBlockId(params);
+        if (id instanceof Response) return id;
+        const parsed = await parseJsonBody(req);
+        if (parsed instanceof Response) return parsed;
+        const input = parseBlockInput(parsed.body);
         if (isBlockInputError(input)) {
           return json({ ok: false, error: input.message }, 400);
         }
@@ -204,9 +270,8 @@ export function createRouter(
       method: "POST",
       pattern: "/api/blocks/:id/delete",
       handler: (_req, params) => {
-        const id = Number(params.id);
-        if (Number.isNaN(id))
-          return json({ ok: false, error: "Invalid id" }, 400);
+        const id = requireBlockId(params);
+        if (id instanceof Response) return id;
         const deleted = deleteBlock(db, id);
         if (!deleted) return json({ ok: false, error: "Not found" }, 404);
         sse.broadcast("blocks-invalidated", {});
@@ -217,13 +282,9 @@ export function createRouter(
       method: "POST",
       pattern: "/api/blocks/reorder",
       handler: async (req) => {
-        let body: unknown;
-        try {
-          body = await req.json();
-        } catch {
-          return json({ ok: false, error: "Invalid JSON" }, 400);
-        }
-        const input = parseReorderInput(body);
+        const parsed = await parseJsonBody(req);
+        if (parsed instanceof Response) return parsed;
+        const input = parseReorderInput(parsed.body);
         if (!input) {
           return json({ ok: false, error: "Invalid reorder input" }, 400);
         }
@@ -235,104 +296,38 @@ export function createRouter(
     {
       method: "GET",
       pattern: "/api/settings/runner",
-      handler: () => {
-        const config =
-          safeParseRunnerConfig(getSetting(db, "runner_defaults")) ?? null;
-        return json({ ok: true, config });
-      },
+      handler: () => runnerSettings.get(),
     },
     {
       method: "POST",
       pattern: "/api/settings/runner",
-      handler: async (req) => {
-        let body: unknown;
-        try {
-          body = await req.json();
-        } catch {
-          return json({ ok: false, error: "Invalid JSON" }, 400);
-        }
-        if (!body || typeof body !== "object") {
-          return json(
-            { ok: false, error: "Request body must be a JSON object" },
-            400,
-          );
-        }
-        const { config: rawConfig } = body as Record<string, unknown>;
-        const config = parseRunnerConfig(rawConfig, { allowCwd: false });
-        if (config) {
-          setSetting(db, "runner_defaults", JSON.stringify(config));
-        } else {
-          // Clear settings if empty/null
-          db.run("DELETE FROM settings WHERE key = ?", "runner_defaults");
-        }
-        return json({ ok: true, config });
-      },
+      handler: (req) => runnerSettings.post(req),
     },
     {
       method: "GET",
       pattern: "/api/settings/display",
-      handler: () => {
-        const config =
-          safeParseDisplaySettings(getSetting(db, "display")) ?? null;
-        return json({ ok: true, config });
-      },
+      handler: () => displaySettings.get(),
     },
     {
       method: "POST",
       pattern: "/api/settings/display",
-      handler: async (req) => {
-        let body: unknown;
-        try {
-          body = await req.json();
-        } catch {
-          return json({ ok: false, error: "Invalid JSON" }, 400);
-        }
-        if (!body || typeof body !== "object") {
-          return json(
-            { ok: false, error: "Request body must be a JSON object" },
-            400,
-          );
-        }
-        const { config: rawConfig } = body as Record<string, unknown>;
-        const config = parseDisplaySettings(rawConfig);
-        if (config) {
-          setSetting(db, "display", JSON.stringify(config));
-        } else {
-          db.run("DELETE FROM settings WHERE key = ?", "display");
-        }
-        return json({ ok: true, config });
-      },
+      handler: (req) => displaySettings.post(req),
     },
     {
       method: "POST",
       pattern: "/api/actions/run",
       handler: async (req) => {
-        let body: unknown;
-        try {
-          body = await req.json();
-        } catch {
-          return json({ ok: false, error: "Invalid JSON" }, 400);
-        }
-        if (!body || typeof body !== "object") {
-          return json(
-            { ok: false, error: "Request body must be a JSON object" },
-            400,
-          );
-        }
-        const { clickId, blockUuid, actionName, params } = body as Record<
-          string,
-          unknown
-        >;
-        if (
-          typeof clickId !== "string" ||
-          typeof blockUuid !== "string" ||
-          typeof actionName !== "string"
-        ) {
+        const parsed = await parseJsonBody(req);
+        if (parsed instanceof Response) return parsed;
+
+        const result = ActionRunBodySchema.safeParse(parsed.body);
+        if (!result.success) {
           return json(
             { ok: false, error: "clickId, blockUuid, and actionName required" },
             400,
           );
         }
+        const { clickId, blockUuid, actionName, params } = result.data;
 
         // Check for existing run with this clickId
         const existing = getActionRun(db, clickId);
@@ -348,10 +343,7 @@ export function createRouter(
           return json({ ok: false, error: "Block not found" }, 404);
         }
 
-        const paramsObj =
-          params && typeof params === "object"
-            ? (params as Record<string, string>)
-            : {};
+        const paramsObj = params ?? {};
         const paramsJson =
           Object.keys(paramsObj).length > 0 ? JSON.stringify(paramsObj) : null;
 
@@ -386,12 +378,17 @@ export function createRouter(
         // Fire and forget — SSE will notify when done
         void (async () => {
           try {
-            const result = await runAction(prompt, resolvedConfig);
+            const actionResult = await runAction(prompt, resolvedConfig);
             const completedAt = nowIso();
-            if (result.ok) {
-              markActionCompleted(db, clickId, result.markdown, completedAt);
+            if (actionResult.ok) {
+              markActionCompleted(
+                db,
+                clickId,
+                actionResult.markdown,
+                completedAt,
+              );
             } else {
-              markActionError(db, clickId, result.error, completedAt);
+              markActionError(db, clickId, actionResult.error, completedAt);
             }
           } catch (err: unknown) {
             const message =
