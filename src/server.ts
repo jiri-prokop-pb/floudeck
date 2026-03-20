@@ -96,9 +96,12 @@ export function createApp(options: AppOptions = {}): App {
     runAction,
   });
 
-  const clientDir = clientDirOverride ?? getClientAssetsDir();
+  // In production, resolve client assets dir (explicit flag or next to binary)
+  const clientDir = development
+    ? null
+    : (clientDirOverride ?? getClientAssetsDir());
   const hasClientAssets =
-    !development && existsSync(join(clientDir, "index.html"));
+    clientDir !== null && existsSync(join(clientDir, "index.html"));
 
   // In dev mode, use Bun's HTML import for routes (enables HMR + Tailwind plugin).
   // In production, serve pre-built static assets via fetch handler.
@@ -115,7 +118,7 @@ export function createApp(options: AppOptions = {}): App {
       const response = await router(req);
       if (response) return response;
 
-      if (hasClientAssets) {
+      if (hasClientAssets && clientDir) {
         const staticResponse = serveStaticAssets(req, clientDir);
         if (staticResponse) return staticResponse;
       } else if (development) {

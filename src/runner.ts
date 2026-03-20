@@ -87,8 +87,6 @@ export function createRunner(systemPrompt: string, label = "Task"): RunBlockFn {
       const stderr = await new Response(proc.stderr).text();
       const exitCode = await proc.exited;
 
-      clearTimeout(timeout);
-
       if (timedOut) {
         return {
           ok: false,

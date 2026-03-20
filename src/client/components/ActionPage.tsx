@@ -1,5 +1,5 @@
 import { ArrowLeft, CaretDown, CaretRight } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ActionRun } from "../../types.ts";
 import { fetchActionRun, runActionApi } from "../lib/api.ts";
 import { renderMarkdown } from "../lib/markdown.ts";
@@ -28,6 +28,10 @@ export function ActionPage({
   const [blockTitle, setBlockTitle] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
+  // params is a new object each render but stable per mount (parent uses key prop).
+  // Use a ref to avoid re-triggering the effect.
+  const paramsRef = useRef(params);
+
   const [clickId] = useState(() => {
     const url = new URL(window.location.href);
     const existing = url.searchParams.get("_cid");
@@ -47,7 +51,7 @@ export function ActionPage({
         clickId,
         blockUuid,
         actionName,
-        params,
+        params: paramsRef.current,
       });
 
       if (cancelled) return;
@@ -102,7 +106,7 @@ export function ActionPage({
       cancelled = true;
       es?.close();
     };
-  }, [clickId, blockUuid, actionName, params, onBlockStale]);
+  }, [clickId, blockUuid, actionName, onBlockStale]);
 
   const isLoading =
     !actionRun ||
@@ -112,8 +116,8 @@ export function ActionPage({
     error ?? (actionRun?.status === "error" ? actionRun.error_text : null);
 
   const composedPrompt = `--- Block Context ---\n(block output loaded at runtime)\n\n--- Action ---\nAction: ${actionName}${
-    Object.keys(params).length > 0
-      ? `\nParameters:\n${Object.entries(params)
+    Object.keys(paramsRef.current).length > 0
+      ? `\nParameters:\n${Object.entries(paramsRef.current)
           .map(([k, v]) => `${k}=${v}`)
           .join("\n")}`
       : ""

@@ -52,6 +52,36 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
     return safeParseRunnerConfig(getSetting(db, "runner_defaults")) ?? null;
   }
 
+  function finalizeRun(
+    blockId: number,
+    startedAt: string,
+    result: { ok: true; markdown: string } | { ok: false; error: string },
+  ): boolean {
+    const block = getBlock(db, blockId);
+    if (!block) return false;
+
+    if (wasUpdatedDuringRun(block.updated_at, startedAt)) {
+      markBlockPendingImmediateRun(db, blockId, nowIso());
+      return true; // should rerun
+    }
+
+    const finishedAt = nowIso();
+    const nextRunAt = addInterval(
+      finishedAt,
+      block.interval_value,
+      block.interval_unit,
+    );
+
+    if (result.ok) {
+      markBlockSuccess(db, blockId, result.markdown, finishedAt, nextRunAt);
+      sse.broadcast("block-updated", { blockId, status: "success" });
+    } else {
+      markBlockError(db, blockId, result.error, finishedAt, nextRunAt);
+      sse.broadcast("block-updated", { blockId, status: "error" });
+    }
+    return false;
+  }
+
   async function startRun(blockId: number, prompt: string): Promise<void> {
     runningBlockIds.add(blockId);
     activeRuns++;
@@ -76,49 +106,14 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
       const promptWithContext = `${prompt}\n\n[Block UUID: ${currentBlock.uuid}]`;
       const result = await runBlock(promptWithContext, resolvedConfig);
 
-      const block = getBlock(db, blockId);
-      if (!block) return;
-      if (wasUpdatedDuringRun(block.updated_at, startedAt)) {
-        const finishedAt = nowIso();
-        markBlockPendingImmediateRun(db, blockId, finishedAt);
-        shouldRerun = true;
-        return;
-      }
-
-      const finishedAt = nowIso();
-      const nextRunAt = addInterval(
-        finishedAt,
-        block.interval_value,
-        block.interval_unit,
-      );
-
-      if (result.ok) {
-        markBlockSuccess(db, blockId, result.markdown, finishedAt, nextRunAt);
-        sse.broadcast("block-updated", { blockId, status: "success" });
-      } else {
-        markBlockError(db, blockId, result.error, finishedAt, nextRunAt);
-        sse.broadcast("block-updated", { blockId, status: "error" });
-      }
+      shouldRerun = finalizeRun(blockId, startedAt, result);
     } catch (err: unknown) {
-      const block = getBlock(db, blockId);
-      if (!block) return;
-      if (wasUpdatedDuringRun(block.updated_at, startedAt)) {
-        const finishedAt = nowIso();
-        markBlockPendingImmediateRun(db, blockId, finishedAt);
-        shouldRerun = true;
-        return;
-      }
-
-      const finishedAt = nowIso();
-      const nextRunAt = addInterval(
-        finishedAt,
-        block.interval_value,
-        block.interval_unit,
-      );
       const message =
         err instanceof Error ? err.message : "Unknown runner error";
-      markBlockError(db, blockId, message, finishedAt, nextRunAt);
-      sse.broadcast("block-updated", { blockId, status: "error" });
+      shouldRerun = finalizeRun(blockId, startedAt, {
+        ok: false,
+        error: message,
+      });
     } finally {
       runningBlockIds.delete(blockId);
       activeRuns--;
