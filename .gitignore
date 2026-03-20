@@ -43,3 +43,4 @@ playwright-report/
 # Build artifacts
 src-tauri/binaries/
 src-tauri/target/
+src-tauri/gen/
