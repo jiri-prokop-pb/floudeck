@@ -12,19 +12,32 @@ import { HeaderClock } from "./HeaderClock.tsx";
 import { Modal } from "./Modal.tsx";
 import { SettingsModal } from "./SettingsModal.tsx";
 
-const isTauri = "__TAURI_INTERNALS__" in window;
+type TauriInternals = {
+  invoke(command: string): void;
+};
+
+function getTauriInternals(): TauriInternals | null {
+  const w = window as Record<string, unknown>;
+  if (
+    "__TAURI_INTERNALS__" in w &&
+    typeof w.__TAURI_INTERNALS__ === "object" &&
+    w.__TAURI_INTERNALS__ !== null &&
+    "invoke" in w.__TAURI_INTERNALS__
+  ) {
+    return w.__TAURI_INTERNALS__ as TauriInternals;
+  }
+  return null;
+}
+
+const isTauri = getTauriInternals() !== null;
 
 function startDrag(e: React.MouseEvent) {
   e.preventDefault();
-  if (isTauri) {
-    (window as any).__TAURI_INTERNALS__.invoke("drag_window");
-  }
+  getTauriInternals()?.invoke("drag_window");
 }
 
 function toggleMaximize() {
-  if (isTauri) {
-    (window as any).__TAURI_INTERNALS__.invoke("toggle_maximize");
-  }
+  getTauriInternals()?.invoke("toggle_maximize");
 }
 
 export function App() {
@@ -88,16 +101,26 @@ export function App() {
     <div className="min-h-screen bg-zinc-50">
       {isTauri && (
         <div
+          role="toolbar"
+          aria-label="Window controls"
           onMouseDown={startDrag}
           onDoubleClick={toggleMaximize}
           className="fixed top-0 left-0 right-0 h-8 z-50"
           style={{ cursor: "default" }}
         />
       )}
-      <div className="mx-auto max-w-3xl px-4 py-10" style={isTauri ? { paddingTop: "2.5rem" } : undefined}>
+      <div
+        className="mx-auto max-w-3xl px-4 py-10"
+        style={isTauri ? { paddingTop: "2.5rem" } : undefined}
+      >
         <header className="mb-8 flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" srcSet="/logo@2x.png 2x, /logo@3x.png 3x" alt="" className="h-10 w-auto" />
+            <img
+              src="/logo.png"
+              srcSet="/logo@2x.png 2x, /logo@3x.png 3x"
+              alt=""
+              className="h-10 w-auto"
+            />
             <div>
               <h1 className="text-2xl font-bold text-zinc-900">Floudeck</h1>
               <p className="text-sm text-zinc-500">

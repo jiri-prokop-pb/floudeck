@@ -90,7 +90,7 @@ function requireBlockId(params: Record<string, string>): number | Response {
 
 function requireJsonObject(
   parsed: { ok: true; body: unknown } | Response,
-): Record<string, unknown> | Response {
+): { config: unknown } | Response {
   if (parsed instanceof Response) return parsed;
   const { body } = parsed;
   if (!body || typeof body !== "object" || Array.isArray(body)) {
@@ -99,7 +99,9 @@ function requireJsonObject(
       400,
     );
   }
-  return body as Record<string, unknown>;
+  // body is a non-null, non-array object — safe to access .config
+  const obj = body satisfies object;
+  return { config: "config" in obj ? obj.config : undefined };
 }
 
 const ActionRunBodySchema = z.object({
