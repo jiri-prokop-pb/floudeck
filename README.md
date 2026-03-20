@@ -4,10 +4,6 @@ A local feed of scheduled blocks that run prompts through [Claude Code CLI](http
 
 ![Floudeck screenshot](docs/screenshot.png)
 
-## Install (macOS)
-
-Download the `.dmg` from Releases, drag to Applications, and launch. Requires `claude` CLI installed.
-
 ## Prerequisites
 
 - [Bun](https://bun.sh/) (runtime, bundler, package manager)
