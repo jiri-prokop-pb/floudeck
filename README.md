@@ -8,6 +8,12 @@ A local feed of scheduled blocks that run prompts through [Claude Code CLI](http
 
 Download the `.dmg` from Releases, drag to Applications, and launch. Requires `claude` CLI installed.
 
+## Prerequisites
+
+- [Bun](https://bun.sh/) (runtime, bundler, package manager)
+- [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) (`claude` in your PATH)
+- [Rust](https://rustup.rs/) + `cargo install tauri-cli` (only for building the desktop app)
+
 ## Run from source
 
 ```bash
@@ -29,14 +35,16 @@ bun run dev        # http://localhost:3000
 ## Build from source
 
 ```bash
-# Prerequisites: Bun, Rust, cargo-tauri
 bun install
 
 # Build standalone server binary + client assets
 bun run build:server    # → dist/floudeck-server + dist/client/
 
-# Build macOS .app and .dmg (requires Rust toolchain)
-bun run build           # → src-tauri/target/release/bundle/
+# Build macOS .app and .dmg
+cargo tauri build       # → src-tauri/target/release/bundle/
+
+# Or dev mode with Tauri (live reload)
+cargo tauri dev
 ```
 
 ## Development
