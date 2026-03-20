@@ -1,6 +1,20 @@
 import { buildCliArgs, ensureCwd } from "./config.ts";
 import { extractMarkdownFromOutput } from "./extract.ts";
+import { resolveClaudePath } from "./paths.ts";
 import type { ResolvedRunnerConfig, RunBlockFn, RunResult } from "./types.ts";
+
+let resolvedClaudePath: string | null = null;
+
+export function getClaudePath(): string {
+  if (!resolvedClaudePath) {
+    resolvedClaudePath = resolveClaudePath();
+  }
+  return resolvedClaudePath;
+}
+
+export function setClaudePath(path: string): void {
+  resolvedClaudePath = path;
+}
 
 export function processCliOutput(
   stdout: string,
@@ -45,7 +59,7 @@ export function createRunner(systemPrompt: string, label = "Task"): RunBlockFn {
     prompt: string,
     config: ResolvedRunnerConfig,
   ): Promise<RunResult> => {
-    const args = buildCliArgs(config, prompt, systemPrompt);
+    const args = buildCliArgs(config, prompt, systemPrompt, getClaudePath());
     const timeoutMs = config.timeout * 1000;
 
     ensureCwd(config.cwd);
