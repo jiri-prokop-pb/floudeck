@@ -65,6 +65,7 @@ const app = createApp({
   port: PORT,
   runBlock: mockRunner,
   tickIntervalMs: 500,
+  development: true,
 });
 
 try {
