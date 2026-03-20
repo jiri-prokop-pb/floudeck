@@ -1,17 +1,19 @@
 # Floudeck
 
-A local feed of scheduled blocks that run prompts through [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) and render the results as GFM markdown.
+A local feed of scheduled blocks that run prompts through [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) and render the results as GFM markdown. Available as a native macOS app or run from source.
 
 ![Floudeck screenshot](docs/screenshot.png)
 
-## Quick start
+## Install (macOS)
+
+Download the `.dmg` from Releases, drag to Applications, and launch. Requires `claude` CLI installed.
+
+## Run from source
 
 ```bash
 bun install
 bun run dev        # http://localhost:3000
 ```
-
-Requires `claude` CLI in your PATH.
 
 ## What it does
 
@@ -23,6 +25,19 @@ Requires `claude` CLI in your PATH.
 - Per-block and global runner configuration (model, timeout, permissions, cwd, env vars)
 - Live date/time clock in header with calendar popover on hover
 - Tabbed settings modal (Runner defaults, Display preferences)
+
+## Build from source
+
+```bash
+# Prerequisites: Bun, Rust, cargo-tauri
+bun install
+
+# Build standalone server binary + client assets
+bun run build:server    # → dist/floudeck-server + dist/client/
+
+# Build macOS .app and .dmg (requires Rust toolchain)
+bun run build           # → src-tauri/target/release/bundle/
+```
 
 ## Development
 
@@ -46,4 +61,4 @@ This starts a temporary server with mock data, captures a screenshot via Playwri
 
 ## Stack
 
-Bun (server, bundler, SQLite, package manager), minimal React, Tailwind v4, `marked` (client-side markdown rendering). No ORM, no router, no state library, no websockets.
+Bun (server, bundler, SQLite, package manager), minimal React, Tailwind v4, `marked` (client-side markdown rendering), Tauri v2 (native app shell). No ORM, no router, no state library, no websockets.

@@ -96,5 +96,5 @@ See TODO.md for the full list. Key upcoming areas:
 - **Visibility-based scheduling** — only update when Floudeck is visible
 - **Custom actions improvements** — streaming, user-defined prompts, conversational follow-ups
 - **Script-based prompts** — generate scripts instead of always calling Claude
-- **Packaging** — standalone binary via bun compile or Tauri
+- **Packaging** — macOS .app/.dmg via Tauri (implemented), code signing/notarization (not yet)
 - **Claude Code SDK** — replace CLI with SDK for better permission handling and introspection
