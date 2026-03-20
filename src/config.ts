@@ -1,15 +1,14 @@
 import { mkdirSync } from "node:fs";
+import { homedir } from "node:os";
+import { getWorkspaceRoot } from "./paths.ts";
 import { SYSTEM_PROMPT } from "./prompts.ts";
 import type { ResolvedRunnerConfig, RunnerConfig } from "./types.ts";
 import { ENV_INHERIT_SENTINEL } from "./types.ts";
 
-function getHome(): string {
-  return Bun.env.HOME ?? "/tmp";
-}
-
 function expandTilde(path: string): string {
-  if (path === "~") return getHome();
-  if (path.startsWith("~/")) return `${getHome()}${path.slice(1)}`;
+  const home = homedir();
+  if (path === "~") return home;
+  if (path.startsWith("~/")) return `${home}${path.slice(1)}`;
   return path;
 }
 
@@ -31,8 +30,7 @@ export function resolveRunnerConfig(
   const block = blockConfig ?? {};
 
   // cwd: block override or default (global is skipped for cwd)
-  const workspaceRoot = `${getHome()}/.floudeck/blocks-workspace`;
-  const rawCwd = block.cwd || `${workspaceRoot}/${blockUuid}`;
+  const rawCwd = block.cwd || `${getWorkspaceRoot()}/${blockUuid}`;
   const cwd = expandTilde(rawCwd);
 
   const model = block.model || global.model || defaults.model;
@@ -66,8 +64,9 @@ export function buildCliArgs(
   config: ResolvedRunnerConfig,
   prompt: string,
   systemPrompt: string = SYSTEM_PROMPT,
+  claudePath = "claude",
 ): string[] {
-  const args = ["claude", "--print"];
+  const args = [claudePath, "--print"];
 
   if (config.permissions === "dangerouslySkipPermissions") {
     args.push("--dangerously-skip-permissions");
