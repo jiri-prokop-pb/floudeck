@@ -5,7 +5,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "FLOUDECK_DEV=1 bun --watch run src/server.ts",
+    "dev": "bun --watch run src/server.ts",
     "build:server": "bun run scripts/build.ts",
     "build": "bun run scripts/build.ts && cd src-tauri && cargo tauri build",
     "test": "bun test src/",

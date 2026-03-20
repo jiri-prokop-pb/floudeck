@@ -16,8 +16,6 @@ import { createSseBroadcaster } from "./sse.ts";
 import { nowIso } from "./time.ts";
 import type { RunBlockFn } from "./types.ts";
 
-const isDev = !!Bun.env.FLOUDECK_DEV;
-
 export type AppOptions = {
   dbPath?: string;
   port?: number;
@@ -69,7 +67,7 @@ export function createApp(options: AppOptions = {}): App {
     runAction = createRunner(ACTION_SYSTEM_PROMPT, "Action"),
     tickIntervalMs = 10_000,
     serve = Bun.serve,
-    development = isDev,
+    development = !clientDirOverride,
   } = options;
 
   const db = initDb(dbPath);
@@ -210,10 +208,10 @@ if (import.meta.main) {
   let port: number;
   if (args.port !== undefined) {
     port = args.port;
-  } else if (isDev) {
-    port = await findDevPort();
-  } else {
+  } else if (args.clientDir) {
     port = 0;
+  } else {
+    port = await findDevPort();
   }
 
   createApp({
