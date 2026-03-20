@@ -123,12 +123,12 @@ When an action completes successfully, the parent block is marked as **stale** c
 |------|---------|
 | `db.ts` | Add `action_runs` table to `initDb()` |
 | `api.ts` | Add action endpoints, broadcast `action-updated` SSE on completion |
-| `runner.ts` | Reuse `createCliRunner` — actions use the same runner with a different prompt |
+| `runner.ts` | Reuse `createRunner(systemPrompt)` — actions use the same runner with a different prompt |
 | `scheduler.ts` | Add cleanup job for expired `action_runs` on tick |
 | `sse.ts` | Add `"action-updated"` event type (no structural changes) |
 | `types.ts` | Add `ActionRun` type + zod schema |
 | `client/index.html` | Remains the single entry point |
-| `client/components/App.tsx` | Add client-side router (pushState-based), track stale blocks, refresh on feed return |
+| `client/components/App.tsx` | Composes `useRouter`, `useBlocks`, `useSse` hooks; tracks stale blocks, refreshes on feed return |
 | `client/components/ActionPage.tsx` | New — action page component |
 | `client/lib/marked.ts` | Extend renderer to style action links + parse color tags |
 | `client/lib/api.ts` | Add action API fetch wrappers |
