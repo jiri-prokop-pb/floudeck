@@ -61,7 +61,9 @@ marked.use({
       const { label, color } = parseActionLabel(token.text);
       const hasColor = label !== token.text;
       const colorClasses = hasColor ? (LINK_COLORS[color] ?? "") : "";
-      const extraClasses = hasColor ? `font-semibold underline ${colorClasses}` : "";
+      const extraClasses = hasColor
+        ? `font-semibold underline ${colorClasses}`
+        : "";
       const escapedHref = href.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
       const escapedLabel = (hasColor ? label : token.text)
         .replace(/&/g, "&amp;")
