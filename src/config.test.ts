@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import {
-  buildActionCliArgs,
   buildCliArgs,
   formatCliCommand,
   resolveRunnerConfig,
@@ -169,7 +168,7 @@ describe("buildCliArgs", () => {
   });
 });
 
-describe("buildActionCliArgs", () => {
+describe("buildCliArgs with custom system prompt", () => {
   const baseConfig: ResolvedRunnerConfig = {
     cwd: "/tmp/test",
     model: "sonnet",
@@ -178,15 +177,15 @@ describe("buildActionCliArgs", () => {
     timeout: 60,
   };
 
-  test("uses ACTION_SYSTEM_PROMPT", () => {
-    const args = buildActionCliArgs(baseConfig, "test");
+  test("uses provided system prompt instead of default", () => {
+    const args = buildCliArgs(baseConfig, "test", ACTION_SYSTEM_PROMPT);
     expect(args).toContain(ACTION_SYSTEM_PROMPT);
     expect(args).not.toContain(SYSTEM_PROMPT);
   });
 
   test("prompt starting with dashes is safe after -- separator", () => {
     const prompt = "--- Block Context ---\n# Joke of the Day\nContent";
-    const args = buildActionCliArgs(baseConfig, prompt);
+    const args = buildCliArgs(baseConfig, prompt, ACTION_SYSTEM_PROMPT);
     const dashDashIdx = args.indexOf("--");
     expect(dashDashIdx).toBeGreaterThan(-1);
     expect(args[dashDashIdx + 1]).toBe(prompt);

@@ -1,7 +1,8 @@
 import { createRouter } from "./api.ts";
 import homepage from "./client/index.html";
 import { initDb, resetStaleRunningBlocks } from "./db.ts";
-import { createActionRunner, createCliRunner } from "./runner.ts";
+import { ACTION_SYSTEM_PROMPT, SYSTEM_PROMPT } from "./prompts.ts";
+import { createRunner } from "./runner.ts";
 import { createScheduler } from "./scheduler.ts";
 import { createSseBroadcaster } from "./sse.ts";
 import { nowIso } from "./time.ts";
@@ -25,8 +26,8 @@ export function createApp(options: AppOptions = {}): App {
   const {
     dbPath,
     port = 3000,
-    runBlock = createCliRunner(),
-    runAction = createActionRunner(),
+    runBlock = createRunner(SYSTEM_PROMPT),
+    runAction = createRunner(ACTION_SYSTEM_PROMPT, "Action"),
     tickIntervalMs = 10_000,
     serve = Bun.serve,
   } = options;

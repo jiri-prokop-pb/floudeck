@@ -1,4 +1,4 @@
-import { buildActionCliArgs, buildCliArgs, ensureCwd } from "./config.ts";
+import { buildCliArgs, ensureCwd } from "./config.ts";
 import { extractMarkdownFromOutput } from "./extract.ts";
 import type { ResolvedRunnerConfig, RunBlockFn, RunResult } from "./types.ts";
 
@@ -23,92 +23,37 @@ export function processCliOutput(
   return { ok: true, markdown, reasoning };
 }
 
-export function createCliRunner(): RunBlockFn {
-  return async (
-    prompt: string,
-    config: ResolvedRunnerConfig,
-  ): Promise<RunResult> => {
-    const args = buildCliArgs(config, prompt);
-    const timeoutMs = config.timeout * 1000;
-
-    ensureCwd(config.cwd);
-
-    // Env handling depends on permission mode:
-    // - dangerouslySkipPermissions: full parent env + custom vars (unrestricted)
-    // - default: minimal env (PATH + HOME) + custom vars only
-    const hasCustomEnv = Object.keys(config.env).length > 0;
-    let spawnEnv: Record<string, string | undefined> | undefined;
-    if (config.permissions === "dangerouslySkipPermissions") {
-      spawnEnv = hasCustomEnv ? { ...process.env, ...config.env } : undefined;
-    } else if (hasCustomEnv) {
-      spawnEnv = {
-        PATH: process.env.PATH,
-        HOME: process.env.HOME,
-        ...config.env,
-      };
-    }
-
-    const proc = Bun.spawn(args, {
-      cwd: config.cwd,
-      stdout: "pipe",
-      stderr: "pipe",
-      ...(spawnEnv ? { env: spawnEnv } : {}),
-    });
-
-    let timedOut = false;
-    const timeout = setTimeout(() => {
-      timedOut = true;
-      try {
-        proc.kill();
-      } catch {
-        // ignore
-      }
-    }, timeoutMs);
-
-    try {
-      const stdout = await new Response(proc.stdout).text();
-      const stderr = await new Response(proc.stderr).text();
-      const exitCode = await proc.exited;
-
-      clearTimeout(timeout);
-
-      if (timedOut) {
-        return {
-          ok: false,
-          error: `Task timed out after ${config.timeout} seconds.`,
-          stderr,
-        };
-      }
-
-      return processCliOutput(stdout, stderr, exitCode);
-    } finally {
-      clearTimeout(timeout);
-    }
-  };
+function buildSpawnEnv(
+  config: ResolvedRunnerConfig,
+): Record<string, string | undefined> | undefined {
+  const hasCustomEnv = Object.keys(config.env).length > 0;
+  if (config.permissions === "dangerouslySkipPermissions") {
+    return hasCustomEnv ? { ...process.env, ...config.env } : undefined;
+  }
+  if (hasCustomEnv) {
+    return {
+      PATH: process.env.PATH,
+      HOME: process.env.HOME,
+      ...config.env,
+    };
+  }
+  return undefined;
 }
 
-export function createActionRunner(): RunBlockFn {
+export function createRunner(
+  systemPrompt: string,
+  label = "Task",
+): RunBlockFn {
   return async (
     prompt: string,
     config: ResolvedRunnerConfig,
   ): Promise<RunResult> => {
-    const args = buildActionCliArgs(config, prompt);
+    const args = buildCliArgs(config, prompt, systemPrompt);
     const timeoutMs = config.timeout * 1000;
 
     ensureCwd(config.cwd);
 
-    const hasCustomEnv = Object.keys(config.env).length > 0;
-    let spawnEnv: Record<string, string | undefined> | undefined;
-    if (config.permissions === "dangerouslySkipPermissions") {
-      spawnEnv = hasCustomEnv ? { ...process.env, ...config.env } : undefined;
-    } else if (hasCustomEnv) {
-      spawnEnv = {
-        PATH: process.env.PATH,
-        HOME: process.env.HOME,
-        ...config.env,
-      };
-    }
-
+    const spawnEnv = buildSpawnEnv(config);
     const proc = Bun.spawn(args, {
       cwd: config.cwd,
       stdout: "pipe",
@@ -136,7 +81,7 @@ export function createActionRunner(): RunBlockFn {
       if (timedOut) {
         return {
           ok: false,
-          error: `Action timed out after ${config.timeout} seconds.`,
+          error: `${label} timed out after ${config.timeout} seconds.`,
           stderr,
         };
       }
