@@ -107,6 +107,13 @@ async function buildClient(): Promise<string> {
 </html>`;
 
   await Bun.write(join(outdir, "index.html"), html);
+
+  // Copy static assets
+  const assetsDir = join(ROOT, "src", "client", "assets");
+  if (existsSync(assetsDir)) {
+    cpSync(assetsDir, outdir, { recursive: true });
+  }
+
   console.log("  Generated index.html");
   return outdir;
 }
