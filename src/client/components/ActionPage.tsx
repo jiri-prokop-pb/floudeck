@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import type { ActionRun } from "../../types.ts";
 import { fetchActionRun, runActionApi } from "../lib/api.ts";
 import { renderMarkdown } from "../lib/markdown.ts";
+import { PulseSkeleton } from "./PulseSkeleton.tsx";
 
 type ActionPageProps = {
   blockUuid: string;
@@ -11,17 +12,6 @@ type ActionPageProps = {
   onNavigateHome: () => void;
   onBlockStale: (blockUuid: string) => void;
 };
-
-function PulseSkeleton() {
-  return (
-    <div className="animate-pulse space-y-3 py-4">
-      <div className="h-4 w-2/3 rounded bg-zinc-200" />
-      <div className="h-3 w-1/2 rounded bg-zinc-200" />
-      <div className="h-3 w-5/6 rounded bg-zinc-200" />
-      <div className="h-3 w-3/4 rounded bg-zinc-200" />
-    </div>
-  );
-}
 
 function isTerminal(run: ActionRun): boolean {
   return run.status === "completed" || run.status === "error";
@@ -163,7 +153,9 @@ export function ActionPage({
               </div>
             )}
 
-            {isLoading && !hasError && <PulseSkeleton />}
+            {isLoading && !hasError && (
+              <PulseSkeleton widths={["w-2/3", "w-1/2", "w-5/6", "w-3/4"]} />
+            )}
 
             {actionRun?.status === "completed" && actionRun.output_markdown && (
               <div

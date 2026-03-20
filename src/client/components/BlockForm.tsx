@@ -1,8 +1,8 @@
 import { useState } from "react";
 import type { RunnerConfig } from "../../types.ts";
+import { buildRunnerConfig } from "../lib/runnerConfig.ts";
 import {
   type EnvEntry,
-  entriesToEnv,
   parseEnvEntries,
   RunnerConfigFields,
 } from "./RunnerConfigFields.tsx";
@@ -57,39 +57,6 @@ export function BlockForm({
     parseEnvEntries(initialRunnerConfig?.env),
   );
 
-  function buildRunnerConfig(): RunnerConfig | undefined {
-    const config: RunnerConfig = {};
-    let hasKeys = false;
-
-    if (model.trim()) {
-      config.model = model.trim();
-      hasKeys = true;
-    }
-    if (cwd.trim()) {
-      config.cwd = cwd.trim();
-      hasKeys = true;
-    }
-    if (
-      permissions === "default" ||
-      permissions === "dangerouslySkipPermissions"
-    ) {
-      config.permissions = permissions;
-      hasKeys = true;
-    }
-    const timeoutNum = Number(timeout);
-    if (timeout.trim() && timeoutNum > 0) {
-      config.timeout = timeoutNum;
-      hasKeys = true;
-    }
-    const env = entriesToEnv(envEntries);
-    if (env) {
-      config.env = env;
-      hasKeys = true;
-    }
-
-    return hasKeys ? config : undefined;
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -104,7 +71,13 @@ export function BlockForm({
     }
 
     setLoading(true);
-    const runnerConfig = buildRunnerConfig();
+    const runnerConfig = buildRunnerConfig({
+      model,
+      permissions,
+      timeout,
+      envEntries,
+      cwd,
+    });
     const result = await onSubmit({
       prompt,
       intervalValue,
