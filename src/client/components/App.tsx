@@ -97,7 +97,7 @@ export function App() {
       <div className="mx-auto max-w-3xl px-4 py-10" style={isTauri ? { paddingTop: "2.5rem" } : undefined}>
         <header className="mb-8 flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="" className="h-10 w-10" />
+            <img src="/logo.png" srcSet="/logo@2x.png 2x, /logo@3x.png 3x" alt="" className="h-10 w-auto" />
             <div>
               <h1 className="text-2xl font-bold text-zinc-900">Floudeck</h1>
               <p className="text-sm text-zinc-500">
