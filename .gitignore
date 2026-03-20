@@ -39,3 +39,7 @@ data/
 # Playwright
 test-results/
 playwright-report/
+
+# Build artifacts
+src-tauri/binaries/
+src-tauri/target/
