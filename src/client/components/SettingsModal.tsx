@@ -1,15 +1,14 @@
 import { useEffect, useState } from "react";
-import type { RunnerConfig } from "../../types.ts";
 import {
   fetchDisplaySettings,
   fetchRunnerSettings,
   saveDisplaySettings,
   saveRunnerSettings,
 } from "../lib/api.ts";
+import { buildRunnerConfig } from "../lib/runnerConfig.ts";
 import { Modal } from "./Modal.tsx";
 import {
   type EnvEntry,
-  entriesToEnv,
   parseEnvEntries,
   RunnerConfigFields,
 } from "./RunnerConfigFields.tsx";
@@ -108,32 +107,13 @@ function RunnerSection({ onClose }: { onClose: () => void }) {
     setError(null);
     setSaving(true);
 
-    const config: RunnerConfig = {};
-    let hasKeys = false;
-
-    if (model.trim()) {
-      config.model = model.trim();
-      hasKeys = true;
-    }
-    if (
-      permissions === "default" ||
-      permissions === "dangerouslySkipPermissions"
-    ) {
-      config.permissions = permissions;
-      hasKeys = true;
-    }
-    const timeoutNum = Number(timeout);
-    if (timeout.trim() && timeoutNum > 0) {
-      config.timeout = timeoutNum;
-      hasKeys = true;
-    }
-    const env = entriesToEnv(envEntries);
-    if (env) {
-      config.env = env;
-      hasKeys = true;
-    }
-
-    const res = await saveRunnerSettings(hasKeys ? config : null);
+    const config = buildRunnerConfig({
+      model,
+      permissions,
+      timeout,
+      envEntries,
+    });
+    const res = await saveRunnerSettings(config ?? null);
     setSaving(false);
     if (res.ok) {
       onClose();

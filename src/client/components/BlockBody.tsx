@@ -1,20 +1,11 @@
 import type { BlockRecord } from "../../types.ts";
 import { extractTitle, renderMarkdown } from "../lib/markdown.ts";
 import { ErrorPanel } from "./ErrorPanel.tsx";
+import { PulseSkeleton } from "./PulseSkeleton.tsx";
 
 type BlockBodyProps = {
   block: BlockRecord;
 };
-
-function PulseSkeleton() {
-  return (
-    <div className="animate-pulse space-y-3 py-4">
-      <div className="h-3 w-3/4 rounded bg-zinc-200" />
-      <div className="h-3 w-1/2 rounded bg-zinc-200" />
-      <div className="h-3 w-5/6 rounded bg-zinc-200" />
-    </div>
-  );
-}
 
 function MarkdownContent({ markdown }: { markdown: string }) {
   const { title, body } = extractTitle(markdown);
