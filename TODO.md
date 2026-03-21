@@ -52,18 +52,17 @@ V1 is implemented. See **[docs/custom-actions-spec.md](docs/custom-actions-spec.
 
 ---
 
-## Implement ability to also prompt scripts that will provide the output
+## Block runner types & streaming
 
-- Instead of always calling `claude` and burn tokens on something straigforward, we could instruct the initial `claude` instance to come up with a script
-- We would have some folder where these scripts could be saved safely
-- We would still save the prompt but we als need some flag & field to have the script saved there
-- In case the script still need some conditional reasoning, it can call nested `claude` instance with some input/output logic
+See **[docs/design-block-runners.md](docs/design-block-runners.md)** for the full design document.
 
-## Real-time output streaming
-
-- Stream claude's stdout in real-time so users can watch blocks being processed
-- Requires per-block SSE streaming or a log file the UI can tail
-- Helps users fine-tune prompts by seeing what's happening during execution
+Phases:
+1. Interactive "Try" mode (foundation)
+2. CLI streaming (Try panel + feed)
+3. Runner type system
+4. Shell runner
+5. Claude Agent SDK runner (main goal)
+6. API & external AI tools (deferred)
 
 ## Post-PoC
 
@@ -75,5 +74,4 @@ V1 is implemented. See **[docs/custom-actions-spec.md](docs/custom-actions-spec.
 - **History** — per-card run history with timestamps and past outputs
 - **Advanced scheduling** — exceptions, start/end dates, self-destroying cards, cron-like expressions
 - **Cost tracking** — track API cost for the whole system and per card
-- **Claude Code SDK** — should we use CC SDK instead of CLI? This would also enable proper permission handling (detecting permission requests, asking user to allow/deny, remembering choices for future runs)
-- **Other tools/AI** — allow user to specify what tool/script to use/run; eventually we can also support regular AI over API/Ollama and so on (but that's quite complex)
+- **Claude Agent SDK & other runners** — see [docs/design-block-runners.md](docs/design-block-runners.md)
