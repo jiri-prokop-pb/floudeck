@@ -2,7 +2,7 @@
 
 Floudeck is a local Bun app: server runs scheduled prompts through Claude Code CLI and renders GFM markdown output in a feed.
 
-Skills with detailed conventions: @.claude/skills/frontend-dev/SKILL.md | @.claude/skills/backend-dev/SKILL.md | @.claude/skills/testing/SKILL.md | @.claude/skills/maintain-claude-md/SKILL.md
+Skills: @.claude/skills/frontend-dev/SKILL.md | @.claude/skills/backend-dev/SKILL.md | @.claude/skills/testing/SKILL.md | @.claude/skills/workflows/SKILL.md | @.claude/skills/maintain-claude-md/SKILL.md
 
 ## Key project documents
 
