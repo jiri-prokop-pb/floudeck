@@ -5,40 +5,13 @@ import { useBlocks } from "../hooks/useBlocks.ts";
 import { useRouter } from "../hooks/useRouter.ts";
 import { useSse } from "../hooks/useSse.ts";
 import { fetchDisplaySettings } from "../lib/api.ts";
+import { isTauri, startDrag, toggleMaximize } from "../lib/tauri.ts";
 import { ActionPage } from "./ActionPage.tsx";
 import { CreateBlockForm } from "./CreateBlockForm.tsx";
 import { Feed } from "./Feed.tsx";
 import { HeaderClock } from "./HeaderClock.tsx";
 import { Modal } from "./Modal.tsx";
 import { SettingsModal } from "./SettingsModal.tsx";
-
-type TauriInternals = {
-  invoke(command: string): void;
-};
-
-function getTauriInternals(): TauriInternals | null {
-  const w = window as Record<string, unknown>;
-  if (
-    "__TAURI_INTERNALS__" in w &&
-    typeof w.__TAURI_INTERNALS__ === "object" &&
-    w.__TAURI_INTERNALS__ !== null &&
-    "invoke" in w.__TAURI_INTERNALS__
-  ) {
-    return w.__TAURI_INTERNALS__ as TauriInternals;
-  }
-  return null;
-}
-
-const isTauri = getTauriInternals() !== null;
-
-function startDrag(e: React.MouseEvent) {
-  e.preventDefault();
-  getTauriInternals()?.invoke("drag_window");
-}
-
-function toggleMaximize() {
-  getTauriInternals()?.invoke("toggle_maximize");
-}
 
 export function App() {
   const { route, navigateHome } = useRouter();
