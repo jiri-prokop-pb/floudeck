@@ -174,19 +174,6 @@ function parseArgs(argv: string[]): {
   return { port, dataDir, clientDir, version };
 }
 
-async function findDevPort(): Promise<number> {
-  for (let port = 3000; port <= 3009; port++) {
-    try {
-      const server = Bun.serve({ port, fetch: () => new Response("") });
-      server.stop();
-      return port;
-    } catch {
-      // port in use, try next
-    }
-  }
-  return 3000;
-}
-
 if (import.meta.main) {
   const args = parseArgs(process.argv);
 
@@ -206,14 +193,7 @@ if (import.meta.main) {
 
   ensureDataDir();
 
-  let port: number;
-  if (args.port !== undefined) {
-    port = args.port;
-  } else if (args.clientDir) {
-    port = 0;
-  } else {
-    port = await findDevPort();
-  }
+  const port = args.port ?? (args.clientDir ? 0 : 3000);
 
   createApp({
     dbPath: getDbPath(),
