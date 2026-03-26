@@ -71,6 +71,5 @@ export function resolveClaudePath(): string {
  * In dev mode: not used (HTML imports handle it).
  */
 export function getClientAssetsDir(): string {
-  // import.meta.dir points to the directory containing the running script/binary
   return join(dirname(process.execPath), "client");
 }
