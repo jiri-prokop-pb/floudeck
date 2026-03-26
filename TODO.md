@@ -59,10 +59,9 @@ See **[docs/design-block-runners.md](docs/design-block-runners.md)** for the ful
 Phases:
 1. Interactive "Try" mode (foundation)
 2. CLI streaming (Try panel + feed)
-3. Runner type system
-4. Shell runner
-5. Claude Agent SDK runner (main goal)
-6. API & external AI tools (deferred)
+3. Runner type system + bun-script runner
+4. Claude Agent SDK runner
+5. API & external AI tools (deferred)
 
 ## Post-PoC
 
