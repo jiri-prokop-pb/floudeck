@@ -11,10 +11,16 @@ import type {
 import { safeParseRunnerConfig } from "./validate.ts";
 
 export function getSchemaVersion(db: Database): number {
-  const row = db.query("PRAGMA user_version").get() as {
-    user_version: number;
-  } | null;
-  return row?.user_version ?? 0;
+  const row = db.query("PRAGMA user_version").get();
+  if (
+    row &&
+    typeof row === "object" &&
+    "user_version" in row &&
+    typeof row.user_version === "number"
+  ) {
+    return row.user_version;
+  }
+  return 0;
 }
 
 export function setSchemaVersion(db: Database, version: number): void {

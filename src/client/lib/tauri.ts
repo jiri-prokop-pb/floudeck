@@ -3,14 +3,16 @@ type TauriInternals = {
 };
 
 function getTauriInternals(): TauriInternals | null {
-  const w = window as Record<string, unknown>;
+  // biome-ignore lint/suspicious/noExplicitAny: window global augmentation requires runtime check
+  const w = globalThis as any;
+  const internals: unknown = w.__TAURI_INTERNALS__;
   if (
-    "__TAURI_INTERNALS__" in w &&
-    typeof w.__TAURI_INTERNALS__ === "object" &&
-    w.__TAURI_INTERNALS__ !== null &&
-    "invoke" in w.__TAURI_INTERNALS__
+    internals &&
+    typeof internals === "object" &&
+    "invoke" in internals &&
+    typeof internals.invoke === "function"
   ) {
-    return w.__TAURI_INTERNALS__ as TauriInternals;
+    return { invoke: (cmd: string) => internals.invoke(cmd) };
   }
   return null;
 }
