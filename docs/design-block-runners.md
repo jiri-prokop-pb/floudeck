@@ -410,21 +410,20 @@ This is critical for `claude-sdk` (permissions) and useful for all runner types 
 2. Clicks "Try" — runs the block once with output streaming to the panel
 3. User sees output in real-time, can adjust prompt and retry
 4. For `claude-sdk`: permission requests appear as inline confirmations in the panel
-5. Once satisfied, user clicks "Save as block" — creates the scheduled block with the finalized config
+5. Once satisfied, user clicks "Save" — creates the scheduled block with the finalized config
 
-### UI Flow
+### UI Flow: claude-cli / claude-sdk
+
+Single action button. "Try" runs the prompt, output streams below.
 
 ```
 ┌─────────────────────────────────────────┐
-│  New Block                    [Try ▶]   │
+│  New Block          Runner: [claude-cli]│
 ├─────────────────────────────────────────┤
-│ Runner: [claude-cli ▼]                  │
-│                                         │
 │ Prompt:                                 │
 │ ┌─────────────────────────────────────┐ │
 │ │ Summarize today's top HN stories   │ │
 │ └─────────────────────────────────────┘ │
-│                                         │
 │ ▸ Advanced settings                     │
 │                                         │
 │ ─── Output ─────────────────────────── │
@@ -433,55 +432,102 @@ This is critical for `claude-sdk` (permissions) and useful for all runner types 
 │ 2. ...                                 │
 │ *(streaming...)*                       │
 │                                         │
-│          [Try again]  [Save as block]   │
+│                      [Try ▶]    [Save]  │
 └─────────────────────────────────────────┘
 ```
 
-For `claude-sdk` with permissions:
+For `claude-sdk`, permission requests appear inline in the output area:
 
 ```
-┌─────────────────────────────────────────┐
 │ ─── Output ─────────────────────────── │
 │ Analyzing your request...              │
 │                                         │
 │ ┌─ Permission Request ───────────────┐ │
 │ │ Bash: npm install express          │ │
 │ │ "Install express web framework"    │ │
-│ │                                     │ │
-│ │   [Allow]  [Deny]                  │ │
+│ │                [Allow]  [Deny]     │ │
 │ └─────────────────────────────────────┘ │
 │                                         │
 │ ▸ Tool activity (3 calls)              │
-│   Read package.json                    │
-│   Bash: npm install express            │
-│   Write src/server.ts                  │
 │                                         │
 │ Created server.ts with Express setup.. │
+```
+
+### UI Flow: bun-script
+
+Two-stage process: "Try" calls Claude to **generate** the script, then **immediately runs it**. Both the script and its output are shown.
+
+```
+┌─────────────────────────────────────────┐
+│  New Block         Runner: [bun-script] │
+├─────────────────────────────────────────┤
+│ Prompt:                                 │
+│ ┌─────────────────────────────────────┐ │
+│ │ Fetch top HN stories, format as    │ │
+│ │ markdown table with scores         │ │
+│ └─────────────────────────────────────┘ │
+│ ▸ Advanced settings                     │
 │                                         │
-│          [Try again]  [Save as block]   │
+│ ─── Script ─────────────────────────── │
+│ │ const res = await fetch("https://  │ │
+│ │   news.ycombinator.com/...");      │ │
+│ │ const data = await res.json();     │ │
+│ │ console.log("# Top HN\n");        │ │
+│ │ ...                                │ │
+│ │                                    │ │
+│ │ ~/.floudeck/blocks-workspace/ab12/ │ │
+│ │ script.ts                    [Copy] │ │
+│                                         │
+│ ─── Output ─────────────────────────── │
+│ # Top HN                               │
+│ | # | Title          | Score |         │
+│ |---|----------------|-------|         │
+│ | 1 | Show HN: ...   | 342   |         │
+│                                         │
+│                      [Try ▶]    [Save]  │
 └─────────────────────────────────────────┘
 ```
+
+**Flow details:**
+
+1. User writes a prompt describing the desired script
+2. Clicks **Try** → server calls `claude --print` with a system prompt instructing it to generate a Bun-compatible TS script that outputs markdown to stdout
+3. Generated script is saved to `~/.floudeck/blocks-workspace/{uuid}/script.ts`
+4. Script runs immediately via `Bun.spawn(["bun", "run", scriptPath])`
+5. UI shows both the generated script (read-only, syntax-highlighted code block) and the streaming output
+6. User iterates by adjusting the prompt and clicking **Try** again (regenerates + re-runs)
+7. To edit the script directly, user opens it in their editor — the file path is shown with a copy button
+8. **Save** persists the block; scheduled runs execute only the script (no Claude involved)
+
+**Key decisions:**
+- Script panel is **read-only** in the UI (no inline editor). Avoids the complexity of embedding a code editor. The file path + copy button lets users open it in VS Code / their preferred editor.
+- **Try always regenerates + runs.** There's no separate "just run" button — if the user edited the script externally and wants to test it, they can trigger a manual run from the feed after saving.
+- The `prompt` DB column stores the generation prompt. The script file is the source of truth for execution. If the script file is missing, the block errors clearly.
+- Future: inline code editor, inline comments for Claude to address (e.g., "// TODO: handle pagination"), diff view between regenerations.
 
 ### How it works
 
 **Server side:**
 
 1. `POST /api/blocks/try` — starts a try-run, returns a `tryRunId`
-2. Server spawns a temporary runner with streaming + permission callbacks
-3. Output streams via SSE using `try-partial` events tagged with `tryRunId`
-4. Permission requests are sent as SSE `try-permission` events
-5. `POST /api/blocks/try/:id/respond` — client sends permission decision back
-6. On completion, `try-complete` SSE event with final output
-7. Try-run state is in-memory only, cleaned up on disconnect or timeout
+2. For `claude-cli` / `claude-sdk`: spawns the runner with streaming + permission callbacks
+3. For `bun-script`: two-step — first calls `claude --print` to generate the script, saves to disk, then runs the script via `Bun.spawn(["bun", "run", scriptPath])`
+4. Output streams via SSE using `try-partial` events tagged with `tryRunId`
+5. For `bun-script`: SSE `try-script` event sends the generated script source to the client
+6. Permission requests (claude-sdk only) sent as SSE `try-permission` events
+7. `POST /api/blocks/try/:id/respond` — client sends permission decision back
+8. On completion, `try-complete` SSE event with final output
+9. Try-run state is in-memory only, cleaned up on disconnect or timeout
 
 **Client side:**
 
-1. BlockForm gets a "Try" button alongside "Save"
-2. "Try" opens an output panel below the form
+1. BlockForm has "Try" and "Save" buttons
+2. "Try" shows output panel(s) below the form
 3. `useSse` hook handles `try-*` events for the active tryRunId
-4. Permission requests render inline with Allow/Deny buttons
-5. Tool activity collapsible shows audit trail
-6. "Save as block" sends finalized config to `POST /api/blocks` (existing endpoint)
+4. For `bun-script`: script panel (read-only) appears above the output panel
+5. Permission requests (claude-sdk) render inline with Allow/Deny buttons
+6. Tool activity collapsible shows audit trail (claude-sdk)
+7. "Save" sends finalized config to `POST /api/blocks` (existing endpoint)
 
 **Permission flow detail (claude-sdk):**
 
@@ -567,8 +613,8 @@ The "Advanced settings" section in BlockForm changes based on runner type:
 
 ### Prompt / input field behavior
 
-- **claude-cli / claude-sdk**: "Prompt" — sent to Claude as the user message
-- **bun-script**: "Prompt" is used during Try mode to tell Claude what script to generate. The block stores both the prompt (for re-generation) and the generated script path. On scheduled runs, only the script is executed — no Claude involved
+- **claude-cli / claude-sdk**: "Prompt" — sent to Claude as the user message (both in Try mode and scheduled runs)
+- **bun-script**: "Prompt" describes what the script should do. Used in Try mode to generate the script via Claude. The block stores both the prompt (for re-generation) and the script file on disk. On scheduled runs, only the script executes — no Claude involved, no tokens burned
 
 ---
 
