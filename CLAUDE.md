@@ -52,6 +52,7 @@ bun run format             # biome auto-fix
 - **No history/logs table.** Only the latest output per block is stored.
 - **Dependency injection via factory functions everywhere** — no module-level singletons, no monkey-patching.
 - Two files named `api.ts` exist on purpose: `src/api.ts` (server routes) and `src/client/lib/api.ts` (client fetch wrappers).
+- **Git: rebase, not merge.** PR merge strategy is "Rebase and merge". When resolving conflicts with main, use `git rebase origin/main` + force push, never `git merge`.
 
 ### Packaging / Tauri
 
