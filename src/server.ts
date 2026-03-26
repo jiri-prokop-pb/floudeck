@@ -1,5 +1,3 @@
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 import { createRouter } from "./api.ts";
 import homepage from "./client/index.html";
 import { initDb, resetStaleRunningBlocks } from "./db.ts";
@@ -35,24 +33,27 @@ export type App = {
 /**
  * Serve pre-built client assets for production mode.
  */
-function serveStaticAssets(req: Request, clientDir: string): Response | null {
+async function serveStaticAssets(
+  req: Request,
+  clientDir: string,
+): Promise<Response | null> {
   const url = new URL(req.url);
   const pathname = url.pathname;
 
   // Serve index.html for SPA routes
   if (pathname === "/" || pathname.startsWith("/action/")) {
-    const indexPath = join(clientDir, "index.html");
-    if (existsSync(indexPath)) {
-      return new Response(Bun.file(indexPath), {
+    const indexFile = Bun.file(`${clientDir}/index.html`);
+    if (await indexFile.exists()) {
+      return new Response(indexFile, {
         headers: { "Content-Type": "text/html; charset=utf-8" },
       });
     }
   }
 
   // Serve static assets (JS, CSS, etc.)
-  const filePath = join(clientDir, pathname);
-  if (existsSync(filePath)) {
-    return new Response(Bun.file(filePath));
+  const file = Bun.file(`${clientDir}${pathname}`);
+  if (await file.exists()) {
+    return new Response(file);
   }
 
   return null;
@@ -100,8 +101,6 @@ export function createApp(options: AppOptions = {}): App {
   const clientDir = development
     ? null
     : (clientDirOverride ?? getClientAssetsDir());
-  const hasClientAssets =
-    clientDir !== null && existsSync(join(clientDir, "index.html"));
 
   // In dev mode, use Bun's HTML import for routes (enables HMR + Tailwind plugin).
   // In production, serve pre-built static assets via fetch handler.
@@ -118,15 +117,16 @@ export function createApp(options: AppOptions = {}): App {
       const response = await router(req);
       if (response) return response;
 
-      if (hasClientAssets && clientDir) {
-        const staticResponse = serveStaticAssets(req, clientDir);
+      if (clientDir) {
+        const staticResponse = await serveStaticAssets(req, clientDir);
         if (staticResponse) return staticResponse;
       } else if (development) {
         // In dev mode, serve static assets from src/client/assets/
-        const devAssetsDir = join(import.meta.dir, "client", "assets");
-        const devFilePath = join(devAssetsDir, new URL(req.url).pathname);
-        if (existsSync(devFilePath)) {
-          return new Response(Bun.file(devFilePath));
+        const devAssetsDir = `${import.meta.dir}/client/assets`;
+        const pathname = new URL(req.url).pathname;
+        const devFile = Bun.file(`${devAssetsDir}${pathname}`);
+        if (await devFile.exists()) {
+          return new Response(devFile);
         }
       }
 
@@ -192,9 +192,7 @@ if (import.meta.main) {
 
   if (args.version) {
     try {
-      const pkg = await Bun.file(
-        join(import.meta.dir, "..", "package.json"),
-      ).json();
+      const pkg = await Bun.file(`${import.meta.dir}/../package.json`).json();
       console.log(pkg.version ?? "0.0.0");
     } catch {
       console.log("0.0.0");
