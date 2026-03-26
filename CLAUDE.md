@@ -75,7 +75,7 @@ bun run format             # biome auto-fix
 - **Action link format**: `[Label|color](/action/{block-uuid}/{action-name}?params)` — rendered as pastel-colored pills. Color tags on external links render as colored underlined text. All external links open in new tab.
 - **Claude CLI resolution**: On startup, resolves `claude` binary path via `which`, then checks common locations (`~/.claude/local/claude`, `/usr/local/bin/claude`, `/opt/homebrew/bin/claude`). Cached for process lifetime. Necessary because Finder-launched apps have minimal `$PATH`.
 - **Tauri sidecar**: Server binary is bundled as Tauri external binary. Launched with `--port 0`, prints assigned port to stdout, Tauri reads it and navigates webview. Killed on window close.
-- **Port handling**: Dev mode scans 3000–3009 for available port. Sidecar mode uses port 0 (OS-assigned). Explicit `--port` flag overrides both.
+- **Port handling**: Dev mode defaults to port 3000. Sidecar mode uses port 0 (OS-assigned). Explicit `--port` flag overrides both.
 - **Tauri title bar**: Uses `titleBarStyle: "Overlay"` with a transparent drag region div. Dragging and double-click-to-maximize are handled via Tauri commands (`drag_window`, `toggle_maximize`) invoked from React, not `data-tauri-drag-region`.
 - **Client assets dir**: Tauri passes `--client-dir` pointing to its resource dir so the sidecar can find pre-built frontend files. In dev mode, static assets from `src/client/assets/` are served via the fetch handler.
 - **Logo / retina**: `src/client/assets/` contains `logo.png` (1x), `logo@2x.png`, `logo@3x.png`. Build script copies the assets dir to `dist/client/`. Use `srcSet` for retina support.
