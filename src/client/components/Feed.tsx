@@ -24,7 +24,13 @@ type FeedProps = {
   onEdit: (id: number) => void;
 };
 
-export function Feed({ blocks, onUpdate, onDelete, onReorder, onEdit }: FeedProps) {
+export function Feed({
+  blocks,
+  onUpdate,
+  onDelete,
+  onReorder,
+  onEdit,
+}: FeedProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, {
