@@ -193,7 +193,7 @@ export function BlockForm({
                   ? `~/.floudeck/blocks-workspace/${blockUuid}`
                   : "Will be auto-generated"
               }
-              className="w-full rounded border border-zinc-200 px-2 py-1.5 text-sm placeholder:text-zinc-300 focus:border-zinc-400 focus:outline-none"
+              className="w-full rounded border border-zinc-200 bg-white px-2 py-1.5 text-sm placeholder:text-zinc-300 focus:border-zinc-400 focus:outline-none"
             />
           </label>
         </div>
