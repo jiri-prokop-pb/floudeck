@@ -1,5 +1,5 @@
 import { Play } from "@phosphor-icons/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { RunnerConfig } from "../../types.ts";
 import { tryBlockApi } from "../lib/api.ts";
 import { buildRunnerConfig } from "../lib/runnerConfig.ts";
@@ -126,6 +126,17 @@ export function BlockForm({
       setTryState({ status: "error", error: result.error });
     }
   }
+
+  useEffect(() => {
+    if (tryState.status !== "idle") {
+      requestAnimationFrame(() => {
+        window.scrollTo({
+          top: document.documentElement.scrollHeight,
+          behavior: "smooth",
+        });
+      });
+    }
+  }, [tryState]);
 
   const isTrying = tryState.status === "running";
 
