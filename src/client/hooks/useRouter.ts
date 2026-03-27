@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 
 export type Route =
   | { page: "feed" }
+  | { page: "block-new" }
+  | { page: "block-edit"; blockId: number }
   | {
       page: "action";
       blockUuid: string;
@@ -10,8 +12,17 @@ export type Route =
     };
 
 function parseRoute(pathname: string, search: string): Route {
-  const match = pathname.match(/^\/action\/([^/]+)\/([^/?]+)/);
-  if (match) {
+  if (pathname === "/blocks/new") {
+    return { page: "block-new" };
+  }
+
+  const editMatch = pathname.match(/^\/blocks\/(\d+)\/edit$/);
+  if (editMatch) {
+    return { page: "block-edit", blockId: Number(editMatch[1]) };
+  }
+
+  const actionMatch = pathname.match(/^\/action\/([^/]+)\/([^/?]+)/);
+  if (actionMatch) {
     const searchParams = new URLSearchParams(search);
     const params: Record<string, string> = {};
     for (const [k, v] of searchParams.entries()) {
@@ -21,8 +32,8 @@ function parseRoute(pathname: string, search: string): Route {
     }
     return {
       page: "action",
-      blockUuid: match[1] ?? "",
-      actionName: match[2] ?? "",
+      blockUuid: actionMatch[1] ?? "",
+      actionName: actionMatch[2] ?? "",
       params,
     };
   }
@@ -70,5 +81,15 @@ export function useRouter() {
     setRoute({ page: "feed" });
   }, []);
 
-  return { route, navigateHome };
+  const navigateToNewBlock = useCallback(() => {
+    window.history.pushState(null, "", "/blocks/new");
+    setRoute({ page: "block-new" });
+  }, []);
+
+  const navigateToEditBlock = useCallback((id: number) => {
+    window.history.pushState(null, "", `/blocks/${id}/edit`);
+    setRoute({ page: "block-edit", blockId: id });
+  }, []);
+
+  return { route, navigateHome, navigateToNewBlock, navigateToEditBlock };
 }
