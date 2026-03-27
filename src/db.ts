@@ -136,10 +136,11 @@ export function createBlock(
   const runnerConfigJson = input.runnerConfig
     ? JSON.stringify(input.runnerConfig)
     : null;
+  const hasTryResult = !!input.tryResult;
   const result = db
     .query(
-      `INSERT INTO blocks (uuid, prompt, interval_value, interval_unit, status, runner_config, created_at, updated_at, next_run_at, position)
-       VALUES (?, ?, ?, ?, 'idle', ?, ?, ?, ?, (SELECT COALESCE(MAX(position), 0) + 1000 FROM blocks))
+      `INSERT INTO blocks (uuid, prompt, interval_value, interval_unit, status, output_markdown, runner_config, created_at, updated_at, next_run_at, position)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(position), 0) + 1000 FROM blocks))
        RETURNING *`,
     )
     .get(
@@ -147,6 +148,8 @@ export function createBlock(
       input.prompt.trim(),
       input.intervalValue,
       input.intervalUnit,
+      hasTryResult ? "success" : "idle",
+      input.tryResult ?? null,
       runnerConfigJson,
       now,
       now,
@@ -164,19 +167,36 @@ export function updateBlock(
   const runnerConfigJson = input.runnerConfig
     ? JSON.stringify(input.runnerConfig)
     : null;
+  const hasTryResult = !!input.tryResult;
   const result = db
     .query(
-      `UPDATE blocks SET prompt = ?, interval_value = ?, interval_unit = ?, runner_config = ?, updated_at = ?, next_run_at = ?
-       WHERE id = ? RETURNING *`,
+      hasTryResult
+        ? `UPDATE blocks SET prompt = ?, interval_value = ?, interval_unit = ?, runner_config = ?, output_markdown = ?, status = 'success', updated_at = ?, next_run_at = ?
+           WHERE id = ? RETURNING *`
+        : `UPDATE blocks SET prompt = ?, interval_value = ?, interval_unit = ?, runner_config = ?, updated_at = ?, next_run_at = ?
+           WHERE id = ? RETURNING *`,
     )
     .get(
-      input.prompt.trim(),
-      input.intervalValue,
-      input.intervalUnit,
-      runnerConfigJson,
-      now,
-      now,
-      id,
+      ...(hasTryResult
+        ? [
+            input.prompt.trim(),
+            input.intervalValue,
+            input.intervalUnit,
+            runnerConfigJson,
+            input.tryResult,
+            now,
+            now,
+            id,
+          ]
+        : [
+            input.prompt.trim(),
+            input.intervalValue,
+            input.intervalUnit,
+            runnerConfigJson,
+            now,
+            now,
+            id,
+          ]),
     ) as BlockRecord | null;
   return result ?? null;
 }
