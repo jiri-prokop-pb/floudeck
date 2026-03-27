@@ -2,11 +2,7 @@ import { ArrowLeft } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import type { BlockRecord } from "../../types.ts";
 import { safeParseRunnerConfig } from "../../validate.ts";
-import {
-  createBlockApi,
-  fetchBlock,
-  updateBlockApi,
-} from "../lib/api.ts";
+import { createBlockApi, fetchBlock, updateBlockApi } from "../lib/api.ts";
 import { BlockForm } from "./BlockForm.tsx";
 
 type BlockFormPageProps = {
@@ -63,9 +59,7 @@ export function BlockFormPage({
 
         <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
           <div className="px-5 py-4">
-            {loadError && (
-              <p className="text-sm text-red-600">{loadError}</p>
-            )}
+            {loadError && <p className="text-sm text-red-600">{loadError}</p>}
 
             {isEdit && !block && !loadError && (
               <p className="text-sm text-zinc-400">Loading...</p>

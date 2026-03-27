@@ -20,7 +20,12 @@ type BlockCardProps = {
   onEdit: (id: number) => void;
 };
 
-export function BlockCard({ block, onUpdate, onDelete, onEdit }: BlockCardProps) {
+export function BlockCard({
+  block,
+  onUpdate,
+  onDelete,
+  onEdit,
+}: BlockCardProps) {
   const [loading, setLoading] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
