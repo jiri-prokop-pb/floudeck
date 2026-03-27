@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
 import { mkdirSync } from "node:fs";
-import { nowIso } from "./time.ts";
+import { addInterval, nowIso } from "./time.ts";
 import type {
   ActionRun,
   BlockRecord,
@@ -137,6 +137,9 @@ export function createBlock(
     ? JSON.stringify(input.runnerConfig)
     : null;
   const hasTryResult = !!input.tryResult;
+  const nextRunAt = hasTryResult
+    ? addInterval(now, input.intervalValue, input.intervalUnit)
+    : now;
   const result = db
     .query(
       `INSERT INTO blocks (uuid, prompt, interval_value, interval_unit, status, output_markdown, runner_config, created_at, updated_at, next_run_at, position)
@@ -153,7 +156,7 @@ export function createBlock(
       runnerConfigJson,
       now,
       now,
-      now,
+      nextRunAt,
     ) as BlockRecord;
   return result;
 }
@@ -168,6 +171,9 @@ export function updateBlock(
     ? JSON.stringify(input.runnerConfig)
     : null;
   const hasTryResult = !!input.tryResult;
+  const nextRunAt = hasTryResult
+    ? addInterval(now, input.intervalValue, input.intervalUnit)
+    : now;
   const result = db
     .query(
       hasTryResult
@@ -185,7 +191,7 @@ export function updateBlock(
             runnerConfigJson,
             input.tryResult,
             now,
-            now,
+            nextRunAt,
             id,
           ]
         : [
