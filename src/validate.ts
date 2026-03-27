@@ -13,6 +13,7 @@ const BlockInputSchema = z.object({
   intervalValue: z.number(),
   intervalUnit: z.enum(VALID_UNITS),
   runnerConfig: z.optional(z.unknown()),
+  tryResult: z.optional(z.string()),
 });
 
 export type BlockInputError = {
@@ -46,7 +47,8 @@ export function parseBlockInput(
     return { field: "prompt", message: "Invalid input" };
   }
 
-  const { prompt, intervalValue, intervalUnit, runnerConfig } = result.data;
+  const { prompt, intervalValue, intervalUnit, runnerConfig, tryResult } =
+    result.data;
 
   if (!prompt.trim()) {
     return { field: "prompt", message: "Prompt is required" };
@@ -66,6 +68,7 @@ export function parseBlockInput(
     intervalValue,
     intervalUnit,
     ...(parsed ? { runnerConfig: parsed } : {}),
+    ...(tryResult?.trim() ? { tryResult: tryResult.trim() } : {}),
   };
 }
 

@@ -15,6 +15,7 @@ type BlockFormData = {
   intervalValue: number;
   intervalUnit: string;
   runnerConfig?: RunnerConfig;
+  tryResult?: string;
 };
 
 type BlockFormProps = {
@@ -82,11 +83,14 @@ export function BlockForm({
       envEntries,
       cwd,
     });
+    const tryMarkdown =
+      tryState.status === "success" ? tryState.markdown : undefined;
     const result = await onSubmit({
       prompt,
       intervalValue,
       intervalUnit,
       ...(runnerConfig ? { runnerConfig } : {}),
+      ...(tryMarkdown ? { tryResult: tryMarkdown } : {}),
     });
     if (result.error) {
       setError(result.error);
@@ -152,33 +156,6 @@ export function BlockForm({
           <option value="hours">hours</option>
           <option value="days">days</option>
         </select>
-        <div className="ml-auto flex gap-2">
-          {onCancel && (
-            <button
-              type="button"
-              onClick={onCancel}
-              className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100"
-            >
-              Cancel
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={handleTry}
-            disabled={loading || isTrying}
-            className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100 disabled:opacity-50"
-          >
-            <Play size={14} weight="bold" />
-            {isTrying ? "Running..." : "Try"}
-          </button>
-          <button
-            type="submit"
-            disabled={loading || isTrying}
-            className="rounded-lg bg-zinc-800 px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50"
-          >
-            {loading ? "Saving..." : submitLabel}
-          </button>
-        </div>
       </div>
 
       {/* Advanced toggle */}
@@ -225,6 +202,34 @@ export function BlockForm({
       <TryPanel state={tryState} />
 
       {error && <p className="text-sm text-red-600">{error}</p>}
+
+      <div className="flex justify-end gap-2 border-t border-zinc-100 pt-3">
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100"
+          >
+            Cancel
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={handleTry}
+          disabled={loading || isTrying}
+          className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100 disabled:opacity-50"
+        >
+          <Play size={14} weight="bold" />
+          {isTrying ? "Running..." : "Try"}
+        </button>
+        <button
+          type="submit"
+          disabled={loading || isTrying}
+          className="rounded-lg bg-zinc-800 px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50"
+        >
+          {loading ? "Saving..." : submitLabel}
+        </button>
+      </div>
     </form>
   );
 }

@@ -31,6 +31,7 @@ export type BlockFormInput = {
   intervalValue: number;
   intervalUnit: string;
   runnerConfig?: RunnerConfig;
+  tryResult?: string;
 };
 
 export async function createBlockApi(
