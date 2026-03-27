@@ -27,6 +27,7 @@ import {
   parseDisplaySettings,
   parseReorderInput,
   parseRunnerConfig,
+  parseTryRunInput,
   safeParseDisplaySettings,
   safeParseRunnerConfig,
 } from "./validate.ts";
@@ -36,6 +37,7 @@ export type RouterDeps = {
   sse: SseBroadcaster;
   triggerRun: (blockId: number) => void;
   runAction: RunBlockFn;
+  runTry: RunBlockFn;
 };
 
 function json(data: unknown, status = 200): Response {
@@ -139,7 +141,7 @@ function settingsHandlers(
 export function createRouter(
   deps: RouterDeps,
 ): (req: Request) => Promise<Response | null> {
-  const { db, sse, triggerRun, runAction } = deps;
+  const { db, sse, triggerRun, runAction, runTry } = deps;
 
   const runnerSettings = settingsHandlers(
     db,
@@ -278,6 +280,33 @@ export function createRouter(
         if (!deleted) return json({ ok: false, error: "Not found" }, 404);
         sse.broadcast("blocks-invalidated", {});
         return json({ ok: true });
+      },
+    },
+    {
+      method: "POST",
+      pattern: "/api/blocks/try",
+      handler: async (req) => {
+        const parsed = await parseJsonBody(req);
+        if (parsed instanceof Response) return parsed;
+        const input = parseTryRunInput(parsed.body);
+        if (typeof input === "string") {
+          return json({ ok: false, error: input }, 400);
+        }
+
+        const globalDefaults =
+          safeParseRunnerConfig(getSetting(db, "runner_defaults")) ?? null;
+        const tryUuid = crypto.randomUUID();
+        const resolvedConfig = resolveRunnerConfig(
+          globalDefaults,
+          input.runnerConfig ?? null,
+          tryUuid,
+        );
+
+        const result = await runTry(input.prompt, resolvedConfig);
+        if (result.ok) {
+          return json({ ok: true, markdown: result.markdown });
+        }
+        return json({ ok: false, error: result.error });
       },
     },
     {
