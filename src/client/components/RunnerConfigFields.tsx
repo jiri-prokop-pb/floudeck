@@ -91,7 +91,7 @@ export function RunnerConfigFields({
             value={model}
             onChange={(e) => onModelChange(e.target.value)}
             placeholder="sonnet"
-            className="w-full rounded border border-zinc-200 px-2 py-1.5 text-sm placeholder:text-zinc-300 focus:border-zinc-400 focus:outline-none"
+            className="w-full rounded border border-zinc-200 bg-white px-2 py-1.5 text-sm placeholder:text-zinc-300 focus:border-zinc-400 focus:outline-none"
           />
         </label>
         <label className="block">
@@ -104,7 +104,7 @@ export function RunnerConfigFields({
             value={timeout}
             onChange={(e) => onTimeoutChange(e.target.value)}
             placeholder="60"
-            className="w-full rounded border border-zinc-200 px-2 py-1.5 text-sm placeholder:text-zinc-300 focus:border-zinc-400 focus:outline-none"
+            className="w-full rounded border border-zinc-200 bg-white px-2 py-1.5 text-sm placeholder:text-zinc-300 focus:border-zinc-400 focus:outline-none"
           />
         </label>
       </div>
@@ -116,7 +116,7 @@ export function RunnerConfigFields({
         <select
           value={permissions}
           onChange={(e) => onPermissionsChange(e.target.value)}
-          className="h-9 w-full rounded border border-zinc-200 px-2 py-1.5 text-sm focus:border-zinc-400 focus:outline-none"
+          className="h-9 w-full rounded border border-zinc-200 bg-white px-2 py-1.5 text-sm focus:border-zinc-400 focus:outline-none"
         >
           <option value="">Default (use Claude settings)</option>
           <option value="dangerouslySkipPermissions">Skip permissions</option>
@@ -145,7 +145,7 @@ export function RunnerConfigFields({
                 updateEntry(envEntries, i, { key: e.target.value }, onEnvChange)
               }
               placeholder="KEY"
-              className="w-28 rounded border border-zinc-200 px-2 py-1 text-xs font-mono focus:border-zinc-400 focus:outline-none"
+              className="w-28 rounded border border-zinc-200 bg-white px-2 py-1 text-xs font-mono focus:border-zinc-400 focus:outline-none"
             />
             <span className="text-zinc-300">=</span>
             {entry.inherit ? (
@@ -165,7 +165,7 @@ export function RunnerConfigFields({
                   )
                 }
                 placeholder="value"
-                className="flex-1 rounded border border-zinc-200 px-2 py-1 text-xs font-mono focus:border-zinc-400 focus:outline-none"
+                className="flex-1 rounded border border-zinc-200 bg-white px-2 py-1 text-xs font-mono focus:border-zinc-400 focus:outline-none"
               />
             )}
             <label className="flex items-center gap-1 text-xs text-zinc-400">
