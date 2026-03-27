@@ -166,6 +166,35 @@ export function parseReorderInput(
   return { orderedIds: result.data.orderedIds };
 }
 
+export type TryRunInput = { prompt: string; runnerConfig?: RunnerConfig };
+
+const TryRunInputSchema = z.object({
+  prompt: z.string(),
+  runnerConfig: z.optional(z.unknown()),
+});
+
+export function parseTryRunInput(body: unknown): TryRunInput | string {
+  if (!body || typeof body !== "object") {
+    return "Request body must be a JSON object";
+  }
+
+  const result = TryRunInputSchema.safeParse(body);
+  if (!result.success) {
+    return "prompt is required";
+  }
+
+  const { prompt, runnerConfig } = result.data;
+  if (!prompt.trim()) {
+    return "prompt is required";
+  }
+
+  const parsed = parseRunnerConfig(runnerConfig);
+  return {
+    prompt: prompt.trim(),
+    ...(parsed ? { runnerConfig: parsed } : {}),
+  };
+}
+
 export function safeParseDisplaySettings(
   raw: string | null,
 ): DisplaySettings | undefined {

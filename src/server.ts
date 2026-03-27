@@ -20,6 +20,7 @@ export type AppOptions = {
   clientDir?: string;
   runBlock?: RunBlockFn;
   runAction?: RunBlockFn;
+  runTry?: RunBlockFn;
   tickIntervalMs?: number;
   serve?: typeof Bun.serve;
   development?: boolean;
@@ -66,6 +67,7 @@ export function createApp(options: AppOptions = {}): App {
     clientDir: clientDirOverride,
     runBlock = createRunner(SYSTEM_PROMPT),
     runAction = createRunner(ACTION_SYSTEM_PROMPT, "Action"),
+    runTry = createRunner(SYSTEM_PROMPT, "Try"),
     tickIntervalMs = 10_000,
     serve = Bun.serve,
     development = !clientDirOverride,
@@ -95,6 +97,7 @@ export function createApp(options: AppOptions = {}): App {
       });
     },
     runAction,
+    runTry,
   });
 
   // In production, resolve client assets dir (explicit flag or next to binary)
