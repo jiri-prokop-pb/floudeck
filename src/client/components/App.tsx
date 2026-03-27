@@ -7,14 +7,14 @@ import { useSse } from "../hooks/useSse.ts";
 import { fetchDisplaySettings } from "../lib/api.ts";
 import { isTauri, startDrag, toggleMaximize } from "../lib/tauri.ts";
 import { ActionPage } from "./ActionPage.tsx";
-import { CreateBlockForm } from "./CreateBlockForm.tsx";
+import { BlockFormPage } from "./BlockFormPage.tsx";
 import { Feed } from "./Feed.tsx";
 import { HeaderClock } from "./HeaderClock.tsx";
-import { Modal } from "./Modal.tsx";
 import { SettingsModal } from "./SettingsModal.tsx";
 
 export function App() {
-  const { route, navigateHome } = useRouter();
+  const { route, navigateHome, navigateToNewBlock, navigateToEditBlock } =
+    useRouter();
   const {
     blocks,
     refetchBlocks,
@@ -27,7 +27,6 @@ export function App() {
     refreshStaleBlocks,
   } = useBlocks();
 
-  const [showCreate, setShowCreate] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [displaySettings, setDisplaySettings] = useState<DisplaySettings>({
     dateFormat: "D. M.",
@@ -66,6 +65,28 @@ export function App() {
         params={route.params}
         onNavigateHome={navigateHome}
         onBlockStale={handleBlockStale}
+      />
+    );
+  }
+
+  if (route.page === "block-new") {
+    return (
+      <BlockFormPage
+        onNavigateHome={navigateHome}
+        onCreate={handleCreate}
+        onUpdate={handleUpdate}
+      />
+    );
+  }
+
+  if (route.page === "block-edit") {
+    return (
+      <BlockFormPage
+        key={route.blockId}
+        blockId={route.blockId}
+        onNavigateHome={navigateHome}
+        onCreate={handleCreate}
+        onUpdate={handleUpdate}
       />
     );
   }
@@ -119,24 +140,16 @@ export function App() {
           onUpdate={handleUpdate}
           onDelete={handleDelete}
           onReorder={handleReorder}
+          onEdit={navigateToEditBlock}
         />
 
         <button
           type="button"
-          onClick={() => setShowCreate(true)}
+          onClick={navigateToNewBlock}
           className="mt-6 w-full rounded-2xl border border-dashed border-zinc-300 py-3 text-sm font-medium text-zinc-500 hover:border-zinc-400 hover:text-zinc-700 hover:bg-zinc-100/50"
         >
           + Add another block
         </button>
-
-        {showCreate && (
-          <Modal title="Create block" onClose={() => setShowCreate(false)}>
-            <CreateBlockForm
-              onCreate={handleCreate}
-              onClose={() => setShowCreate(false)}
-            />
-          </Modal>
-        )}
 
         {showSettings && (
           <SettingsModal
