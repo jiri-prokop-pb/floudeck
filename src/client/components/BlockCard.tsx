@@ -13,6 +13,7 @@ import {
 } from "../lib/format.ts";
 import { BlockBody } from "./BlockBody.tsx";
 import { BlockForm } from "./BlockForm.tsx";
+import { Modal } from "./Modal.tsx";
 
 type BlockCardProps = {
   block: BlockRecord;
@@ -25,6 +26,7 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
   const [loading, setLoading] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const infoRef = useRef<HTMLDivElement>(null);
 
@@ -40,8 +42,7 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
   }
 
   async function handleDelete() {
-    setShowMenu(false);
-    if (!confirm("Delete this block?")) return;
+    setConfirmingDelete(false);
     const res = await deleteBlockApi(block.id);
     if (res.ok) onDelete(block.id);
   }
@@ -135,7 +136,10 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
                 </button>
                 <button
                   type="button"
-                  onClick={handleDelete}
+                  onClick={() => {
+                    setShowMenu(false);
+                    setConfirmingDelete(true);
+                  }}
                   className="w-full px-3 py-1.5 text-left text-sm text-red-600 hover:bg-red-50"
                 >
                   Delete
@@ -174,6 +178,31 @@ export function BlockCard({ block, onUpdate, onDelete }: BlockCardProps) {
       <div className="px-5 py-4">
         <BlockBody block={block} />
       </div>
+
+      {confirmingDelete && (
+        <Modal title="Delete block" onClose={() => setConfirmingDelete(false)}>
+          <p className="text-sm text-zinc-600 mb-4">
+            Are you sure you want to delete this block? This action cannot be
+            undone.
+          </p>
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(false)}
+              className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700"
+            >
+              Delete
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
