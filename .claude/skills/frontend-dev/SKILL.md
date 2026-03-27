@@ -21,6 +21,7 @@ import homepage from "./client/index.html";
 routes: {
   "/": homepage,
   "/action/*": homepage,  // wildcard for SPA client-side routes
+  "/blocks/*": homepage,  // block create/edit pages
 }
 ```
 
@@ -68,9 +69,9 @@ Custom renderer in `src/client/lib/markdown.ts`.
 
 pushState-based SPA routing in `src/client/hooks/useRouter.ts`.
 
-- Route type union: `{ page: "feed" }` | `{ page: "action"; blockUuid; actionName; params }`
-- `parseRoute` matches `/action/([^/]+)/([^/?]+)` against `window.location.pathname`
+- Route type union: `{ page: "feed" }` | `{ page: "block-new" }` | `{ page: "block-edit"; blockId }` | `{ page: "action"; blockUuid; actionName; params }`
+- `parseRoute` matches `/blocks/new`, `/blocks/(\d+)/edit`, `/action/([^/]+)/([^/?]+)` against `window.location.pathname`
 - Navigation via click delegation: `document.addEventListener("click")` intercepts `a[data-action-link]` clicks, calls `pushState`
-- `navigateHome()` pushes `/` and resets to `{ page: "feed" }`
+- `navigateHome()`, `navigateToNewBlock()`, `navigateToEditBlock(id)` push state and set route
 - `popstate` listener handles browser back/forward
-- Server registers `/action/*` → `homepage` so direct URL loads work
+- Server registers `/action/*` and `/blocks/*` → `homepage` so direct URL loads work

@@ -60,7 +60,9 @@ The feed is ordered by user-defined position (drag-and-drop reorderable), keepin
 
 - Single page, centered feed layout with drag-and-drop block reordering
 - Block cards show rendered markdown, error state, or loading spinner
-- Inline edit form with collapsible "Advanced settings" for runner config
+- Create and edit blocks on standalone pages (`/blocks/new`, `/blocks/:id/edit`)
+- Collapsible "Advanced settings" for runner config in the block form
+- Custom delete confirmation dialog (not browser native)
 - **Header clock** — live date & time display (day name + date + time); calendar popover on hover showing current month with today highlighted
 - **Settings modal** — tabbed layout (Runner, Display) with gear icon in header
   - Runner tab: global runner defaults (model, permissions, timeout, env)
