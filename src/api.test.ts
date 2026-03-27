@@ -432,9 +432,7 @@ describe("POST /api/blocks/try", () => {
   });
 
   test("returns 400 for empty prompt", async () => {
-    const res = await router(
-      req("POST", "/api/blocks/try", { prompt: "  " }),
-    );
+    const res = await router(req("POST", "/api/blocks/try", { prompt: "  " }));
     expect(res?.status).toBe(400);
     const data = await jsonBody(res);
     expect(data.ok).toBe(false);

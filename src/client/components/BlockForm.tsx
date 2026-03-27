@@ -1,11 +1,14 @@
+import { Play } from "@phosphor-icons/react";
 import { useState } from "react";
 import type { RunnerConfig } from "../../types.ts";
+import { tryBlockApi } from "../lib/api.ts";
 import { buildRunnerConfig } from "../lib/runnerConfig.ts";
 import {
   type EnvEntry,
   parseEnvEntries,
   RunnerConfigFields,
 } from "./RunnerConfigFields.tsx";
+import { TryPanel, type TryState } from "./TryPanel.tsx";
 
 type BlockFormData = {
   prompt: string;
@@ -40,6 +43,7 @@ export function BlockForm({
   const [intervalUnit, setIntervalUnit] = useState(initialIntervalUnit);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tryState, setTryState] = useState<TryState>({ status: "idle" });
   const [showAdvanced, setShowAdvanced] = useState(
     initialRunnerConfig !== undefined,
   );
@@ -90,6 +94,37 @@ export function BlockForm({
     setLoading(false);
   }
 
+  async function handleTry() {
+    if (!prompt.trim()) {
+      setError("Prompt is required");
+      return;
+    }
+
+    setError(null);
+    setTryState({ status: "running" });
+
+    const runnerConfig = buildRunnerConfig({
+      model,
+      permissions,
+      timeout,
+      envEntries,
+      cwd,
+    });
+
+    const result = await tryBlockApi({
+      prompt: prompt.trim(),
+      ...(runnerConfig ? { runnerConfig } : {}),
+    });
+
+    if (result.ok) {
+      setTryState({ status: "success", markdown: result.markdown });
+    } else {
+      setTryState({ status: "error", error: result.error });
+    }
+  }
+
+  const isTrying = tryState.status === "running";
+
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <textarea
@@ -128,8 +163,17 @@ export function BlockForm({
             </button>
           )}
           <button
+            type="button"
+            onClick={handleTry}
+            disabled={loading || isTrying}
+            className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100 disabled:opacity-50"
+          >
+            <Play size={14} weight="bold" />
+            {isTrying ? "Running..." : "Try"}
+          </button>
+          <button
             type="submit"
-            disabled={loading}
+            disabled={loading || isTrying}
             className="rounded-lg bg-zinc-800 px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50"
           >
             {loading ? "Saving..." : submitLabel}
@@ -177,6 +221,8 @@ export function BlockForm({
           </label>
         </div>
       )}
+
+      <TryPanel state={tryState} />
 
       {error && <p className="text-sm text-red-600">{error}</p>}
     </form>
