@@ -86,7 +86,7 @@ test("delete block → disappears", async ({ page }) => {
   await expect(
     page.locator("text=Are you sure you want to delete"),
   ).toBeVisible();
-  await page.locator("role=dialog >> text=Delete").click();
+  await page.locator("role=dialog >> button >> text=Delete").click();
 
   // Should show empty state again
   await expect(
@@ -135,6 +135,52 @@ test("multiple blocks in creation order", async ({ page }) => {
   // Both should be visible - check via info tooltips
   const infoButtons = page.locator('[title="Info"]');
   await expect(infoButtons).toHaveCount(2);
+});
+
+test("try panel scrolls into view on edit page after clicking Try", async ({
+  page,
+}) => {
+  // Create a block first
+  await createBlock(page, "Scroll test prompt", "15");
+  await expect(page.locator("text=Result")).toBeVisible({ timeout: 10_000 });
+
+  // Small viewport so form content overflows
+  await page.setViewportSize({ width: 800, height: 300 });
+
+  // Navigate to edit page
+  await clickCardMenu(page, "Edit");
+  await expect(page.locator("text=Edit block")).toBeVisible();
+
+  // Open advanced settings to push content down
+  await page.click("text=Show advanced settings");
+
+  // Scroll to top
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(100);
+
+  const scrollBefore = await page.evaluate(() => window.scrollY);
+
+  // Click Try
+  await page.click("text=Try");
+
+  // Wait for result
+  await expect(page.locator("text=Result")).toBeVisible({ timeout: 10_000 });
+
+  // Wait for scroll animation
+  await page.waitForTimeout(600);
+
+  const scrollAfter = await page.evaluate(() => window.scrollY);
+  await page.screenshot({
+    path: "test-results/try-scroll-edit.png",
+    fullPage: false,
+  });
+
+  // Verify page actually scrolled down
+  expect(scrollAfter).toBeGreaterThan(scrollBefore);
+
+  // The result should be in viewport
+  const tryResult = page.locator("text=Output for: Scroll test prompt");
+  await expect(tryResult).toBeInViewport({ timeout: 3_000 });
 });
 
 test("SSE updates UI without manual refresh", async ({ page }) => {
