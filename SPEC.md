@@ -19,6 +19,14 @@ The feed is ordered by user-defined position (drag-and-drop reorderable), keepin
 - Manual refresh per block
 - Only the latest output is stored (no history)
 
+### Try mode
+
+- "Try" button in the block form lets users test a prompt before saving
+- Runs the prompt through the same CLI runner with the same config resolution
+- Result (markdown or error) is displayed inline below the form
+- Bypasses scheduler concurrency cap (user-initiated, like actions)
+- Uses a generated UUID for isolated working directory
+
 ### Scheduling
 
 - Automatic execution on interval
@@ -91,6 +99,7 @@ Blocks can include action links in their markdown output. Clicking an action lin
 
 See TODO.md for the full list. Key upcoming areas:
 
+- **Try mode streaming** — stream output in real time during Try runs
 - **Real-time output streaming** — watch Claude's output as it runs
 - **Improved scheduling** — time-of-day for daily blocks, smarter queuing
 - **Visibility-based scheduling** — only update when Floudeck is visible
