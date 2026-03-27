@@ -213,7 +213,7 @@ export function createRouter(
         }
         try {
           const block = createBlock(db, input);
-          triggerRun(block.id);
+          if (!input.tryResult) triggerRun(block.id);
           return json({ ok: true, block }, 201);
         } catch (err: unknown) {
           const message =
@@ -261,7 +261,7 @@ export function createRouter(
         try {
           const block = updateBlock(db, id, input);
           if (!block) return json({ ok: false, error: "Not found" }, 404);
-          triggerRun(block.id);
+          if (!input.tryResult) triggerRun(block.id);
           return json({ ok: true, block });
         } catch (err: unknown) {
           const message =
