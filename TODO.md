@@ -64,7 +64,7 @@ Phases:
 - **Reminders** — one time or regular reminders that should show one time card at the top of the feed, in different style/color, (can be just a message, some calculated info and can contain actions), play sound and show a notification, all optional
   - Could also support "tell me when X happens" style — e.g. "tell me when HiBob is up again". The system figures out how to check (ideally via a generated script; if not, it prepares a prompt for its own `claude` instance). There's an API/contract for reminders to fire notifications (with action support). Could reuse block architecture as "conditional blocks" — always scheduled but only shown when the condition triggers. Extended scheduling: the contract allows reminders to reschedule themselves (change frequency) or stop completely. Needs careful design — braindump for now.
 - **Decks/pages/tabs** — multiple feeds with different card sets
-- **Notifications** — sound & browser notifications, configurable per card
+- **Notifications** — sound & native notifications, configurable per card. See **[docs/notifications-and-sounds.md](docs/notifications-and-sounds.md)** for implementation notes
 - **CI** — set up CI pipeline with lint, unit tests, and E2E checks
 - **Logging & debugging** — proper structured logging system for development
 - **History** — per-card run history with timestamps and past outputs
