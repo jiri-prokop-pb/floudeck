@@ -174,35 +174,24 @@ export function updateBlock(
   const nextRunAt = hasTryResult
     ? addInterval(now, input.intervalValue, input.intervalUnit)
     : now;
+  const outputMarkdown = hasTryResult ? input.tryResult : undefined;
+  const status = hasTryResult ? "success" : undefined;
   const result = db
     .query(
-      hasTryResult
-        ? `UPDATE blocks SET prompt = ?, interval_value = ?, interval_unit = ?, runner_config = ?, output_markdown = ?, status = 'success', updated_at = ?, next_run_at = ?
-           WHERE id = ? RETURNING *`
-        : `UPDATE blocks SET prompt = ?, interval_value = ?, interval_unit = ?, runner_config = ?, updated_at = ?, next_run_at = ?
-           WHERE id = ? RETURNING *`,
+      `UPDATE blocks SET prompt = ?, interval_value = ?, interval_unit = ?, runner_config = ?,
+       updated_at = ?, next_run_at = ?
+       ${hasTryResult ? ", output_markdown = ?, status = ?" : ""}
+       WHERE id = ? RETURNING *`,
     )
     .get(
-      ...(hasTryResult
-        ? [
-            input.prompt.trim(),
-            input.intervalValue,
-            input.intervalUnit,
-            runnerConfigJson,
-            input.tryResult,
-            now,
-            nextRunAt,
-            id,
-          ]
-        : [
-            input.prompt.trim(),
-            input.intervalValue,
-            input.intervalUnit,
-            runnerConfigJson,
-            now,
-            now,
-            id,
-          ]),
+      input.prompt.trim(),
+      input.intervalValue,
+      input.intervalUnit,
+      runnerConfigJson,
+      now,
+      nextRunAt,
+      ...(hasTryResult ? [outputMarkdown, status] : []),
+      id,
     ) as BlockRecord | null;
   return result ?? null;
 }

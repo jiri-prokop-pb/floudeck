@@ -111,6 +111,56 @@ describe("CRUD", () => {
   test("delete returns false for missing id", () => {
     expect(deleteBlock(db, 999)).toBe(false);
   });
+
+  test("createBlock with tryResult sets status, output, and future next_run_at", () => {
+    const before = new Date().toISOString();
+    const b = createBlock(db, {
+      prompt: "try test",
+      intervalValue: 1,
+      intervalUnit: "hours",
+      tryResult: "# Try Output\n\nHello.",
+    });
+    expect(b.status).toBe("success");
+    expect(b.output_markdown).toBe("# Try Output\n\nHello.");
+    // next_run_at should be ~1 hour in the future, not equal to created_at
+    if (!b.next_run_at) throw new Error("next_run_at should be set");
+    expect(b.next_run_at > before).toBe(true);
+    expect(b.next_run_at > b.created_at).toBe(true);
+  });
+
+  test("updateBlock with tryResult sets output and future next_run_at", () => {
+    const b = createBlock(db, {
+      prompt: "original",
+      intervalValue: 1,
+      intervalUnit: "hours",
+    });
+    const updated = updateBlock(db, b.id, {
+      prompt: "edited",
+      intervalValue: 1,
+      intervalUnit: "hours",
+      tryResult: "# Edited Output\n\nDone.",
+    });
+    if (!updated) throw new Error("updateBlock returned null");
+    expect(updated.status).toBe("success");
+    expect(updated.output_markdown).toBe("# Edited Output\n\nDone.");
+    if (!updated.next_run_at) throw new Error("next_run_at should be set");
+    expect(updated.next_run_at > updated.updated_at).toBe(true);
+  });
+
+  test("updateBlock without tryResult sets next_run_at to now", () => {
+    const b = createBlock(db, {
+      prompt: "original",
+      intervalValue: 1,
+      intervalUnit: "hours",
+    });
+    const updated = updateBlock(db, b.id, {
+      prompt: "edited",
+      intervalValue: 1,
+      intervalUnit: "hours",
+    });
+    if (!updated) throw new Error("updateBlock returned null");
+    expect(updated.next_run_at).toBe(updated.updated_at);
+  });
 });
 
 describe("state transitions", () => {

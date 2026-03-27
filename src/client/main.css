@@ -1,6 +1,13 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+button,
+select,
+summary,
+a[href] {
+  cursor: pointer;
+}
+
 .prose table {
   border-collapse: collapse;
   width: 100%;

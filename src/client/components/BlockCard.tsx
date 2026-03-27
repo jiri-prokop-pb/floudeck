@@ -1,5 +1,4 @@
 import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import { DotsSixVertical, Info, List } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
 import type { BlockRecord } from "../../types.ts";
@@ -194,7 +193,9 @@ export function SortableBlockCard(props: BlockCardProps) {
   } = useSortable({ id: props.block.id });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform: transform
+      ? `translate3d(${Math.round(transform.x)}px, ${Math.round(transform.y)}px, 0)`
+      : undefined,
     transition,
   };
 
@@ -206,7 +207,7 @@ export function SortableBlockCard(props: BlockCardProps) {
       className={`group/sortable relative ${isDragging ? "z-50" : ""}`}
     >
       <div
-        className={`relative rounded-2xl transition-all duration-200 ${isDragging ? "scale-105 shadow-xl" : ""}`}
+        className={`relative rounded-2xl transition-[transform,box-shadow] duration-200 ${isDragging ? "scale-105 shadow-xl" : ""}`}
       >
         <button
           type="button"
