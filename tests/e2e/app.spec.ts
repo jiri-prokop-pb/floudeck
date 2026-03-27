@@ -10,7 +10,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto("/");
 });
 
-/** Open the create modal, fill in the form, and submit */
+/** Navigate to create page, fill in the form, and submit */
 async function createBlock(
   page: import("@playwright/test").Page,
   prompt: string,
@@ -81,9 +81,10 @@ test("delete block → disappears", async ({ page }) => {
   await expect(page.locator("text=Every hour")).toBeVisible();
   await page.locator('[title="Info"]').click(); // close tooltip
 
-  // Delete with confirmation
-  page.on("dialog", (dialog) => dialog.accept());
+  // Delete with custom confirmation dialog
   await clickCardMenu(page, "Delete");
+  await expect(page.locator("text=Are you sure you want to delete")).toBeVisible();
+  await page.locator('role=dialog >> text=Delete').click();
 
   // Should show empty state again
   await expect(
