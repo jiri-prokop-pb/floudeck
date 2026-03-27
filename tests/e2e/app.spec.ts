@@ -83,8 +83,10 @@ test("delete block → disappears", async ({ page }) => {
 
   // Delete with custom confirmation dialog
   await clickCardMenu(page, "Delete");
-  await expect(page.locator("text=Are you sure you want to delete")).toBeVisible();
-  await page.locator('role=dialog >> text=Delete').click();
+  await expect(
+    page.locator("text=Are you sure you want to delete"),
+  ).toBeVisible();
+  await page.locator("role=dialog >> text=Delete").click();
 
   // Should show empty state again
   await expect(

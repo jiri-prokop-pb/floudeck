@@ -479,9 +479,11 @@ describe("POST /api/blocks/try", () => {
       }),
     );
 
-    const config = receivedConfig as Record<string, unknown>;
-    expect(config.model).toBe("opus");
-    expect(config.timeout).toBe(120);
+    if (!receivedConfig || typeof receivedConfig !== "object") {
+      throw new Error("Expected receivedConfig to be an object");
+    }
+    expect("model" in receivedConfig && receivedConfig.model).toBe("opus");
+    expect("timeout" in receivedConfig && receivedConfig.timeout).toBe(120);
   });
 
   test("returns error when runner fails", async () => {
