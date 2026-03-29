@@ -116,21 +116,31 @@ try {
   const rawScreenshot = await page.screenshot({ fullPage: true });
   const base64 = Buffer.from(rawScreenshot).toString("base64");
 
-  // Wrap in macOS window frame with traffic lights + shadow
+  // Load app icon for overlay
+  const logoFile = Bun.file("src-tauri/icons/icon.png");
+  const logoBase64 = Buffer.from(await logoFile.arrayBuffer()).toString(
+    "base64",
+  );
+
+  // Wrap in macOS window frame with traffic lights, shadow, and logo overlay
   const framePage = await browser.newPage({
     viewport: { width: 1124, height: 900 },
     deviceScaleFactor: 2,
   });
   await framePage.setContent(`
     <html>
-    <body style="margin:0;padding:40px 50px 60px;background:transparent;display:flex;justify-content:center;align-items:start">
-      <div style="border-radius:10px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.12);display:inline-block;position:relative">
-        <div style="position:absolute;top:14px;left:14px;display:flex;gap:8px;z-index:1">
-          <div style="width:13px;height:13px;border-radius:50%;background:#FF5F57"></div>
-          <div style="width:13px;height:13px;border-radius:50%;background:#FEBC2E"></div>
-          <div style="width:13px;height:13px;border-radius:50%;background:#28C840"></div>
+    <body style="margin:0;padding:40px 50px 80px;background:transparent;display:flex;justify-content:center;align-items:start">
+      <div style="position:relative;display:inline-block">
+        <div style="border-radius:10px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.12);position:relative">
+          <div style="position:absolute;top:14px;left:14px;display:flex;gap:8px;z-index:1">
+            <div style="width:13px;height:13px;border-radius:50%;background:#FF5F57"></div>
+            <div style="width:13px;height:13px;border-radius:50%;background:#FEBC2E"></div>
+            <div style="width:13px;height:13px;border-radius:50%;background:#28C840"></div>
+          </div>
+          <img src="data:image/png;base64,${base64}" style="display:block;width:1024px" />
         </div>
-        <img src="data:image/png;base64,${base64}" style="display:block;width:1024px" />
+        <img src="data:image/png;base64,${logoBase64}"
+             style="position:absolute;bottom:-80px;left:50%;transform:translateX(-50%);height:160px;filter:drop-shadow(0 8px 30px rgba(0,0,0,0.12))" />
       </div>
     </body>
     </html>

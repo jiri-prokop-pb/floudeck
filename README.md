@@ -38,10 +38,10 @@ bun install
 bun run build:server    # → dist/floudeck-server + dist/client/
 
 # Build macOS .app and .dmg
-cargo tauri build       # → src-tauri/target/release/bundle/
+bun run build           # → src-tauri/target/release/bundle/
 
 # Or dev mode with Tauri (live reload)
-cargo tauri dev
+bun run dev:tauri
 ```
 
 ## Development
