@@ -129,7 +129,7 @@ try {
   });
   await framePage.setContent(`
     <html>
-    <body style="margin:0;padding:40px 50px 80px;background:transparent;display:flex;justify-content:center;align-items:start">
+    <body style="margin:0;padding:40px 50px 140px;background:transparent;display:flex;justify-content:center;align-items:start">
       <div style="position:relative;display:inline-block">
         <div style="border-radius:10px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.12);position:relative">
           <div style="position:absolute;top:14px;left:14px;display:flex;gap:8px;z-index:1">
