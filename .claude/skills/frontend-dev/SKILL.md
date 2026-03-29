@@ -65,6 +65,71 @@ Custom renderer in `src/client/lib/markdown.ts`.
 - Regular links without color → standard `<a target="_blank" rel="noopener noreferrer">`
 - Extension pattern: `marked.use({ renderer: { link(token) { ... } } })`
 
+## React 19 patterns
+
+### Data fetching — `use()` + Suspense
+
+Replace `useEffect` + loading state with `use()` for async data:
+
+```tsx
+// Parent creates the promise (stable identity via useState)
+function Parent() {
+  const [dataPromise] = useState(() => fetchData());
+  return (
+    <ErrorBoundary fallback={<Error />}>
+      <Suspense fallback={<Loading />}>
+        <Child dataPromise={dataPromise} />
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+
+// Child consumes via use() — suspends until resolved
+function Child({ dataPromise }: { dataPromise: Promise<Data> }) {
+  const data = use(dataPromise);
+  return <div>{data.name}</div>;
+}
+```
+
+**Key rule:** Create the promise in the **parent** component and pass it as a prop. Creating the promise with `useState` in the same component that calls `use()` causes an infinite render loop in Bun's dev bundler.
+
+### Form submissions — `useActionState`
+
+Replace manual `loading`/`error` state with `useActionState`:
+
+```tsx
+const [error, submitAction, isPending] = useActionState(
+  async (_prev: string | null) => {
+    // Read from controlled inputs in closure, not FormData
+    const res = await saveData({ name, value });
+    if (res.ok) { onSuccess(); return null; }
+    return res.error;
+  },
+  null,
+);
+
+return (
+  <form action={submitAction}>
+    {error && <p className="text-red-600">{error}</p>}
+    <button type="submit" disabled={isPending}>
+      {isPending ? "Saving..." : "Save"}
+    </button>
+  </form>
+);
+```
+
+### ErrorBoundary
+
+`use()` throws on promise rejection — `Suspense` doesn't catch errors. Wrap Suspense in `<ErrorBoundary fallback={...}>` (class component in `ErrorBoundary.tsx`).
+
+### What NOT to convert
+
+- SSE listeners, event handlers (`useRouter`, `useSse`, `useClickOutside`)
+- Timers (`HeaderClock`)
+- Layout effects (scroll behavior)
+- Side-effect buttons (e.g. "Try" button — stays as `onClick`)
+- `ref` is a regular prop in React 19 — no `forwardRef` needed
+
 ## Client-side routing — useRouter
 
 pushState-based SPA routing in `src/client/hooks/useRouter.ts`.
