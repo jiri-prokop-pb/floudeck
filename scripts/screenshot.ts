@@ -129,19 +129,17 @@ try {
   });
   await framePage.setContent(`
     <html>
-    <body style="margin:0;padding:40px 50px 200px;background:transparent;display:flex;justify-content:center;align-items:start">
-      <div style="position:relative;display:inline-block">
-        <div style="border-radius:10px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.12);position:relative">
-          <div style="position:absolute;top:14px;left:14px;display:flex;gap:8px;z-index:1">
-            <div style="width:13px;height:13px;border-radius:50%;background:#FF5F57"></div>
-            <div style="width:13px;height:13px;border-radius:50%;background:#FEBC2E"></div>
-            <div style="width:13px;height:13px;border-radius:50%;background:#28C840"></div>
-          </div>
-          <img src="data:image/png;base64,${base64}" style="display:block;width:1024px" />
+    <body style="margin:0;padding:40px 50px 60px;background:transparent;display:flex;flex-direction:column;align-items:center">
+      <div style="border-radius:10px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.12);position:relative">
+        <div style="position:absolute;top:14px;left:14px;display:flex;gap:8px;z-index:1">
+          <div style="width:13px;height:13px;border-radius:50%;background:#FF5F57"></div>
+          <div style="width:13px;height:13px;border-radius:50%;background:#FEBC2E"></div>
+          <div style="width:13px;height:13px;border-radius:50%;background:#28C840"></div>
         </div>
-        <img src="data:image/png;base64,${logoBase64}"
-             style="position:absolute;bottom:-50px;left:50%;transform:translateX(-50%);height:160px;filter:drop-shadow(0 8px 30px rgba(0,0,0,0.12))" />
+        <img src="data:image/png;base64,${base64}" style="display:block;width:1024px" />
       </div>
+      <img src="data:image/png;base64,${logoBase64}"
+           style="margin-top:-80px;height:160px;filter:drop-shadow(0 8px 30px rgba(0,0,0,0.12))" />
     </body>
     </html>
   `);
