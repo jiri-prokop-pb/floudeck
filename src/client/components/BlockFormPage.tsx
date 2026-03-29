@@ -20,6 +20,7 @@ export function BlockFormPage({
   onUpdate,
 }: BlockFormPageProps) {
   const isEdit = blockId !== undefined;
+  const [blockPromise] = useState(() => (isEdit ? fetchBlock(blockId) : null));
 
   return (
     <div className="min-h-screen bg-zinc-50">
@@ -40,7 +41,7 @@ export function BlockFormPage({
 
         <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
           <div className="px-5 py-4">
-            {isEdit ? (
+            {isEdit && blockPromise ? (
               <ErrorBoundary
                 fallback={
                   <p className="text-sm text-red-600">Failed to load block</p>
@@ -50,7 +51,7 @@ export function BlockFormPage({
                   fallback={<p className="text-sm text-zinc-400">Loading...</p>}
                 >
                   <EditBlockFormLoader
-                    blockId={blockId}
+                    blockPromise={blockPromise}
                     onNavigateHome={onNavigateHome}
                     onUpdate={onUpdate}
                   />
@@ -79,16 +80,15 @@ export function BlockFormPage({
 }
 
 function EditBlockFormLoader({
-  blockId,
+  blockPromise,
   onNavigateHome,
   onUpdate,
 }: {
-  blockId: number;
+  blockPromise: Promise<BlockRecord | null>;
   onNavigateHome: () => void;
   onUpdate: (block: BlockRecord) => void;
 }) {
-  const [promise] = useState(() => fetchBlock(blockId));
-  const block = use(promise);
+  const block = use(blockPromise);
 
   if (!block) {
     return <p className="text-sm text-red-600">Block not found</p>;

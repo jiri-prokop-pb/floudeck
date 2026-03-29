@@ -62,8 +62,9 @@ test("edit block → re-runs", async ({ page }) => {
   // Click Edit via menu
   await clickCardMenu(page, "Edit");
 
-  // Update the prompt in the edit form
+  // Wait for form to load (Suspense), then update the prompt
   const editTextarea = page.locator("textarea");
+  await expect(editTextarea).toBeVisible({ timeout: 5_000 });
   await editTextarea.fill("Updated prompt");
   await page.click("text=Save");
 
@@ -151,7 +152,8 @@ test("try panel scrolls into view on edit page after clicking Try", async ({
   await clickCardMenu(page, "Edit");
   await expect(page.locator("text=Edit block")).toBeVisible();
 
-  // Open advanced settings to push content down
+  // Wait for form to load (Suspense), then open advanced settings
+  await expect(page.locator("textarea")).toBeVisible({ timeout: 5_000 });
   await page.click("text=Show advanced settings");
 
   // Scroll to top

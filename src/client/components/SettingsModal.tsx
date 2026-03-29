@@ -26,6 +26,8 @@ export function SettingsModal({
   onDisplaySettingsChanged,
 }: SettingsModalProps) {
   const [activeTab, setActiveTab] = useState<Tab>("runner");
+  const [runnerPromise] = useState(() => fetchRunnerSettings());
+  const [displayPromise] = useState(() => fetchDisplaySettings());
 
   return (
     <Modal title="Settings" onClose={onClose} wide>
@@ -56,7 +58,10 @@ export function SettingsModal({
               <Suspense
                 fallback={<p className="text-sm text-zinc-400">Loading...</p>}
               >
-                <RunnerSectionLoader onClose={onClose} />
+                <RunnerSectionLoader
+                  promise={runnerPromise}
+                  onClose={onClose}
+                />
               </Suspense>
             </ErrorBoundary>
           )}
@@ -72,6 +77,7 @@ export function SettingsModal({
                 fallback={<p className="text-sm text-zinc-400">Loading...</p>}
               >
                 <DisplaySectionLoader
+                  promise={displayPromise}
                   onClose={onClose}
                   onSaved={onDisplaySettingsChanged}
                 />
@@ -108,8 +114,13 @@ function TabButton({
   );
 }
 
-function RunnerSectionLoader({ onClose }: { onClose: () => void }) {
-  const [promise] = useState(() => fetchRunnerSettings());
+function RunnerSectionLoader({
+  promise,
+  onClose,
+}: {
+  promise: Promise<import("../../types.ts").RunnerConfig | null>;
+  onClose: () => void;
+}) {
   const config = use(promise);
   return <RunnerSection initialConfig={config} onClose={onClose} />;
 }
@@ -190,13 +201,14 @@ function RunnerSection({
 }
 
 function DisplaySectionLoader({
+  promise,
   onClose,
   onSaved,
 }: {
+  promise: Promise<import("../../types.ts").DisplaySettings | null>;
   onClose: () => void;
   onSaved?: () => void;
 }) {
-  const [promise] = useState(() => fetchDisplaySettings());
   const config = use(promise);
   return (
     <DisplaySection
