@@ -87,6 +87,7 @@ A new block type that doesn't auto-schedule — it only runs on demand with user
 
 ## Post-PoC
 
+- **React Router v7** — adopt loaders for route-level data fetching, route-level code splitting; replaces manual pushState routing in useRouter.ts
 - **Reminders** — one time or regular reminders that should show one time card at the top of the feed, in different style/color, (can be just a message, some calculated info and can contain actions), play sound and show a notification, all optional
 - **Decks/pages/tabs** — multiple feeds with different card sets; action blocks can be grouped onto a dedicated deck
 - **Notifications** — sound & browser notifications, configurable per card
