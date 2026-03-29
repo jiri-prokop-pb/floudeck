@@ -111,8 +111,29 @@ try {
     EXAMPLE_BLOCKS.length,
   );
 
-  // Take screenshot
-  await page.screenshot({ path: OUTPUT, fullPage: true });
+  // Take raw screenshot into buffer
+  const rawScreenshot = await page.screenshot({ fullPage: true });
+  const base64 = Buffer.from(rawScreenshot).toString("base64");
+
+  // Wrap in macOS window frame with traffic lights + shadow
+  const framePage = await browser.newPage({
+    viewport: { width: 1124, height: 900 },
+  });
+  await framePage.setContent(`
+    <html>
+    <body style="margin:0;padding:40px 50px 60px;background:#f0f0f0;display:flex;justify-content:center;align-items:start">
+      <div style="border-radius:10px;overflow:hidden;box-shadow:0 22px 70px 4px rgba(0,0,0,0.18);display:inline-block;position:relative">
+        <div style="position:absolute;top:14px;left:14px;display:flex;gap:8px;z-index:1">
+          <div style="width:13px;height:13px;border-radius:50%;background:#FF5F57"></div>
+          <div style="width:13px;height:13px;border-radius:50%;background:#FEBC2E"></div>
+          <div style="width:13px;height:13px;border-radius:50%;background:#28C840"></div>
+        </div>
+        <img src="data:image/png;base64,${base64}" style="display:block;width:1024px" />
+      </div>
+    </body>
+    </html>
+  `);
+  await framePage.screenshot({ path: OUTPUT, fullPage: true });
   console.log(`Screenshot saved to ${OUTPUT}`);
 
   await browser.close();
