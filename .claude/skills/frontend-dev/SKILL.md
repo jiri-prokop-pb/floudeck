@@ -128,7 +128,10 @@ return (
 - Timers (`HeaderClock`)
 - Layout effects (scroll behavior)
 - Side-effect buttons (e.g. "Try" button — stays as `onClick`)
-- `ref` is a regular prop in React 19 — no `forwardRef` needed
+
+### Other React 19 changes
+
+- `ref` is a regular prop — no `forwardRef` needed
 
 ## Client-side routing — useRouter
 
