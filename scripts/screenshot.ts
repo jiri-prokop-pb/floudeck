@@ -140,7 +140,7 @@ try {
           <img src="data:image/png;base64,${base64}" style="display:block;width:1024px" />
         </div>
         <img src="data:image/png;base64,${logoBase64}"
-             style="position:absolute;bottom:-80px;left:50%;transform:translateX(-50%);height:160px;filter:drop-shadow(0 8px 30px rgba(0,0,0,0.12))" />
+             style="position:absolute;bottom:-50px;left:50%;transform:translateX(-50%);height:160px;filter:drop-shadow(0 8px 30px rgba(0,0,0,0.12))" />
       </div>
     </body>
     </html>
