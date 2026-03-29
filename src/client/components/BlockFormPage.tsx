@@ -1,9 +1,10 @@
 import { ArrowLeft } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
+import { Suspense, use, useState } from "react";
 import type { BlockRecord } from "../../types.ts";
 import { safeParseRunnerConfig } from "../../validate.ts";
 import { createBlockApi, fetchBlock, updateBlockApi } from "../lib/api.ts";
 import { BlockForm } from "./BlockForm.tsx";
+import { ErrorBoundary } from "./ErrorBoundary.tsx";
 
 type BlockFormPageProps = {
   blockId?: number;
@@ -19,26 +20,6 @@ export function BlockFormPage({
   onUpdate,
 }: BlockFormPageProps) {
   const isEdit = blockId !== undefined;
-  const [block, setBlock] = useState<BlockRecord | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isEdit) return;
-    let cancelled = false;
-    async function load() {
-      const b = await fetchBlock(blockId);
-      if (cancelled) return;
-      if (b) {
-        setBlock(b);
-      } else {
-        setLoadError("Block not found");
-      }
-    }
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [isEdit, blockId]);
 
   return (
     <div className="min-h-screen bg-zinc-50">
@@ -59,34 +40,29 @@ export function BlockFormPage({
 
         <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
           <div className="px-5 py-4">
-            {loadError && <p className="text-sm text-red-600">{loadError}</p>}
-
-            {isEdit && !block && !loadError && (
-              <p className="text-sm text-zinc-400">Loading...</p>
-            )}
-
-            {(!isEdit || block) && !loadError && (
-              <BlockForm
-                key={block?.id}
-                initialPrompt={block?.prompt}
-                initialIntervalValue={block?.interval_value}
-                initialIntervalUnit={block?.interval_unit}
-                initialRunnerConfig={
-                  block ? safeParseRunnerConfig(block.runner_config) : undefined
+            {isEdit ? (
+              <ErrorBoundary
+                fallback={
+                  <p className="text-sm text-red-600">Failed to load block</p>
                 }
-                blockUuid={block?.uuid}
-                submitLabel={isEdit ? "Save" : "Add block"}
+              >
+                <Suspense
+                  fallback={
+                    <p className="text-sm text-zinc-400">Loading...</p>
+                  }
+                >
+                  <EditBlockFormLoader
+                    blockId={blockId}
+                    onNavigateHome={onNavigateHome}
+                    onUpdate={onUpdate}
+                  />
+                </Suspense>
+              </ErrorBoundary>
+            ) : (
+              <BlockForm
+                submitLabel="Add block"
                 onCancel={onNavigateHome}
                 onSubmit={async (data) => {
-                  if (isEdit && block) {
-                    const res = await updateBlockApi(block.id, data);
-                    if (res.ok) {
-                      onUpdate(res.block);
-                      onNavigateHome();
-                      return {};
-                    }
-                    return { error: res.error };
-                  }
                   const res = await createBlockApi(data);
                   if (res.ok) {
                     onCreate(res.block);
@@ -101,5 +77,44 @@ export function BlockFormPage({
         </div>
       </div>
     </div>
+  );
+}
+
+function EditBlockFormLoader({
+  blockId,
+  onNavigateHome,
+  onUpdate,
+}: {
+  blockId: number;
+  onNavigateHome: () => void;
+  onUpdate: (block: BlockRecord) => void;
+}) {
+  const [promise] = useState(() => fetchBlock(blockId));
+  const block = use(promise);
+
+  if (!block) {
+    return <p className="text-sm text-red-600">Block not found</p>;
+  }
+
+  return (
+    <BlockForm
+      key={block.id}
+      initialPrompt={block.prompt}
+      initialIntervalValue={block.interval_value}
+      initialIntervalUnit={block.interval_unit}
+      initialRunnerConfig={safeParseRunnerConfig(block.runner_config)}
+      blockUuid={block.uuid}
+      submitLabel="Save"
+      onCancel={onNavigateHome}
+      onSubmit={async (data) => {
+        const res = await updateBlockApi(block.id, data);
+        if (res.ok) {
+          onUpdate(res.block);
+          onNavigateHome();
+          return {};
+        }
+        return { error: res.error };
+      }}
+    />
   );
 }
