@@ -72,6 +72,7 @@ try {
   const browser = await chromium.launch();
   const page = await browser.newPage({
     viewport: { width: 1024, height: 800 },
+    deviceScaleFactor: 2,
   });
 
   await page.goto(`http://localhost:${PORT}`);
@@ -118,6 +119,7 @@ try {
   // Wrap in macOS window frame with traffic lights + shadow
   const framePage = await browser.newPage({
     viewport: { width: 1124, height: 900 },
+    deviceScaleFactor: 2,
   });
   await framePage.setContent(`
     <html>
