@@ -98,3 +98,4 @@ A new block type that doesn't auto-schedule — it only runs on demand with user
 - **Advanced scheduling** — exceptions, start/end dates, self-destroying cards, cron-like expressions
 - **Cost tracking** — track API cost for the whole system and per card
 - **Claude Agent SDK & other runners** — see [docs/design-block-runners.md](docs/design-block-runners.md)
+- **Rust rewrite** — remove Bun/JS backend entirely, move all server logic into native Rust inside Tauri. Eliminates sidecar process, shrinks bundle by ~50MB, replaces HTTP API with Tauri Commands and SSE with Tauri Events. Frontend (React) stays, only `api.ts` and `useSse.ts` change. ~2-3 week effort. See **[docs/rust-rewrite.md](docs/rust-rewrite.md)** for full analysis
