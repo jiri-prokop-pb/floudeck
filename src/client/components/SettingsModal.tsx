@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Suspense, use, useActionState, useState } from "react";
 import {
   fetchDisplaySettings,
   fetchRunnerSettings,
@@ -6,6 +6,7 @@ import {
   saveRunnerSettings,
 } from "../lib/api.ts";
 import { buildRunnerConfig } from "../lib/runnerConfig.ts";
+import { ErrorBoundary } from "./ErrorBoundary.tsx";
 import { Modal } from "./Modal.tsx";
 import {
   type EnvEntry,
@@ -44,12 +45,42 @@ export function SettingsModal({
           </TabButton>
         </nav>
         <div className="min-w-0 flex-1">
-          {activeTab === "runner" && <RunnerSection onClose={onClose} />}
+          {activeTab === "runner" && (
+            <ErrorBoundary
+              fallback={
+                <p className="text-sm text-red-600">
+                  Failed to load runner settings
+                </p>
+              }
+            >
+              <Suspense
+                fallback={
+                  <p className="text-sm text-zinc-400">Loading...</p>
+                }
+              >
+                <RunnerSectionLoader onClose={onClose} />
+              </Suspense>
+            </ErrorBoundary>
+          )}
           {activeTab === "display" && (
-            <DisplaySection
-              onClose={onClose}
-              onSaved={onDisplaySettingsChanged}
-            />
+            <ErrorBoundary
+              fallback={
+                <p className="text-sm text-red-600">
+                  Failed to load display settings
+                </p>
+              }
+            >
+              <Suspense
+                fallback={
+                  <p className="text-sm text-zinc-400">Loading...</p>
+                }
+              >
+                <DisplaySectionLoader
+                  onClose={onClose}
+                  onSaved={onDisplaySettingsChanged}
+                />
+              </Suspense>
+            </ErrorBoundary>
           )}
         </div>
       </div>
@@ -81,53 +112,50 @@ function TabButton({
   );
 }
 
-function RunnerSection({ onClose }: { onClose: () => void }) {
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+function RunnerSectionLoader({ onClose }: { onClose: () => void }) {
+  const [promise] = useState(() => fetchRunnerSettings());
+  const config = use(promise);
+  return <RunnerSection initialConfig={config} onClose={onClose} />;
+}
 
-  const [model, setModel] = useState("");
-  const [permissions, setPermissions] = useState("");
-  const [timeout, setTimeout_] = useState("");
-  const [envEntries, setEnvEntries] = useState<EnvEntry[]>([]);
+function RunnerSection({
+  initialConfig,
+  onClose,
+}: {
+  initialConfig: import("../../types.ts").RunnerConfig | null;
+  onClose: () => void;
+}) {
+  const [model, setModel] = useState(initialConfig?.model ?? "");
+  const [permissions, setPermissions] = useState(
+    initialConfig?.permissions ?? "",
+  );
+  const [timeout, setTimeout_] = useState(
+    initialConfig?.timeout?.toString() ?? "",
+  );
+  const [envEntries, setEnvEntries] = useState<EnvEntry[]>(
+    parseEnvEntries(initialConfig?.env),
+  );
 
-  useEffect(() => {
-    fetchRunnerSettings().then((config) => {
-      if (config) {
-        setModel(config.model ?? "");
-        setPermissions(config.permissions ?? "");
-        setTimeout_(config.timeout?.toString() ?? "");
-        setEnvEntries(parseEnvEntries(config.env));
+  const [error, saveAction, isSaving] = useActionState(
+    async (_prev: string | null) => {
+      const config = buildRunnerConfig({
+        model,
+        permissions,
+        timeout,
+        envEntries,
+      });
+      const res = await saveRunnerSettings(config ?? null);
+      if (res.ok) {
+        onClose();
+        return null;
       }
-      setLoading(false);
-    });
-  }, []);
-
-  async function handleSave() {
-    setError(null);
-    setSaving(true);
-
-    const config = buildRunnerConfig({
-      model,
-      permissions,
-      timeout,
-      envEntries,
-    });
-    const res = await saveRunnerSettings(config ?? null);
-    setSaving(false);
-    if (res.ok) {
-      onClose();
-    } else {
-      setError(res.error);
-    }
-  }
-
-  if (loading) {
-    return <p className="text-sm text-zinc-400">Loading...</p>;
-  }
+      return res.error;
+    },
+    null,
+  );
 
   return (
-    <div className="space-y-4">
+    <form action={saveAction} className="space-y-4">
       <p className="text-xs text-zinc-400">
         These defaults apply to all blocks unless overridden per-block.
       </p>
@@ -154,62 +182,62 @@ function RunnerSection({ onClose }: { onClose: () => void }) {
           Cancel
         </button>
         <button
-          type="button"
-          onClick={handleSave}
-          disabled={saving}
+          type="submit"
+          disabled={isSaving}
           className="rounded-lg bg-zinc-800 px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50"
         >
-          {saving ? "Saving..." : "Save"}
+          {isSaving ? "Saving..." : "Save"}
         </button>
       </div>
-    </div>
+    </form>
   );
 }
 
-function DisplaySection({
+function DisplaySectionLoader({
   onClose,
   onSaved,
 }: {
   onClose: () => void;
   onSaved?: () => void;
 }) {
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [promise] = useState(() => fetchDisplaySettings());
+  const config = use(promise);
+  return (
+    <DisplaySection initialConfig={config} onClose={onClose} onSaved={onSaved} />
+  );
+}
 
-  const [dateFormat, setDateFormat] = useState("D. M.");
-  const [timeFormat, setTimeFormat] = useState("24h");
+function DisplaySection({
+  initialConfig,
+  onClose,
+  onSaved,
+}: {
+  initialConfig: import("../../types.ts").DisplaySettings | null;
+  onClose: () => void;
+  onSaved?: () => void;
+}) {
+  const [dateFormat, setDateFormat] = useState(
+    initialConfig?.dateFormat ?? "D. M.",
+  );
+  const [timeFormat, setTimeFormat] = useState(
+    initialConfig?.timeFormat ?? "24h",
+  );
 
-  useEffect(() => {
-    fetchDisplaySettings().then((config) => {
-      if (config) {
-        setDateFormat(config.dateFormat ?? "D. M.");
-        setTimeFormat(config.timeFormat ?? "24h");
+  const [error, saveAction, isSaving] = useActionState(
+    async (_prev: string | null) => {
+      const res = await saveDisplaySettings({ dateFormat, timeFormat });
+      if (res.ok) {
+        onSaved?.();
+        onClose();
+        return null;
       }
-      setLoading(false);
-    });
-  }, []);
-
-  async function handleSave() {
-    setError(null);
-    setSaving(true);
-
-    const res = await saveDisplaySettings({ dateFormat, timeFormat });
-    setSaving(false);
-    if (res.ok) {
-      onSaved?.();
-      onClose();
-    } else {
-      setError(res.error);
-    }
-  }
-
-  if (loading) {
-    return <p className="text-sm text-zinc-400">Loading...</p>;
-  }
+      return res.error;
+    },
+    null,
+  );
 
   return (
-    <div className="space-y-4">
+    <form action={saveAction} className="space-y-4">
       <p className="text-xs text-zinc-400">
         Configure how dates and times are displayed.
       </p>
@@ -255,14 +283,13 @@ function DisplaySection({
           Cancel
         </button>
         <button
-          type="button"
-          onClick={handleSave}
-          disabled={saving}
+          type="submit"
+          disabled={isSaving}
           className="rounded-lg bg-zinc-800 px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50"
         >
-          {saving ? "Saving..." : "Save"}
+          {isSaving ? "Saving..." : "Save"}
         </button>
       </div>
-    </div>
+    </form>
   );
 }
