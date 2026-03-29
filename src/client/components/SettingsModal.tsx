@@ -54,9 +54,7 @@ export function SettingsModal({
               }
             >
               <Suspense
-                fallback={
-                  <p className="text-sm text-zinc-400">Loading...</p>
-                }
+                fallback={<p className="text-sm text-zinc-400">Loading...</p>}
               >
                 <RunnerSectionLoader onClose={onClose} />
               </Suspense>
@@ -71,9 +69,7 @@ export function SettingsModal({
               }
             >
               <Suspense
-                fallback={
-                  <p className="text-sm text-zinc-400">Loading...</p>
-                }
+                fallback={<p className="text-sm text-zinc-400">Loading...</p>}
               >
                 <DisplaySectionLoader
                   onClose={onClose}
@@ -203,7 +199,11 @@ function DisplaySectionLoader({
   const [promise] = useState(() => fetchDisplaySettings());
   const config = use(promise);
   return (
-    <DisplaySection initialConfig={config} onClose={onClose} onSaved={onSaved} />
+    <DisplaySection
+      initialConfig={config}
+      onClose={onClose}
+      onSaved={onSaved}
+    />
   );
 }
 
