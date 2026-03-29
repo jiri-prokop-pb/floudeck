@@ -47,9 +47,7 @@ export function BlockFormPage({
                 }
               >
                 <Suspense
-                  fallback={
-                    <p className="text-sm text-zinc-400">Loading...</p>
-                  }
+                  fallback={<p className="text-sm text-zinc-400">Loading...</p>}
                 >
                   <EditBlockFormLoader
                     blockId={blockId}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { use, useCallback, useState } from "react";
 import type { BlockRecord } from "../../types.ts";
 import {
   fetchBlock,
@@ -7,8 +7,9 @@ import {
   reorderBlocksApi,
 } from "../lib/api.ts";
 
-export function useBlocks() {
-  const [blocks, setBlocks] = useState<BlockRecord[]>([]);
+export function useBlocks(initialBlocksPromise: Promise<BlockRecord[]>) {
+  const initialBlocks = use(initialBlocksPromise);
+  const [blocks, setBlocks] = useState(initialBlocks);
   const [staleBlockUuids, setStaleBlockUuids] = useState<Set<string>>(
     new Set(),
   );
@@ -26,10 +27,6 @@ export function useBlocks() {
       setBlocks((prev) => prev.filter((b) => b.id !== id));
     }
   }, []);
-
-  useEffect(() => {
-    void refetchBlocks();
-  }, [refetchBlocks]);
 
   function handleCreate(block: BlockRecord) {
     setBlocks((prev) => [...prev, block]);

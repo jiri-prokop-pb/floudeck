@@ -1,18 +1,55 @@
 import { Gear } from "@phosphor-icons/react";
-import { useCallback, useEffect, useState } from "react";
-import type { DisplaySettings } from "../../types.ts";
+import { Suspense, use, useCallback, useEffect, useState } from "react";
+import type { BlockRecord, DisplaySettings } from "../../types.ts";
 import { useBlocks } from "../hooks/useBlocks.ts";
 import { useRouter } from "../hooks/useRouter.ts";
 import { useSse } from "../hooks/useSse.ts";
-import { fetchDisplaySettings } from "../lib/api.ts";
+import { fetchBlocks, fetchDisplaySettings } from "../lib/api.ts";
 import { isTauri, startDrag, toggleMaximize } from "../lib/tauri.ts";
 import { ActionPage } from "./ActionPage.tsx";
 import { BlockFormPage } from "./BlockFormPage.tsx";
+import { ErrorBoundary } from "./ErrorBoundary.tsx";
 import { Feed } from "./Feed.tsx";
 import { HeaderClock } from "./HeaderClock.tsx";
 import { SettingsModal } from "./SettingsModal.tsx";
 
 export function App() {
+  const [blocksPromise] = useState(() => fetchBlocks());
+  const [displaySettingsPromise] = useState(() => fetchDisplaySettings());
+
+  return (
+    <ErrorBoundary
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-zinc-50">
+          <p className="text-sm text-red-600">
+            Failed to load. Please refresh the page.
+          </p>
+        </div>
+      }
+    >
+      <Suspense
+        fallback={
+          <div className="flex min-h-screen items-center justify-center bg-zinc-50">
+            <p className="text-sm text-zinc-400">Loading...</p>
+          </div>
+        }
+      >
+        <AppContent
+          blocksPromise={blocksPromise}
+          displaySettingsPromise={displaySettingsPromise}
+        />
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+
+function AppContent({
+  blocksPromise,
+  displaySettingsPromise,
+}: {
+  blocksPromise: Promise<BlockRecord[]>;
+  displaySettingsPromise: Promise<DisplaySettings | null>;
+}) {
   const { route, navigateHome, navigateToNewBlock, navigateToEditBlock } =
     useRouter();
   const {
@@ -25,13 +62,13 @@ export function App() {
     handleReorder,
     handleBlockStale,
     refreshStaleBlocks,
-  } = useBlocks();
+  } = useBlocks(blocksPromise);
 
   const [showSettings, setShowSettings] = useState(false);
-  const [displaySettings, setDisplaySettings] = useState<DisplaySettings>({
-    dateFormat: "D. M.",
-    timeFormat: "24h",
-  });
+  const initialDisplaySettings = use(displaySettingsPromise);
+  const [displaySettings, setDisplaySettings] = useState<DisplaySettings>(
+    initialDisplaySettings ?? { dateFormat: "D. M.", timeFormat: "24h" },
+  );
 
   const refetchDisplaySettings = useCallback(async () => {
     const settings = await fetchDisplaySettings();
@@ -39,10 +76,6 @@ export function App() {
       setDisplaySettings(settings);
     }
   }, []);
-
-  useEffect(() => {
-    void refetchDisplaySettings();
-  }, [refetchDisplaySettings]);
 
   useSse({
     onBlockUpdated: refetchBlock,
