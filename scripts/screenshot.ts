@@ -90,7 +90,21 @@ try {
     });
   }
 
-  // Reload so the page picks up the API-created blocks, then wait for output
+  // Wait for all blocks to have output before loading the page
+  const deadline = Date.now() + 30_000;
+  while (Date.now() < deadline) {
+    const res = await fetch(`http://localhost:${PORT}/api/blocks`);
+    const data = (await res.json()) as {
+      blocks: Array<{ status: string; output_markdown: string | null }>;
+    };
+    const allDone = data.blocks.every(
+      (b) => b.status === "success" && b.output_markdown,
+    );
+    if (allDone && data.blocks.length === EXAMPLE_BLOCKS.length) break;
+    await new Promise((r) => setTimeout(r, 200));
+  }
+
+  // Reload so the page picks up completed blocks
   await page.reload();
   await page.waitForFunction(
     (count) => document.querySelectorAll(".prose").length >= count,
