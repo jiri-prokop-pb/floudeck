@@ -20,6 +20,7 @@ export type AppOptions = {
   clientDir?: string;
   runBlock?: RunBlockFn;
   runAction?: RunBlockFn;
+  runTry?: RunBlockFn;
   tickIntervalMs?: number;
   serve?: typeof Bun.serve;
   development?: boolean;
@@ -41,7 +42,11 @@ async function serveStaticAssets(
   const pathname = url.pathname;
 
   // Serve index.html for SPA routes
-  if (pathname === "/" || pathname.startsWith("/action/")) {
+  if (
+    pathname === "/" ||
+    pathname.startsWith("/action/") ||
+    pathname.startsWith("/blocks/")
+  ) {
     const indexFile = Bun.file(`${clientDir}/index.html`);
     if (await indexFile.exists()) {
       return new Response(indexFile, {
@@ -66,6 +71,7 @@ export function createApp(options: AppOptions = {}): App {
     clientDir: clientDirOverride,
     runBlock = createRunner(SYSTEM_PROMPT),
     runAction = createRunner(ACTION_SYSTEM_PROMPT, "Action"),
+    runTry = createRunner(SYSTEM_PROMPT, "Try"),
     tickIntervalMs = 10_000,
     serve = Bun.serve,
     development = !clientDirOverride,
@@ -95,6 +101,7 @@ export function createApp(options: AppOptions = {}): App {
       });
     },
     runAction,
+    runTry,
   });
 
   // In production, resolve client assets dir (explicit flag or next to binary)
@@ -105,7 +112,7 @@ export function createApp(options: AppOptions = {}): App {
   // In dev mode, use Bun's HTML import for routes (enables HMR + Tailwind plugin).
   // In production, serve pre-built static assets via fetch handler.
   const routes = development
-    ? { "/": homepage, "/action/*": homepage }
+    ? { "/": homepage, "/action/*": homepage, "/blocks/*": homepage }
     : undefined;
 
   const server = serve({

@@ -1,17 +1,21 @@
-import { useState } from "react";
+import { Play } from "@phosphor-icons/react";
+import { useActionState, useEffect, useState } from "react";
 import type { RunnerConfig } from "../../types.ts";
+import { tryBlockApi } from "../lib/api.ts";
 import { buildRunnerConfig } from "../lib/runnerConfig.ts";
 import {
   type EnvEntry,
   parseEnvEntries,
   RunnerConfigFields,
 } from "./RunnerConfigFields.tsx";
+import { TryPanel, type TryState } from "./TryPanel.tsx";
 
 type BlockFormData = {
   prompt: string;
   intervalValue: number;
   intervalUnit: string;
   runnerConfig?: RunnerConfig;
+  tryResult?: string;
 };
 
 type BlockFormProps = {
@@ -38,8 +42,7 @@ export function BlockForm({
   const [prompt, setPrompt] = useState(initialPrompt);
   const [intervalValue, setIntervalValue] = useState(initialIntervalValue);
   const [intervalUnit, setIntervalUnit] = useState(initialIntervalUnit);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [tryState, setTryState] = useState<TryState>({ status: "idle" });
   const [showAdvanced, setShowAdvanced] = useState(
     initialRunnerConfig !== undefined,
   );
@@ -57,20 +60,40 @@ export function BlockForm({
     parseEnvEntries(initialRunnerConfig?.env),
   );
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
+  const [error, submitAction, isPending] = useActionState(
+    async (_prev: string | null) => {
+      if (!prompt.trim()) return "Prompt is required";
+      if (!Number.isInteger(intervalValue) || intervalValue <= 0)
+        return "Interval must be a positive integer";
 
+      const runnerConfig = buildRunnerConfig({
+        model,
+        permissions,
+        timeout,
+        envEntries,
+        cwd,
+      });
+      const tryMarkdown =
+        tryState.status === "success" ? tryState.markdown : undefined;
+      const result = await onSubmit({
+        prompt,
+        intervalValue,
+        intervalUnit,
+        ...(runnerConfig ? { runnerConfig } : {}),
+        ...(tryMarkdown ? { tryResult: tryMarkdown } : {}),
+      });
+      return result.error ?? null;
+    },
+    null,
+  );
+
+  async function handleTry() {
     if (!prompt.trim()) {
-      setError("Prompt is required");
-      return;
-    }
-    if (!Number.isInteger(intervalValue) || intervalValue <= 0) {
-      setError("Interval must be a positive integer");
       return;
     }
 
-    setLoading(true);
+    setTryState({ status: "running" });
+
     const runnerConfig = buildRunnerConfig({
       model,
       permissions,
@@ -78,20 +101,34 @@ export function BlockForm({
       envEntries,
       cwd,
     });
-    const result = await onSubmit({
-      prompt,
-      intervalValue,
-      intervalUnit,
+
+    const result = await tryBlockApi({
+      prompt: prompt.trim(),
       ...(runnerConfig ? { runnerConfig } : {}),
     });
-    if (result.error) {
-      setError(result.error);
+
+    if (result.ok) {
+      setTryState({ status: "success", markdown: result.markdown });
+    } else {
+      setTryState({ status: "error", error: result.error });
     }
-    setLoading(false);
   }
 
+  useEffect(() => {
+    if (tryState.status !== "idle") {
+      requestAnimationFrame(() => {
+        window.scrollTo({
+          top: document.documentElement.scrollHeight,
+          behavior: "smooth",
+        });
+      });
+    }
+  }, [tryState]);
+
+  const isTrying = tryState.status === "running";
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
+    <form action={submitAction} className="space-y-3">
       <textarea
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
@@ -117,24 +154,6 @@ export function BlockForm({
           <option value="hours">hours</option>
           <option value="days">days</option>
         </select>
-        <div className="ml-auto flex gap-2">
-          {onCancel && (
-            <button
-              type="button"
-              onClick={onCancel}
-              className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100"
-            >
-              Cancel
-            </button>
-          )}
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded-lg bg-zinc-800 px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50"
-          >
-            {loading ? "Saving..." : submitLabel}
-          </button>
-        </div>
       </div>
 
       {/* Advanced toggle */}
@@ -172,13 +191,43 @@ export function BlockForm({
                   ? `~/.floudeck/blocks-workspace/${blockUuid}`
                   : "Will be auto-generated"
               }
-              className="w-full rounded border border-zinc-200 px-2 py-1.5 text-sm placeholder:text-zinc-300 focus:border-zinc-400 focus:outline-none"
+              className="w-full rounded border border-zinc-200 bg-white px-2 py-1.5 text-sm placeholder:text-zinc-300 focus:border-zinc-400 focus:outline-none"
             />
           </label>
         </div>
       )}
 
+      <TryPanel state={tryState} />
+
       {error && <p className="text-sm text-red-600">{error}</p>}
+
+      <div className="flex justify-end gap-2 border-t border-zinc-100 pt-3">
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100"
+          >
+            Cancel
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={handleTry}
+          disabled={isPending || isTrying}
+          className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100 disabled:opacity-50"
+        >
+          <Play size={14} weight="bold" />
+          {isTrying ? "Running..." : "Try"}
+        </button>
+        <button
+          type="submit"
+          disabled={isPending || isTrying}
+          className="rounded-lg bg-zinc-800 px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50"
+        >
+          {isPending ? "Saving..." : submitLabel}
+        </button>
+      </div>
     </form>
   );
 }

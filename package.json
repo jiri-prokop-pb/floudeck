@@ -8,6 +8,7 @@
     "dev": "bun --watch run src/server.ts",
     "build:server": "bun run scripts/build.ts",
     "build": "bun run scripts/build.ts && cd src-tauri && cargo tauri build",
+    "dev:tauri": "cd src-tauri && cargo tauri dev",
     "test": "bun test src/",
     "lint": "bun biome check .",
     "format": "bun biome check --fix .",

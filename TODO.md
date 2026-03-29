@@ -53,17 +53,44 @@ V1 is implemented. See **[docs/custom-actions-spec.md](docs/custom-actions-spec.
 See **[docs/design-block-runners.md](docs/design-block-runners.md)** for the full design document.
 
 Phases:
-1. Interactive "Try" mode (foundation)
+1. ~~Interactive "Try" mode (foundation)~~ ✓ done
 2. CLI streaming (Try panel + feed)
 3. Runner type system + bun-script runner
 4. Claude Agent SDK runner
 5. API & external AI tools (deferred)
 
+## Compact UI mode
+
+- Setting in Settings > Display tab (`compactMode` boolean)
+- Header collapses to a thin bar (logo + clock/date + essential controls only)
+- Block card padding and margins reduced
+- Font sizes tightened throughout
+
+---
+
+## Action blocks
+
+A new block type that doesn't auto-schedule — it only runs on demand with user input. Essentially a container for multiple user-triggered actions.
+
+- A block with `schedule: "manual"` — never auto-runs, no timer, no output of its own
+- Each action block contains **multiple actions**, each with:
+  - Name & label (displayed as a button)
+  - Its own prompt template with `{{input}}` placeholders (or structured form schema)
+  - Its own runner config (model, cwd, permissions, timeout, env) — like a block inside a block
+- When an action button is clicked: shows an input form (free text or structured fields), substitutes into prompt, runs, shows result on the action page
+- Lives in the feed alongside regular blocks (rendered as a card with action buttons instead of markdown output)
+- Existing action infrastructure (action page, caching, cleanup) reused for execution & display
+- Will likely need `actionUUID` (instead of current `blockUUID`-based routing) to identify individual actions within a block — to be figured out during planning
+- Start simple: single free-text input per action, extend to structured fields later
+
+---
+
 ## Post-PoC
 
+- **React Router v7** — adopt loaders for route-level data fetching, route-level code splitting; replaces manual pushState routing in useRouter.ts
 - **Reminders** — one time or regular reminders that should show one time card at the top of the feed, in different style/color, (can be just a message, some calculated info and can contain actions), play sound and show a notification, all optional
   - Could also support "tell me when X happens" style — e.g. "tell me when HiBob is up again". The system figures out how to check (ideally via a generated script; if not, it prepares a prompt for its own `claude` instance). There's an API/contract for reminders to fire notifications (with action support). Could reuse block architecture as "conditional blocks" — always scheduled but only shown when the condition triggers. Extended scheduling: the contract allows reminders to reschedule themselves (change frequency) or stop completely. Needs careful design — braindump for now.
-- **Decks/pages/tabs** — multiple feeds with different card sets
+- **Decks/pages/tabs** — multiple feeds with different card sets; action blocks can be grouped onto a dedicated deck
 - **Notifications** — sound & native notifications, configurable per card. See **[docs/notifications-and-sounds.md](docs/notifications-and-sounds.md)** for implementation notes
 - **CI** — set up CI pipeline with lint, unit tests, and E2E checks
 - **Logging & debugging** — proper structured logging system for development

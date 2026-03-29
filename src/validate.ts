@@ -13,6 +13,7 @@ const BlockInputSchema = z.object({
   intervalValue: z.number(),
   intervalUnit: z.enum(VALID_UNITS),
   runnerConfig: z.optional(z.unknown()),
+  tryResult: z.optional(z.string()),
 });
 
 export type BlockInputError = {
@@ -46,7 +47,8 @@ export function parseBlockInput(
     return { field: "prompt", message: "Invalid input" };
   }
 
-  const { prompt, intervalValue, intervalUnit, runnerConfig } = result.data;
+  const { prompt, intervalValue, intervalUnit, runnerConfig, tryResult } =
+    result.data;
 
   if (!prompt.trim()) {
     return { field: "prompt", message: "Prompt is required" };
@@ -66,6 +68,7 @@ export function parseBlockInput(
     intervalValue,
     intervalUnit,
     ...(parsed ? { runnerConfig: parsed } : {}),
+    ...(tryResult?.trim() ? { tryResult: tryResult.trim() } : {}),
   };
 }
 
@@ -164,6 +167,35 @@ export function parseReorderInput(
   if (!result.success) return null;
   if (result.data.orderedIds.length === 0) return null;
   return { orderedIds: result.data.orderedIds };
+}
+
+export type TryRunInput = { prompt: string; runnerConfig?: RunnerConfig };
+
+const TryRunInputSchema = z.object({
+  prompt: z.string(),
+  runnerConfig: z.optional(z.unknown()),
+});
+
+export function parseTryRunInput(body: unknown): TryRunInput | string {
+  if (!body || typeof body !== "object") {
+    return "Request body must be a JSON object";
+  }
+
+  const result = TryRunInputSchema.safeParse(body);
+  if (!result.success) {
+    return "prompt is required";
+  }
+
+  const { prompt, runnerConfig } = result.data;
+  if (!prompt.trim()) {
+    return "prompt is required";
+  }
+
+  const parsed = parseRunnerConfig(runnerConfig);
+  return {
+    prompt: prompt.trim(),
+    ...(parsed ? { runnerConfig: parsed } : {}),
+  };
 }
 
 export function safeParseDisplaySettings(

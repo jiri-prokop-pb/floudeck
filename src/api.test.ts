@@ -23,6 +23,11 @@ beforeEach(() => {
       markdown: "# Action Result\n\nDone.",
       reasoning: null,
     })),
+    runTry: createMockRunner(() => ({
+      ok: true,
+      markdown: "# Try Result\n\nTest output.",
+      reasoning: null,
+    })),
   });
 });
 
@@ -413,6 +418,96 @@ describe("POST /api/blocks/reorder", () => {
       req("POST", "/api/blocks/reorder", { orderedIds: [] }),
     );
     expect(res?.status).toBe(400);
+  });
+});
+
+describe("POST /api/blocks/try", () => {
+  test("returns markdown for valid prompt", async () => {
+    const res = await router(
+      req("POST", "/api/blocks/try", { prompt: "test prompt" }),
+    );
+    const data = await jsonBody(res);
+    expect(data.ok).toBe(true);
+    expect(data.markdown).toBe("# Try Result\n\nTest output.");
+  });
+
+  test("returns 400 for empty prompt", async () => {
+    const res = await router(req("POST", "/api/blocks/try", { prompt: "  " }));
+    expect(res?.status).toBe(400);
+    const data = await jsonBody(res);
+    expect(data.ok).toBe(false);
+    expect(data.error).toContain("required");
+  });
+
+  test("returns 400 for missing prompt", async () => {
+    const res = await router(req("POST", "/api/blocks/try", {}));
+    expect(res?.status).toBe(400);
+  });
+
+  test("returns 400 for invalid JSON", async () => {
+    const res = await router(
+      new Request("http://localhost/api/blocks/try", {
+        method: "POST",
+        body: "not json",
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    expect(res?.status).toBe(400);
+  });
+
+  test("passes runnerConfig to runner", async () => {
+    let receivedConfig: unknown = null;
+    const customRouter = createRouter({
+      db,
+      sse,
+      triggerRun: () => {},
+      runAction: createMockRunner(() => ({
+        ok: true,
+        markdown: "",
+        reasoning: null,
+      })),
+      runTry: async (_prompt, config) => {
+        receivedConfig = config;
+        return { ok: true, markdown: "# OK\n\nDone.", reasoning: null };
+      },
+    });
+
+    await customRouter(
+      req("POST", "/api/blocks/try", {
+        prompt: "test",
+        runnerConfig: { model: "opus", timeout: 120 },
+      }),
+    );
+
+    if (!receivedConfig || typeof receivedConfig !== "object") {
+      throw new Error("Expected receivedConfig to be an object");
+    }
+    expect("model" in receivedConfig && receivedConfig.model).toBe("opus");
+    expect("timeout" in receivedConfig && receivedConfig.timeout).toBe(120);
+  });
+
+  test("returns error when runner fails", async () => {
+    const failRouter = createRouter({
+      db,
+      sse,
+      triggerRun: () => {},
+      runAction: createMockRunner(() => ({
+        ok: true,
+        markdown: "",
+        reasoning: null,
+      })),
+      runTry: async () => ({
+        ok: false,
+        error: "CLI failed",
+      }),
+    });
+
+    const res = await failRouter(
+      req("POST", "/api/blocks/try", { prompt: "test" }),
+    );
+    const data = await jsonBody(res);
+    expect(data.ok).toBe(false);
+    expect(data.error).toBe("CLI failed");
   });
 });
 

@@ -31,6 +31,7 @@ export type BlockFormInput = {
   intervalValue: number;
   intervalUnit: string;
   runnerConfig?: RunnerConfig;
+  tryResult?: string;
 };
 
 export async function createBlockApi(
@@ -120,6 +121,19 @@ export async function saveDisplaySettings(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ config }),
+  });
+}
+
+// --- Try ---
+
+export async function tryBlockApi(input: {
+  prompt: string;
+  runnerConfig?: RunnerConfig;
+}): Promise<ApiResponse<{ markdown: string }>> {
+  return apiFetch("/api/blocks/try", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
   });
 }
 

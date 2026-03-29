@@ -21,6 +21,7 @@ import homepage from "./client/index.html";
 routes: {
   "/": homepage,
   "/action/*": homepage,  // wildcard for SPA client-side routes
+  "/blocks/*": homepage,  // block create/edit pages
 }
 ```
 
@@ -64,13 +65,81 @@ Custom renderer in `src/client/lib/markdown.ts`.
 - Regular links without color → standard `<a target="_blank" rel="noopener noreferrer">`
 - Extension pattern: `marked.use({ renderer: { link(token) { ... } } })`
 
+## React 19 patterns
+
+### Data fetching — `use()` + Suspense
+
+Replace `useEffect` + loading state with `use()` for async data:
+
+```tsx
+// Parent creates the promise (stable identity via useState)
+function Parent() {
+  const [dataPromise] = useState(() => fetchData());
+  return (
+    <ErrorBoundary fallback={<Error />}>
+      <Suspense fallback={<Loading />}>
+        <Child dataPromise={dataPromise} />
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+
+// Child consumes via use() — suspends until resolved
+function Child({ dataPromise }: { dataPromise: Promise<Data> }) {
+  const data = use(dataPromise);
+  return <div>{data.name}</div>;
+}
+```
+
+**Key rule:** Create the promise in the **parent** component and pass it as a prop. Creating the promise with `useState` in the same component that calls `use()` causes an infinite render loop in Bun's dev bundler.
+
+### Form submissions — `useActionState`
+
+Replace manual `loading`/`error` state with `useActionState`:
+
+```tsx
+const [error, submitAction, isPending] = useActionState(
+  async (_prev: string | null) => {
+    // Read from controlled inputs in closure, not FormData
+    const res = await saveData({ name, value });
+    if (res.ok) { onSuccess(); return null; }
+    return res.error;
+  },
+  null,
+);
+
+return (
+  <form action={submitAction}>
+    {error && <p className="text-red-600">{error}</p>}
+    <button type="submit" disabled={isPending}>
+      {isPending ? "Saving..." : "Save"}
+    </button>
+  </form>
+);
+```
+
+### ErrorBoundary
+
+`use()` throws on promise rejection — `Suspense` doesn't catch errors. Wrap Suspense in `<ErrorBoundary fallback={...}>` (class component in `ErrorBoundary.tsx`).
+
+### What NOT to convert
+
+- SSE listeners, event handlers (`useRouter`, `useSse`, `useClickOutside`)
+- Timers (`HeaderClock`)
+- Layout effects (scroll behavior)
+- Side-effect buttons (e.g. "Try" button — stays as `onClick`)
+
+### Other React 19 changes
+
+- `ref` is a regular prop — no `forwardRef` needed
+
 ## Client-side routing — useRouter
 
 pushState-based SPA routing in `src/client/hooks/useRouter.ts`.
 
-- Route type union: `{ page: "feed" }` | `{ page: "action"; blockUuid; actionName; params }`
-- `parseRoute` matches `/action/([^/]+)/([^/?]+)` against `window.location.pathname`
+- Route type union: `{ page: "feed" }` | `{ page: "block-new" }` | `{ page: "block-edit"; blockId }` | `{ page: "action"; blockUuid; actionName; params }`
+- `parseRoute` matches `/blocks/new`, `/blocks/(\d+)/edit`, `/action/([^/]+)/([^/?]+)` against `window.location.pathname`
 - Navigation via click delegation: `document.addEventListener("click")` intercepts `a[data-action-link]` clicks, calls `pushState`
-- `navigateHome()` pushes `/` and resets to `{ page: "feed" }`
+- `navigateHome()`, `navigateToNewBlock()`, `navigateToEditBlock(id)` push state and set route
 - `popstate` listener handles browser back/forward
-- Server registers `/action/*` → `homepage` so direct URL loads work
+- Server registers `/action/*` and `/blocks/*` → `homepage` so direct URL loads work

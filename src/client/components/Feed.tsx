@@ -21,9 +21,16 @@ type FeedProps = {
   onUpdate: (block: BlockRecord) => void;
   onDelete: (id: number) => void;
   onReorder: (orderedIds: number[]) => void;
+  onEdit: (id: number) => void;
 };
 
-export function Feed({ blocks, onUpdate, onDelete, onReorder }: FeedProps) {
+export function Feed({
+  blocks,
+  onUpdate,
+  onDelete,
+  onReorder,
+  onEdit,
+}: FeedProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, {
@@ -67,6 +74,7 @@ export function Feed({ blocks, onUpdate, onDelete, onReorder }: FeedProps) {
               block={block}
               onUpdate={onUpdate}
               onDelete={onDelete}
+              onEdit={onEdit}
             />
           ))}
         </div>

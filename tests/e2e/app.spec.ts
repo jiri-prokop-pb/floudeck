@@ -10,7 +10,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto("/");
 });
 
-/** Open the create modal, fill in the form, and submit */
+/** Navigate to create page, fill in the form, and submit */
 async function createBlock(
   page: import("@playwright/test").Page,
   prompt: string,
@@ -62,8 +62,9 @@ test("edit block → re-runs", async ({ page }) => {
   // Click Edit via menu
   await clickCardMenu(page, "Edit");
 
-  // Update the prompt in the edit form
+  // Wait for form to load (Suspense), then update the prompt
   const editTextarea = page.locator("textarea");
+  await expect(editTextarea).toBeVisible({ timeout: 5_000 });
   await editTextarea.fill("Updated prompt");
   await page.click("text=Save");
 
@@ -81,9 +82,12 @@ test("delete block → disappears", async ({ page }) => {
   await expect(page.locator("text=Every hour")).toBeVisible();
   await page.locator('[title="Info"]').click(); // close tooltip
 
-  // Delete with confirmation
-  page.on("dialog", (dialog) => dialog.accept());
+  // Delete with custom confirmation dialog
   await clickCardMenu(page, "Delete");
+  await expect(
+    page.locator("text=Are you sure you want to delete"),
+  ).toBeVisible();
+  await page.locator("role=dialog >> button >> text=Delete").click();
 
   // Should show empty state again
   await expect(
@@ -132,6 +136,53 @@ test("multiple blocks in creation order", async ({ page }) => {
   // Both should be visible - check via info tooltips
   const infoButtons = page.locator('[title="Info"]');
   await expect(infoButtons).toHaveCount(2);
+});
+
+test("try panel scrolls into view on edit page after clicking Try", async ({
+  page,
+}) => {
+  // Create a block first
+  await createBlock(page, "Scroll test prompt", "15");
+  await expect(page.locator("text=Result")).toBeVisible({ timeout: 10_000 });
+
+  // Small viewport so form content overflows
+  await page.setViewportSize({ width: 800, height: 300 });
+
+  // Navigate to edit page
+  await clickCardMenu(page, "Edit");
+  await expect(page.locator("text=Edit block")).toBeVisible();
+
+  // Wait for form to load (Suspense), then open advanced settings
+  await expect(page.locator("textarea")).toBeVisible({ timeout: 5_000 });
+  await page.click("text=Show advanced settings");
+
+  // Scroll to top
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(100);
+
+  const scrollBefore = await page.evaluate(() => window.scrollY);
+
+  // Click Try
+  await page.click("text=Try");
+
+  // Wait for result
+  await expect(page.locator("text=Result")).toBeVisible({ timeout: 10_000 });
+
+  // Wait for scroll animation
+  await page.waitForTimeout(600);
+
+  const scrollAfter = await page.evaluate(() => window.scrollY);
+  await page.screenshot({
+    path: "test-results/try-scroll-edit.png",
+    fullPage: false,
+  });
+
+  // Verify page actually scrolled down
+  expect(scrollAfter).toBeGreaterThan(scrollBefore);
+
+  // The result should be in viewport
+  const tryResult = page.locator("text=Output for: Scroll test prompt");
+  await expect(tryResult).toBeInViewport({ timeout: 3_000 });
 });
 
 test("SSE updates UI without manual refresh", async ({ page }) => {

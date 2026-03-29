@@ -24,6 +24,7 @@ bun run dev        # http://localhost:3000
 - Output is GFM markdown rendered in a card
 - SSE pushes updates to the browser in real time
 - Blocks can be edited, refreshed, deleted, or reordered via drag-and-drop
+- **Try mode** — test a prompt before saving (runs through CLI and shows result inline)
 - Per-block and global runner configuration (model, timeout, permissions, cwd, env vars)
 - Live date/time clock in header with calendar popover on hover
 - Tabbed settings modal (Runner defaults, Display preferences)
@@ -37,10 +38,10 @@ bun install
 bun run build:server    # → dist/floudeck-server + dist/client/
 
 # Build macOS .app and .dmg
-cargo tauri build       # → src-tauri/target/release/bundle/
+bun run build           # → src-tauri/target/release/bundle/
 
 # Or dev mode with Tauri (live reload)
-cargo tauri dev
+bun run dev:tauri
 ```
 
 ## Development

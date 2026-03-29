@@ -47,6 +47,7 @@ export type CreateBlockInput = {
   intervalValue: number;
   intervalUnit: IntervalUnit;
   runnerConfig?: RunnerConfig;
+  tryResult?: string;
 };
 
 export type UpdateBlockInput = {
@@ -54,6 +55,7 @@ export type UpdateBlockInput = {
   intervalValue: number;
   intervalUnit: IntervalUnit;
   runnerConfig?: RunnerConfig;
+  tryResult?: string;
 };
 
 export type RunResult =

@@ -72,6 +72,7 @@ try {
   const browser = await chromium.launch();
   const page = await browser.newPage({
     viewport: { width: 1024, height: 800 },
+    deviceScaleFactor: 2,
   });
 
   await page.goto(`http://localhost:${PORT}`);
@@ -90,15 +91,59 @@ try {
     });
   }
 
-  // Reload so the page picks up the API-created blocks, then wait for output
+  // Wait for all blocks to have output before loading the page
+  const deadline = Date.now() + 30_000;
+  while (Date.now() < deadline) {
+    const res = await fetch(`http://localhost:${PORT}/api/blocks`);
+    const data = (await res.json()) as {
+      blocks: Array<{ status: string; output_markdown: string | null }>;
+    };
+    const allDone = data.blocks.every(
+      (b) => b.status === "success" && b.output_markdown,
+    );
+    if (allDone && data.blocks.length === EXAMPLE_BLOCKS.length) break;
+    await new Promise((r) => setTimeout(r, 200));
+  }
+
+  // Reload so the page picks up completed blocks
   await page.reload();
   await page.waitForFunction(
     (count) => document.querySelectorAll(".prose").length >= count,
     EXAMPLE_BLOCKS.length,
   );
 
-  // Take screenshot
-  await page.screenshot({ path: OUTPUT, fullPage: true });
+  // Take raw screenshot into buffer
+  const rawScreenshot = await page.screenshot({ fullPage: true });
+  const base64 = Buffer.from(rawScreenshot).toString("base64");
+
+  // Load app icon for overlay
+  const logoFile = Bun.file("src-tauri/icons/icon.png");
+  const logoBase64 = Buffer.from(await logoFile.arrayBuffer()).toString(
+    "base64",
+  );
+
+  // Wrap in macOS window frame with traffic lights, shadow, and logo overlay
+  const framePage = await browser.newPage({
+    viewport: { width: 1124, height: 900 },
+    deviceScaleFactor: 2,
+  });
+  await framePage.setContent(`
+    <html>
+    <body style="margin:0;padding:40px 50px 60px;background:transparent;display:flex;flex-direction:column;align-items:center">
+      <div style="border-radius:10px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.12);position:relative">
+        <div style="position:absolute;top:14px;left:14px;display:flex;gap:8px;z-index:1">
+          <div style="width:13px;height:13px;border-radius:50%;background:#FF5F57"></div>
+          <div style="width:13px;height:13px;border-radius:50%;background:#FEBC2E"></div>
+          <div style="width:13px;height:13px;border-radius:50%;background:#28C840"></div>
+        </div>
+        <img src="data:image/png;base64,${base64}" style="display:block;width:1024px" />
+      </div>
+      <img src="data:image/png;base64,${logoBase64}"
+           style="margin-top:-80px;height:160px;filter:drop-shadow(0 8px 30px rgba(0,0,0,0.12))" />
+    </body>
+    </html>
+  `);
+  await framePage.screenshot({ path: OUTPUT, fullPage: true, omitBackground: true });
   console.log(`Screenshot saved to ${OUTPUT}`);
 
   await browser.close();

@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
 import { mkdirSync } from "node:fs";
-import { nowIso } from "./time.ts";
+import { addInterval, nowIso } from "./time.ts";
 import type {
   ActionRun,
   BlockRecord,
@@ -136,10 +136,14 @@ export function createBlock(
   const runnerConfigJson = input.runnerConfig
     ? JSON.stringify(input.runnerConfig)
     : null;
+  const hasTryResult = !!input.tryResult;
+  const nextRunAt = hasTryResult
+    ? addInterval(now, input.intervalValue, input.intervalUnit)
+    : now;
   const result = db
     .query(
-      `INSERT INTO blocks (uuid, prompt, interval_value, interval_unit, status, runner_config, created_at, updated_at, next_run_at, position)
-       VALUES (?, ?, ?, ?, 'idle', ?, ?, ?, ?, (SELECT COALESCE(MAX(position), 0) + 1000 FROM blocks))
+      `INSERT INTO blocks (uuid, prompt, interval_value, interval_unit, status, output_markdown, runner_config, created_at, updated_at, next_run_at, position)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(position), 0) + 1000 FROM blocks))
        RETURNING *`,
     )
     .get(
@@ -147,10 +151,12 @@ export function createBlock(
       input.prompt.trim(),
       input.intervalValue,
       input.intervalUnit,
+      hasTryResult ? "success" : "idle",
+      input.tryResult ?? null,
       runnerConfigJson,
       now,
       now,
-      now,
+      nextRunAt,
     ) as BlockRecord;
   return result;
 }
@@ -164,9 +170,17 @@ export function updateBlock(
   const runnerConfigJson = input.runnerConfig
     ? JSON.stringify(input.runnerConfig)
     : null;
+  const hasTryResult = !!input.tryResult;
+  const nextRunAt = hasTryResult
+    ? addInterval(now, input.intervalValue, input.intervalUnit)
+    : now;
+  const outputMarkdown = hasTryResult ? input.tryResult : undefined;
+  const status = hasTryResult ? "success" : undefined;
   const result = db
     .query(
-      `UPDATE blocks SET prompt = ?, interval_value = ?, interval_unit = ?, runner_config = ?, updated_at = ?, next_run_at = ?
+      `UPDATE blocks SET prompt = ?, interval_value = ?, interval_unit = ?, runner_config = ?,
+       updated_at = ?, next_run_at = ?
+       ${hasTryResult ? ", output_markdown = ?, status = ?" : ""}
        WHERE id = ? RETURNING *`,
     )
     .get(
@@ -175,7 +189,8 @@ export function updateBlock(
       input.intervalUnit,
       runnerConfigJson,
       now,
-      now,
+      nextRunAt,
+      ...(hasTryResult ? [outputMarkdown, status] : []),
       id,
     ) as BlockRecord | null;
   return result ?? null;
