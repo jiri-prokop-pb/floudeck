@@ -1,5 +1,5 @@
 import { Play } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import type { RunnerConfig } from "../../types.ts";
 import { tryBlockApi } from "../lib/api.ts";
 import { buildRunnerConfig } from "../lib/runnerConfig.ts";
@@ -42,8 +42,6 @@ export function BlockForm({
   const [prompt, setPrompt] = useState(initialPrompt);
   const [intervalValue, setIntervalValue] = useState(initialIntervalValue);
   const [intervalUnit, setIntervalUnit] = useState(initialIntervalUnit);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [tryState, setTryState] = useState<TryState>({ status: "idle" });
   const [showAdvanced, setShowAdvanced] = useState(
     initialRunnerConfig !== undefined,
@@ -62,49 +60,38 @@ export function BlockForm({
     parseEnvEntries(initialRunnerConfig?.env),
   );
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
+  const [error, submitAction, isPending] = useActionState(
+    async (_prev: string | null) => {
+      if (!prompt.trim()) return "Prompt is required";
+      if (!Number.isInteger(intervalValue) || intervalValue <= 0)
+        return "Interval must be a positive integer";
 
-    if (!prompt.trim()) {
-      setError("Prompt is required");
-      return;
-    }
-    if (!Number.isInteger(intervalValue) || intervalValue <= 0) {
-      setError("Interval must be a positive integer");
-      return;
-    }
-
-    setLoading(true);
-    const runnerConfig = buildRunnerConfig({
-      model,
-      permissions,
-      timeout,
-      envEntries,
-      cwd,
-    });
-    const tryMarkdown =
-      tryState.status === "success" ? tryState.markdown : undefined;
-    const result = await onSubmit({
-      prompt,
-      intervalValue,
-      intervalUnit,
-      ...(runnerConfig ? { runnerConfig } : {}),
-      ...(tryMarkdown ? { tryResult: tryMarkdown } : {}),
-    });
-    if (result.error) {
-      setError(result.error);
-    }
-    setLoading(false);
-  }
+      const runnerConfig = buildRunnerConfig({
+        model,
+        permissions,
+        timeout,
+        envEntries,
+        cwd,
+      });
+      const tryMarkdown =
+        tryState.status === "success" ? tryState.markdown : undefined;
+      const result = await onSubmit({
+        prompt,
+        intervalValue,
+        intervalUnit,
+        ...(runnerConfig ? { runnerConfig } : {}),
+        ...(tryMarkdown ? { tryResult: tryMarkdown } : {}),
+      });
+      return result.error ?? null;
+    },
+    null,
+  );
 
   async function handleTry() {
     if (!prompt.trim()) {
-      setError("Prompt is required");
       return;
     }
 
-    setError(null);
     setTryState({ status: "running" });
 
     const runnerConfig = buildRunnerConfig({
@@ -141,7 +128,7 @@ export function BlockForm({
   const isTrying = tryState.status === "running";
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
+    <form action={submitAction} className="space-y-3">
       <textarea
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
@@ -227,7 +214,7 @@ export function BlockForm({
         <button
           type="button"
           onClick={handleTry}
-          disabled={loading || isTrying}
+          disabled={isPending || isTrying}
           className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100 disabled:opacity-50"
         >
           <Play size={14} weight="bold" />
@@ -235,10 +222,10 @@ export function BlockForm({
         </button>
         <button
           type="submit"
-          disabled={loading || isTrying}
+          disabled={isPending || isTrying}
           className="rounded-lg bg-zinc-800 px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50"
         >
-          {loading ? "Saving..." : submitLabel}
+          {isPending ? "Saving..." : submitLabel}
         </button>
       </div>
     </form>
