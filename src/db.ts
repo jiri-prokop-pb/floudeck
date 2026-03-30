@@ -2,12 +2,16 @@ import { Database } from "bun:sqlite";
 import { mkdirSync } from "node:fs";
 import { addInterval, nowIso } from "./time.ts";
 import type {
+  ActionDefinition,
   ActionRun,
   BlockRecord,
+  CreateActionBlockInput,
   CreateBlockInput,
   RunnerConfig,
+  UpdateActionBlockInput,
   UpdateBlockInput,
 } from "./types.ts";
+import { ActionDefinitionSchema } from "./types.ts";
 import { safeParseRunnerConfig } from "./validate.ts";
 
 export function getSchemaVersion(db: Database): number {
@@ -35,6 +39,16 @@ type Migration = {
 // Add new migrations here. Each must have a sequential version number.
 const MIGRATIONS: Migration[] = [
   // version 1 = initial schema (created by initDb below)
+  {
+    version: 2,
+    up: (db) => {
+      db.run(
+        "ALTER TABLE blocks ADD COLUMN block_type TEXT NOT NULL DEFAULT 'scheduled'",
+      );
+      db.run("ALTER TABLE blocks ADD COLUMN title TEXT");
+      db.run("ALTER TABLE blocks ADD COLUMN actions TEXT");
+    },
+  },
 ];
 
 function runMigrations(db: Database): void {
@@ -73,7 +87,10 @@ export function initDb(path?: string): Database {
       last_run_at TEXT,
       next_run_at TEXT,
       running_started_at TEXT,
-      position INTEGER NOT NULL DEFAULT 0
+      position INTEGER NOT NULL DEFAULT 0,
+      block_type TEXT NOT NULL DEFAULT 'scheduled',
+      title TEXT,
+      actions TEXT
     )
   `);
   db.run(
@@ -105,7 +122,7 @@ export function initDb(path?: string): Database {
 
   // Set initial schema version if this is a fresh DB
   if (getSchemaVersion(db) === 0) {
-    setSchemaVersion(db, 1);
+    setSchemaVersion(db, 2);
   }
 
   // Run any pending migrations
@@ -274,7 +291,7 @@ export function findDueBlocks(
   return db
     .query(
       `SELECT * FROM blocks
-       WHERE next_run_at <= ? AND status != 'running'
+       WHERE next_run_at <= ? AND status != 'running' AND block_type = 'scheduled'
        ORDER BY next_run_at ASC
        LIMIT ?`,
     )
@@ -286,7 +303,7 @@ export function resetStaleRunningBlocks(db: Database, now: string): number {
     `UPDATE blocks SET status = 'error',
      error_text = 'Previous run did not finish because the server stopped.',
      running_started_at = NULL, next_run_at = ?, updated_at = ?
-     WHERE status = 'running'`,
+     WHERE status = 'running' AND block_type = 'scheduled'`,
     now,
     now,
   );
@@ -322,6 +339,78 @@ export function parseBlockRunnerConfig(
   block: BlockRecord,
 ): RunnerConfig | null {
   return safeParseRunnerConfig(block.runner_config) ?? null;
+}
+
+// --- Action Blocks ---
+
+export function createActionBlock(
+  db: Database,
+  input: CreateActionBlockInput,
+): BlockRecord {
+  const now = nowIso();
+  const uuid = crypto.randomUUID();
+  const runnerConfigJson = input.runnerConfig
+    ? JSON.stringify(input.runnerConfig)
+    : null;
+  const actionsJson = JSON.stringify(input.actions);
+  const result = db
+    .query(
+      `INSERT INTO blocks (uuid, prompt, interval_value, interval_unit, status, runner_config, created_at, updated_at, next_run_at, position, block_type, title, actions)
+       VALUES (?, '', 0, 'minutes', 'idle', ?, ?, ?, NULL, (SELECT COALESCE(MAX(position), 0) + 1000 FROM blocks), 'action', ?, ?)
+       RETURNING *`,
+    )
+    .get(
+      uuid,
+      runnerConfigJson,
+      now,
+      now,
+      input.title ?? null,
+      actionsJson,
+    ) as BlockRecord;
+  return result;
+}
+
+export function updateActionBlock(
+  db: Database,
+  id: number,
+  input: UpdateActionBlockInput,
+): BlockRecord | null {
+  const now = nowIso();
+  const runnerConfigJson = input.runnerConfig
+    ? JSON.stringify(input.runnerConfig)
+    : null;
+  const actionsJson = JSON.stringify(input.actions);
+  const result = db
+    .query(
+      `UPDATE blocks SET title = ?, actions = ?, runner_config = ?, updated_at = ?
+       WHERE id = ? AND block_type = 'action' RETURNING *`,
+    )
+    .get(
+      input.title ?? null,
+      actionsJson,
+      runnerConfigJson,
+      now,
+      id,
+    ) as BlockRecord | null;
+  return result ?? null;
+}
+
+export function parseBlockActions(block: BlockRecord): ActionDefinition[] {
+  if (!block.actions) return [];
+  try {
+    const parsed: unknown = JSON.parse(block.actions);
+    if (!Array.isArray(parsed)) return [];
+    const result: ActionDefinition[] = [];
+    for (const item of parsed) {
+      const r = ActionDefinitionSchema.safeParse(item);
+      if (r.success) {
+        result.push(r.data);
+      }
+    }
+    return result;
+  } catch {
+    return [];
+  }
 }
 
 // --- Action Runs ---

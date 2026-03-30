@@ -1,10 +1,15 @@
 import { z } from "zod/mini";
 import type {
+  CreateActionBlockInput,
   CreateBlockInput,
   DisplaySettings,
   RunnerConfig,
 } from "./types.ts";
-import { DisplaySettingsSchema, RunnerConfigSchema } from "./types.ts";
+import {
+  ActionDefinitionSchema,
+  DisplaySettingsSchema,
+  RunnerConfigSchema,
+} from "./types.ts";
 
 const VALID_UNITS = ["minutes", "hours", "days"] as const;
 
@@ -208,6 +213,107 @@ export function safeParseDisplaySettings(
   } catch {
     return undefined;
   }
+}
+
+// --- Action Block Validation ---
+
+const ACTION_NAME_RE = /^[a-z0-9][a-z0-9-]*$/;
+
+export type ActionBlockInputError = {
+  field: string;
+  message: string;
+};
+
+export function isActionBlockInput(body: unknown): boolean {
+  return (
+    !!body &&
+    typeof body === "object" &&
+    "blockType" in body &&
+    (body as Record<string, unknown>).blockType === "action"
+  );
+}
+
+export function parseActionBlockInput(
+  body: unknown,
+): CreateActionBlockInput | ActionBlockInputError {
+  if (!body || typeof body !== "object") {
+    return { field: "actions", message: "Request body must be a JSON object" };
+  }
+
+  const obj = body as Record<string, unknown>;
+
+  // Parse actions array
+  if (!Array.isArray(obj.actions) || obj.actions.length === 0) {
+    return {
+      field: "actions",
+      message: "At least one action is required",
+    };
+  }
+
+  const actions = [];
+  const names = new Set<string>();
+  for (let i = 0; i < obj.actions.length; i++) {
+    const r = ActionDefinitionSchema.safeParse(obj.actions[i]);
+    if (!r.success) {
+      return {
+        field: `actions[${i}]`,
+        message: "Invalid action definition",
+      };
+    }
+    const action = r.data;
+    if (!action.name.trim()) {
+      return {
+        field: `actions[${i}].name`,
+        message: "Action name is required",
+      };
+    }
+    if (!ACTION_NAME_RE.test(action.name)) {
+      return {
+        field: `actions[${i}].name`,
+        message:
+          "Action name must be URL-safe (lowercase letters, numbers, hyphens)",
+      };
+    }
+    if (names.has(action.name)) {
+      return {
+        field: `actions[${i}].name`,
+        message: `Duplicate action name: ${action.name}`,
+      };
+    }
+    names.add(action.name);
+    if (!action.label.trim()) {
+      return {
+        field: `actions[${i}].label`,
+        message: "Action label is required",
+      };
+    }
+    if (!action.prompt.trim()) {
+      return {
+        field: `actions[${i}].prompt`,
+        message: "Action prompt is required",
+      };
+    }
+    actions.push(action);
+  }
+
+  const parsed = parseRunnerConfig(obj.runnerConfig);
+  const title =
+    typeof obj.title === "string" && obj.title.trim()
+      ? obj.title.trim()
+      : undefined;
+
+  return {
+    blockType: "action",
+    title,
+    actions,
+    ...(parsed ? { runnerConfig: parsed } : {}),
+  };
+}
+
+export function isActionBlockInputError(
+  result: CreateActionBlockInput | ActionBlockInputError,
+): result is ActionBlockInputError {
+  return "field" in result;
 }
 
 export function parseDisplaySettings(raw: unknown): DisplaySettings | null {

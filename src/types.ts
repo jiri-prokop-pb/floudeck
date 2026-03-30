@@ -2,7 +2,15 @@ import { z } from "zod/mini";
 
 export type IntervalUnit = "minutes" | "hours" | "days";
 export type BlockStatus = "idle" | "running" | "success" | "error";
+export type BlockType = "scheduled" | "action";
 export type PermissionMode = "default" | "dangerouslySkipPermissions";
+export type ActionColor =
+  | "red"
+  | "orange"
+  | "yellow"
+  | "green"
+  | "blue"
+  | "purple";
 
 export const ENV_INHERIT_SENTINEL = "$__FLOUDECK_INHERIT__";
 
@@ -24,6 +32,17 @@ export type ResolvedRunnerConfig = {
   timeout: number;
 };
 
+export const ActionDefinitionSchema = z.object({
+  name: z.string(),
+  label: z.string(),
+  color: z.optional(
+    z.enum(["red", "orange", "yellow", "green", "blue", "purple"]),
+  ),
+  prompt: z.string(),
+});
+
+export type ActionDefinition = z.infer<typeof ActionDefinitionSchema>;
+
 export type BlockRecord = {
   id: number;
   uuid: string;
@@ -40,6 +59,9 @@ export type BlockRecord = {
   next_run_at: string | null;
   running_started_at: string | null;
   position: number;
+  block_type: BlockType;
+  title: string | null;
+  actions: string | null;
 };
 
 export type CreateBlockInput = {
@@ -96,6 +118,20 @@ export type ActionRun = {
   error_text: string | null;
   created_at: string;
   completed_at: string | null;
+};
+
+export type CreateActionBlockInput = {
+  blockType: "action";
+  title?: string;
+  actions: ActionDefinition[];
+  runnerConfig?: RunnerConfig;
+};
+
+export type UpdateActionBlockInput = {
+  blockType: "action";
+  title?: string;
+  actions: ActionDefinition[];
+  runnerConfig?: RunnerConfig;
 };
 
 export type RunBlockFn = (
