@@ -116,6 +116,20 @@ export function BlockForm({
       cwd,
     });
 
+    // Accumulate raw text and extract only the markdown portion for display
+    let rawText = "";
+    const BEGIN_MD = "===BEGIN_MARKDOWN===";
+    const END_MD = "===END_MARKDOWN===";
+
+    function extractVisibleText(raw: string): string {
+      if (debugMode) return raw;
+      const startIdx = raw.indexOf(BEGIN_MD);
+      if (startIdx === -1) return "";
+      const after = raw.slice(startIdx + BEGIN_MD.length);
+      const endIdx = after.indexOf(END_MD);
+      return endIdx === -1 ? after : after.slice(0, endIdx);
+    }
+
     const controller = tryBlockStreamApi(
       {
         prompt: prompt.trim(),
@@ -125,11 +139,13 @@ export function BlockForm({
       },
       {
         onText(text) {
+          rawText += text;
+          const visible = extractVisibleText(rawText);
           setTryState((prev) => {
             if (prev.status !== "running") return prev;
             return {
               ...prev,
-              partialText: prev.partialText + text,
+              partialText: visible,
             };
           });
         },

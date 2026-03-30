@@ -1,5 +1,5 @@
 import type { DebugEvent, PermissionErrorInfo } from "../../types.ts";
-import { extractTitle, renderMarkdown } from "../lib/markdown.ts";
+import { renderMarkdown } from "../lib/markdown.ts";
 import { DebugPanel } from "./DebugPanel.tsx";
 import { PulseSkeleton } from "./PulseSkeleton.tsx";
 
@@ -77,22 +77,14 @@ export function TryPanel({ state }: TryPanelProps) {
     );
   }
 
-  // success
-  const { title, body } = extractTitle(state.markdown);
+  // success — render full markdown so heading sizes stay consistent
   return (
     <div className="space-y-2">
       <div className="rounded-lg border border-zinc-200 bg-white p-4">
-        {title && (
-          <h3 className="mb-2 text-base font-semibold text-zinc-900">
-            {title}
-          </h3>
-        )}
-        {body && (
-          <div
-            className="prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: renderMarkdown(body) }}
-          />
-        )}
+        <div
+          className="prose prose-sm max-w-none"
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(state.markdown) }}
+        />
       </div>
       <DebugPanel events={state.debugEvents} />
     </div>
