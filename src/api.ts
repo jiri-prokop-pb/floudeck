@@ -2,6 +2,7 @@ import type { Database } from "bun:sqlite";
 import { z } from "zod/mini";
 import { formatCliCommand, resolveRunnerConfig } from "./config.ts";
 import {
+  createActionBlock,
   createActionRun,
   createBlock,
   deleteBlock,
@@ -12,17 +13,22 @@ import {
   listBlocks,
   markActionCompleted,
   markActionError,
+  parseBlockActions,
   parseBlockRunnerConfig,
   reorderBlocks,
   setSetting,
+  updateActionBlock,
   updateBlock,
 } from "./db.ts";
-import { composeActionPrompt } from "./prompts.ts";
+import { composeActionBlockPrompt, composeActionPrompt } from "./prompts.ts";
 import type { SseBroadcaster } from "./sse.ts";
 import { nowIso } from "./time.ts";
 import type { RunBlockFn } from "./types.ts";
 import {
+  isActionBlockInput,
+  isActionBlockInputError,
   isBlockInputError,
+  parseActionBlockInput,
   parseBlockInput,
   parseDisplaySettings,
   parseReorderInput,
@@ -45,9 +51,15 @@ function json(data: unknown, status = 200): Response {
 }
 
 function extractBlockTitle(
-  block: { output_markdown: string | null } | null,
+  block: {
+    output_markdown: string | null;
+    block_type: string;
+    title: string | null;
+  } | null,
 ): string | null {
-  if (!block?.output_markdown) return null;
+  if (!block) return null;
+  if (block.block_type === "action" && block.title) return block.title;
+  if (!block.output_markdown) return null;
   const match = /^# (.+)$/m.exec(block.output_markdown);
   return match ? match[1].trim() : null;
 }
@@ -111,6 +123,7 @@ const ActionRunBodySchema = z.object({
   blockUuid: z.string(),
   actionName: z.string(),
   params: z.optional(z.record(z.string(), z.string())),
+  input: z.optional(z.string()),
 });
 
 function settingsHandlers(
@@ -196,6 +209,16 @@ export function createRouter(
     },
     {
       method: "GET",
+      pattern: "/api/blocks/uuid/:uuid",
+      handler: (_req, params) => {
+        const block = getBlockByUuid(db, params.uuid ?? "");
+        if (!block) return json({ ok: false, error: "Not found" }, 404);
+        const parsedActions = parseBlockActions(block);
+        return json({ ok: true, block, parsedActions });
+      },
+    },
+    {
+      method: "GET",
       pattern: "/api/events",
       handler: () => {
         return sse.addClient();
@@ -207,6 +230,22 @@ export function createRouter(
       handler: async (req) => {
         const parsed = await parseJsonBody(req);
         if (parsed instanceof Response) return parsed;
+
+        if (isActionBlockInput(parsed.body)) {
+          const input = parseActionBlockInput(parsed.body);
+          if (isActionBlockInputError(input)) {
+            return json({ ok: false, error: input.message }, 400);
+          }
+          try {
+            const block = createActionBlock(db, input);
+            return json({ ok: true, block }, 201);
+          } catch (err: unknown) {
+            const message =
+              err instanceof Error ? err.message : "Failed to create block";
+            return json({ ok: false, error: message }, 400);
+          }
+        }
+
         const input = parseBlockInput(parsed.body);
         if (isBlockInputError(input)) {
           return json({ ok: false, error: input.message }, 400);
@@ -230,6 +269,12 @@ export function createRouter(
         if (id instanceof Response) return id;
         const block = getBlock(db, id);
         if (!block) return json({ ok: false, error: "Not found" }, 404);
+        if (block.block_type === "action") {
+          return json(
+            { ok: false, error: "Action blocks cannot be refreshed" },
+            400,
+          );
+        }
         if (block.status === "running") {
           return json({ ok: true, block });
         }
@@ -254,6 +299,30 @@ export function createRouter(
         if (id instanceof Response) return id;
         const parsed = await parseJsonBody(req);
         if (parsed instanceof Response) return parsed;
+
+        // Check if existing block is an action block
+        const existingBlock = getBlock(db, id);
+        if (!existingBlock) return json({ ok: false, error: "Not found" }, 404);
+
+        if (
+          existingBlock.block_type === "action" ||
+          isActionBlockInput(parsed.body)
+        ) {
+          const input = parseActionBlockInput(parsed.body);
+          if (isActionBlockInputError(input)) {
+            return json({ ok: false, error: input.message }, 400);
+          }
+          try {
+            const block = updateActionBlock(db, id, input);
+            if (!block) return json({ ok: false, error: "Not found" }, 404);
+            return json({ ok: true, block });
+          } catch (err: unknown) {
+            const message =
+              err instanceof Error ? err.message : "Failed to update block";
+            return json({ ok: false, error: message }, 400);
+          }
+        }
+
         const input = parseBlockInput(parsed.body);
         if (isBlockInputError(input)) {
           return json({ ok: false, error: input.message }, 400);
@@ -358,7 +427,7 @@ export function createRouter(
             400,
           );
         }
-        const { clickId, blockUuid, actionName, params } = result.data;
+        const { clickId, blockUuid, actionName, params, input } = result.data;
 
         // Check for existing run with this clickId
         const existing = getActionRun(db, clickId);
@@ -388,14 +457,31 @@ export function createRouter(
           now,
         );
 
-        // Spawn action run asynchronously
-        const blockOutput = block.output_markdown ?? "";
-        const prompt = composeActionPrompt(
-          blockOutput,
-          actionName,
-          paramsObj,
-          block.uuid,
-        );
+        // Build prompt based on block type
+        let prompt: string;
+        if (block.block_type === "action") {
+          const actions = parseBlockActions(block);
+          const actionDef = actions.find((a) => a.name === actionName);
+          if (!actionDef) {
+            return json(
+              { ok: false, error: `Action "${actionName}" not found in block` },
+              404,
+            );
+          }
+          prompt = composeActionBlockPrompt(
+            actionDef.prompt,
+            input ?? "",
+            block.uuid,
+          );
+        } else {
+          const blockOutput = block.output_markdown ?? "";
+          prompt = composeActionPrompt(
+            blockOutput,
+            actionName,
+            paramsObj,
+            block.uuid,
+          );
+        }
 
         const blockConfig = parseBlockRunnerConfig(block);
         const globalDefaults =
