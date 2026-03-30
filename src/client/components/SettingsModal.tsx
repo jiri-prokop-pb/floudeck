@@ -234,10 +234,17 @@ function DisplaySection({
   const [timeFormat, setTimeFormat] = useState(
     initialConfig?.timeFormat ?? "24h",
   );
+  const [compactMode, setCompactMode] = useState(
+    initialConfig?.compactMode ?? false,
+  );
 
   const [error, saveAction, isSaving] = useActionState(
     async (_prev: string | null) => {
-      const res = await saveDisplaySettings({ dateFormat, timeFormat });
+      const res = await saveDisplaySettings({
+        dateFormat,
+        timeFormat,
+        compactMode,
+      });
       if (res.ok) {
         onSaved?.();
         onClose();
@@ -282,6 +289,19 @@ function DisplaySection({
           <option value="24h">24-hour</option>
           <option value="12h">12-hour</option>
         </select>
+      </label>
+
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={compactMode}
+          onChange={(e) => setCompactMode(e.target.checked)}
+          className="h-4 w-4 rounded border-zinc-300 text-zinc-800 focus:ring-zinc-500"
+        />
+        <span className="text-sm text-zinc-700">Compact mode</span>
+        <span className="text-xs text-zinc-400">
+          Reduce spacing for more content
+        </span>
       </label>
 
       {error && <p className="text-sm text-red-600">{error}</p>}

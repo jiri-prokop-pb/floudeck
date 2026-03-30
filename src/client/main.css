@@ -28,3 +28,18 @@ a[href] {
 .prose tbody tr:hover {
   background-color: var(--color-zinc-50);
 }
+
+.prose-compact :where(ul, ol) {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+.prose-compact :where(li) {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.prose-compact :where(p) {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}

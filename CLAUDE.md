@@ -11,7 +11,7 @@ Keep in sync with the codebase after every implementation phase:
 - **SPEC.md** — product spec (no implementation details)
 - **README.md** — public-facing overview, quick start
 - **CLAUDE.md** (this file) — rules, gotchas, decisions for agents
-- **TODO.md** — upcoming work
+- **TODO.md** — upcoming work. Remove completed items, add new ones as they emerge
 - **docs/screenshot.png** — regenerate (`bun run scripts/screenshot.ts`) when app visuals change
 
 ## Stack

@@ -18,6 +18,7 @@ import { SortableBlockCard } from "./BlockCard.tsx";
 
 type FeedProps = {
   blocks: BlockRecord[];
+  compact?: boolean;
   onUpdate: (block: BlockRecord) => void;
   onDelete: (id: number) => void;
   onReorder: (orderedIds: number[]) => void;
@@ -26,6 +27,7 @@ type FeedProps = {
 
 export function Feed({
   blocks,
+  compact,
   onUpdate,
   onDelete,
   onReorder,
@@ -67,11 +69,12 @@ export function Feed({
       onDragEnd={handleDragEnd}
     >
       <SortableContext items={blockIds} strategy={verticalListSortingStrategy}>
-        <div className="space-y-4">
+        <div className={compact ? "space-y-2" : "space-y-4"}>
           {blocks.map((block) => (
             <SortableBlockCard
               key={block.id}
               block={block}
+              compact={compact}
               onUpdate={onUpdate}
               onDelete={onDelete}
               onEdit={onEdit}

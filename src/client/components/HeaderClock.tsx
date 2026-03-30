@@ -5,9 +5,10 @@ import { CalendarPopover } from "./CalendarPopover.tsx";
 
 type HeaderClockProps = {
   displaySettings: DisplaySettings;
+  compact?: boolean;
 };
 
-export function HeaderClock({ displaySettings }: HeaderClockProps) {
+export function HeaderClock({ displaySettings, compact }: HeaderClockProps) {
   const [now, setNow] = useState(() => new Date());
   const [showCalendar, setShowCalendar] = useState(false);
 
@@ -22,7 +23,7 @@ export function HeaderClock({ displaySettings }: HeaderClockProps) {
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: hover-only tooltip, not interactive
     <div
-      className="relative flex cursor-default items-center gap-2 text-sm tabular-nums text-zinc-500"
+      className={`relative flex cursor-default items-center gap-2 tabular-nums text-zinc-500 ${compact ? "text-xs" : "text-sm"}`}
       onMouseEnter={() => setShowCalendar(true)}
       onMouseLeave={() => setShowCalendar(false)}
     >

@@ -115,7 +115,7 @@ export async function fetchDisplaySettings(): Promise<DisplaySettings | null> {
 }
 
 export async function saveDisplaySettings(
-  config: Record<string, string> | null,
+  config: Record<string, string | boolean> | null,
 ): Promise<ApiResponse<{ config: DisplaySettings | null }>> {
   return apiFetch("/api/settings/display", {
     method: "POST",

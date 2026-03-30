@@ -226,6 +226,10 @@ export function parseDisplaySettings(raw: unknown): DisplaySettings | null {
     config.timeFormat = result.data.timeFormat;
     hasKeys = true;
   }
+  if (typeof result.data.compactMode === "boolean") {
+    config.compactMode = result.data.compactMode;
+    hasKeys = true;
+  }
 
   return hasKeys ? config : null;
 }
