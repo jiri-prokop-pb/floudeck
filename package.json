@@ -13,7 +13,8 @@
     "lint": "bun biome check .",
     "format": "bun biome check --fix .",
     "check": "bun biome check . && bun run test && bun run e2e",
-    "e2e": "bun run scripts/run-e2e.ts"
+    "e2e": "bun run scripts/run-e2e.ts",
+    "bump": "bun run scripts/bump-version.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.6",
