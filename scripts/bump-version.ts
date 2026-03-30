@@ -1,14 +1,14 @@
 const version = process.argv[2];
 
 if (!version) {
-	console.error("Usage: bun run scripts/bump-version.ts <version>");
-	console.error("Example: bun run scripts/bump-version.ts 0.2.0");
-	process.exit(1);
+  console.error("Usage: bun run scripts/bump-version.ts <version>");
+  console.error("Example: bun run scripts/bump-version.ts 0.2.0");
+  process.exit(1);
 }
 
 if (!/^\d+\.\d+\.\d+$/.test(version)) {
-	console.error(`Invalid semver format: "${version}". Expected X.Y.Z`);
-	process.exit(1);
+  console.error(`Invalid semver format: "${version}". Expected X.Y.Z`);
+  process.exit(1);
 }
 
 // package.json
