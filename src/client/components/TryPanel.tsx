@@ -36,9 +36,9 @@ export function TryPanel({ state }: TryPanelProps) {
           {partial ? (
             <>
               {partial.title && (
-                <h3 className="mb-2 text-base font-semibold text-zinc-900">
+                <h1 className="mb-2 text-base font-semibold text-zinc-900">
                   {partial.title}
-                </h3>
+                </h1>
               )}
               {partial.body && (
                 <div
@@ -93,9 +93,9 @@ export function TryPanel({ state }: TryPanelProps) {
     <div className="space-y-2">
       <div className="rounded-lg border border-zinc-200 bg-white p-4">
         {title && (
-          <h3 className="mb-2 text-base font-semibold text-zinc-900">
+          <h1 className="mb-2 text-base font-semibold text-zinc-900">
             {title}
-          </h3>
+          </h1>
         )}
         {body && (
           <div

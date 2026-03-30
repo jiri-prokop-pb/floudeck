@@ -29,16 +29,16 @@ a[href] {
   background-color: var(--color-zinc-50);
 }
 
-/* Scale headings inside prose-sm so they sit below the extracted card title.
-   prose-sm base text is 14px; headings step down from 15px. */
+/* Scale body headings inside prose-sm below the extracted card title (h1 = 16px text-base).
+   prose-sm base text is 14px. */
 .prose-sm :where(h2) {
-  font-size: 0.9375rem; /* 15px */
+  font-size: 0.875rem; /* 14px — same as body but bold */
 }
 .prose-sm :where(h3) {
-  font-size: 0.875rem; /* 14px */
+  font-size: 0.8125rem; /* 13px */
 }
 .prose-sm :where(h4, h5, h6) {
-  font-size: 0.8125rem; /* 13px */
+  font-size: 0.75rem; /* 12px */
 }
 
 .prose-compact :where(ul, ol) {
