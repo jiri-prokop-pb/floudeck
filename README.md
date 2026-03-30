@@ -8,10 +8,12 @@ A local feed of scheduled blocks that run prompts through [Claude Code CLI](http
 
 ```bash
 brew install --cask jiri-prokop-pb/tap/floudeck
-xattr -dr com.apple.quarantine /Applications/Floudeck.app
 ```
 
-The app is not yet code-signed, so the `xattr` step is needed to remove macOS quarantine.
+The app is not yet code-signed. Quarantine is removed automatically during install. If you still see a Gatekeeper warning, run:
+```bash
+xattr -dr com.apple.quarantine /Applications/Floudeck.app
+```
 
 Requires [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) (`claude` in your PATH).
 
