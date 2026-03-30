@@ -26,6 +26,11 @@ export function ensureDataDir(): void {
   mkdirSync(getDataDir(), { recursive: true });
 }
 
+export function getBackupPath(version: number, suffix?: string): string {
+  const tag = suffix ? `-${suffix}` : "";
+  return join(getDataDir(), `floudeck.sqlite.backup-v${version}${tag}`);
+}
+
 /**
  * Resolve the absolute path to the `claude` CLI binary.
  * When launched from Finder, $PATH is minimal — check common locations.
