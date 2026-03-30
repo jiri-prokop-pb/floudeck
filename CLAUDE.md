@@ -34,6 +34,7 @@ bun run e2e                # Playwright E2E tests
 bun run check              # lint + unit tests + E2E
 bun run lint               # biome check
 bun run format             # biome auto-fix
+bun run bump <version>     # bump version in all 3 files (package.json, tauri.conf.json, Cargo.toml)
 ```
 
 ## Rules
@@ -54,6 +55,7 @@ bun run format             # biome auto-fix
 - Two files named `api.ts` exist on purpose: `src/api.ts` (server routes) and `src/client/lib/api.ts` (client fetch wrappers).
 - **Prefer React 19 patterns** (`use()`, `useActionState`, `<Suspense>`) over `useEffect`+`useState` for data fetching and form submission state. Consult the frontend-dev skill when in doubt.
 - **Git: rebase, not merge.** PR merge strategy is "Rebase and merge". When resolving conflicts with main, use `git rebase origin/main` + force push (with lease), never `git merge`.
+- **Lefthook pre-commit hook** runs `bun run lint` on every commit. Installed automatically via `postinstall`. If the hook fails, run `bun run format` to fix, then re-commit.
 
 ### Packaging / Tauri
 
