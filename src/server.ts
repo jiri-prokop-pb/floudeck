@@ -117,6 +117,7 @@ export function createApp(options: AppOptions = {}): App {
 
   const server = serve({
     port,
+    hostname: "127.0.0.1",
     development,
     idleTimeout: 255,
     ...(routes ? { routes } : {}),
