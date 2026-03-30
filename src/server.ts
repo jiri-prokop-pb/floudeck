@@ -44,6 +44,7 @@ async function serveStaticAssets(
   // Serve index.html for SPA routes
   if (
     pathname === "/" ||
+    pathname === "/settings" ||
     pathname.startsWith("/action/") ||
     pathname.startsWith("/blocks/")
   ) {
@@ -112,7 +113,12 @@ export function createApp(options: AppOptions = {}): App {
   // In dev mode, use Bun's HTML import for routes (enables HMR + Tailwind plugin).
   // In production, serve pre-built static assets via fetch handler.
   const routes = development
-    ? { "/": homepage, "/action/*": homepage, "/blocks/*": homepage }
+    ? {
+        "/": homepage,
+        "/action/*": homepage,
+        "/blocks/*": homepage,
+        "/settings": homepage,
+      }
     : undefined;
 
   const server = serve({

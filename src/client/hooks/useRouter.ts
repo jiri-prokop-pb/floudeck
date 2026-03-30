@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 
 export type Route =
   | { page: "feed" }
+  | { page: "settings" }
   | { page: "block-new" }
   | { page: "block-edit"; blockId: number }
   | {
@@ -12,6 +13,10 @@ export type Route =
     };
 
 function parseRoute(pathname: string, search: string): Route {
+  if (pathname === "/settings") {
+    return { page: "settings" };
+  }
+
   if (pathname === "/blocks/new") {
     return { page: "block-new" };
   }
@@ -91,5 +96,16 @@ export function useRouter() {
     setRoute({ page: "block-edit", blockId: id });
   }, []);
 
-  return { route, navigateHome, navigateToNewBlock, navigateToEditBlock };
+  const navigateToSettings = useCallback(() => {
+    window.history.pushState(null, "", "/settings");
+    setRoute({ page: "settings" });
+  }, []);
+
+  return {
+    route,
+    navigateHome,
+    navigateToNewBlock,
+    navigateToEditBlock,
+    navigateToSettings,
+  };
 }
