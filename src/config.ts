@@ -91,6 +91,7 @@ export function buildStreamingCliArgs(
 
   args.push("--output-format", "stream-json");
   args.push("--verbose");
+  args.push("--include-partial-messages");
 
   if (config.permissions === "dangerouslySkipPermissions") {
     args.push("--dangerously-skip-permissions");

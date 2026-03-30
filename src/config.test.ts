@@ -208,6 +208,7 @@ describe("buildStreamingCliArgs", () => {
     expect(args).toContain("--output-format");
     expect(args).toContain("stream-json");
     expect(args).toContain("--verbose");
+    expect(args).toContain("--include-partial-messages");
   });
 
   test("includes --print flag", () => {
