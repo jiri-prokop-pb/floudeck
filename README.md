@@ -64,6 +64,10 @@ bun run scripts/screenshot.ts
 
 This starts a temporary server with mock data, captures a screenshot via Playwright, and saves it to `docs/screenshot.png`. Requires `bunx playwright install chromium` first.
 
+## Releasing
+
+Use the `/release` Claude Code command. It analyzes changes since the last tag, suggests a version bump, updates version in all 3 files (`package.json`, `tauri.conf.json`, `Cargo.toml`), and opens a release PR. CI validates version consistency and runs a full Tauri build. On merge to `main`, the release workflow builds a DMG and publishes a GitHub release.
+
 ## Stack
 
 Bun (server, bundler, SQLite, package manager), minimal React, Tailwind v4, `marked` (client-side markdown rendering), Tauri v2 (native app shell). No ORM, no router, no state library, no websockets.

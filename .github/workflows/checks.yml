@@ -21,7 +21,7 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
-      - run: bun run lint
+      - run: bun biome check . --reporter=github
 
       - run: bun run test
 
