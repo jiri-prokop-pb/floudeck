@@ -143,7 +143,11 @@ try {
     </body>
     </html>
   `);
-  await framePage.screenshot({ path: OUTPUT, fullPage: true, omitBackground: true });
+  await framePage.screenshot({
+    path: OUTPUT,
+    fullPage: true,
+    omitBackground: true,
+  });
   console.log(`Screenshot saved to ${OUTPUT}`);
 
   await browser.close();
