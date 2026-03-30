@@ -42,7 +42,6 @@ V1 is implemented. See **[docs/custom-actions-spec.md](docs/custom-actions-spec.
 
 - **Code signing & notarization** — required for clean distribution (no Gatekeeper warnings). Needs Apple Developer Program ($99/year). Configure in `tauri.conf.json` `bundle.macOS.signing`.
 - **Auto-updater** — Tauri has built-in updater support. Only worth adding if app gains traction.
-- **Homebrew tap** — deferred until code signing is in place. See **[docs/homebrew-tap.md](docs/homebrew-tap.md)** for research
 - **Tray icon / background mode** — keep running when window is closed
 - **Windows/Linux builds** — Tauri supports all three platforms
 

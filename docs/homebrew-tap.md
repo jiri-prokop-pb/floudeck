@@ -1,44 +1,25 @@
 # Homebrew Tap Distribution
 
-Research notes on distributing Floudeck via Homebrew.
+Floudeck is distributed via [jiri-prokop-pb/homebrew-tap](https://github.com/jiri-prokop-pb/homebrew-tap).
 
-## Separate repo required
+## Install
 
-Homebrew taps use a `homebrew-{name}` repo convention (e.g. `user/homebrew-floudeck`), enabling `brew tap user/floudeck` shorthand. No practical way around this — the formula/cask definitions must live in a dedicated repo.
-
-## Cask formula structure
-
-A Homebrew cask for a DMG-distributed app points to the GitHub release asset URL and includes version + SHA256:
-
-```ruby
-cask "floudeck" do
-  version "0.2.0"
-  sha256 "abc123..."
-  url "https://github.com/user/floudeck/releases/download/v#{version}/Floudeck_#{version}_aarch64.dmg"
-  name "Floudeck"
-  homepage "https://github.com/user/floudeck"
-  app "Floudeck.app"
-end
+```bash
+brew install --cask jiri-prokop-pb/tap/floudeck
 ```
 
-## Signing deadline
+Quarantine is removed automatically by the cask's `postflight` hook (the app is not yet code-signed).
 
-Homebrew is phasing out unsigned casks by September 2026. The `--no-quarantine` workaround is being deprecated. Without code signing, cask installs will eventually fail or require manual security override.
+## How it works
 
-## Implementation approach
+The release workflow (`release.yml`) updates the tap automatically on every GitHub release:
+1. Downloads the DMG artifact
+2. Computes SHA256
+3. Updates version, SHA256, and URL in the cask file
+4. Commits and pushes to the tap repo
 
-The release workflow would update the cask formula in the tap repo via a GitHub Actions step:
-1. Checkout the tap repo
-2. Update version, SHA256, and URL in the cask file
-3. Commit and push
+Requires `HOMEBREW_TAP_TOKEN` repository secret (PAT with `repo` scope for cross-repo push).
 
-This requires a PAT or deploy key for cross-repo push access.
+## Code signing
 
-## Prerequisites
-
-- Apple Developer certificate ($99/yr) for code signing + notarization
-- Without signing, macOS Gatekeeper blocks the app on first launch
-
-## Recommendation
-
-Defer Homebrew tap until code signing is implemented. Distribute DMGs as GitHub release assets for now.
+Homebrew is phasing out unsigned casks by September 2026. Without code signing, cask installs will eventually require manual security overrides. Needs Apple Developer Program ($99/year) — configure in `tauri.conf.json` `bundle.macOS.signing`.
