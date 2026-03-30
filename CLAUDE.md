@@ -58,6 +58,10 @@ bun run bump <version>     # bump version in all 3 files (package.json, tauri.co
 - **Lefthook pre-commit hook** runs `bun run lint` on every commit. Installed automatically via `postinstall`. If the hook fails, run `bun run format` to fix, then re-commit.
 - **Pin all dependency versions** — no `^` or `~` ranges in `package.json`. `bunfig.toml` has `exact = true` so `bun add` defaults to exact versions. Caret ranges cause version drift between local and CI.
 
+### Releasing
+
+Use the `/release` slash command. It analyzes changes since the last release tag, suggests a version bump (patch/minor/major), runs `bun run bump <version>` to update `package.json`, `tauri.conf.json`, and `Cargo.toml`, then opens a PR titled `Release v<version>`. CI validates the release PR (version consistency + full Tauri build). On merge to `main`, the release workflow detects the version change, builds the DMG, and creates a GitHub release with the artifact.
+
 ### Packaging / Tauri
 
 - `src-tauri/` — Tauri v2 Rust shell. Spawns the Bun-compiled server binary as a sidecar.
