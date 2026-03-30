@@ -43,7 +43,10 @@ export function BlockForm({
   const [intervalValue, setIntervalValue] = useState(initialIntervalValue);
   const [intervalUnit, setIntervalUnit] = useState(initialIntervalUnit);
   const [tryState, setTryState] = useState<TryState>({ status: "idle" });
-  const [tryMode, setTryMode] = useState<TryMode>("try");
+  const [tryMode, setTryMode] = useState<TryMode>(() => {
+    const stored = localStorage.getItem("floudeck:tryMode");
+    return stored === "debug" ? "debug" : "try";
+  });
   const [showAdvanced, setShowAdvanced] = useState(
     initialRunnerConfig !== undefined,
   );
@@ -118,11 +121,13 @@ export function BlockForm({
 
     // Accumulate raw text and extract only the markdown portion for display
     let rawText = "";
+    let reasoningEmitted = false;
+    const BEGIN_REASON = "===BEGIN_REASONING===";
+    const END_REASON = "===END_REASONING===";
     const BEGIN_MD = "===BEGIN_MARKDOWN===";
     const END_MD = "===END_MARKDOWN===";
 
     function extractVisibleText(raw: string): string {
-      if (tryMode === "debug") return raw;
       const startIdx = raw.indexOf(BEGIN_MD);
       if (startIdx === -1) return "";
       const after = raw.slice(startIdx + BEGIN_MD.length);
@@ -130,16 +135,36 @@ export function BlockForm({
       return endIdx === -1 ? after : after.slice(0, endIdx);
     }
 
+    function maybeEmitReasoning(raw: string): void {
+      if (reasoningEmitted || isDebug !== true) return;
+      const startIdx = raw.indexOf(BEGIN_REASON);
+      const endIdx = raw.indexOf(END_REASON);
+      if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) return;
+      const reasoning = raw
+        .slice(startIdx + BEGIN_REASON.length, endIdx)
+        .trim();
+      if (!reasoning) return;
+      reasoningEmitted = true;
+      debugEvents.push({ kind: "thinking", text: reasoning });
+      setTryState((prev) => {
+        if (prev.status !== "running") return prev;
+        return { ...prev, debugEvents: [...debugEvents] };
+      });
+    }
+
+    const isDebug = tryMode === "debug";
+
     const controller = tryBlockStreamApi(
       {
         prompt: prompt.trim(),
         ...(runnerConfig ? { runnerConfig } : {}),
-        debug: tryMode === "debug",
+        debug: isDebug,
         blockUuid: generatedUuid,
       },
       {
         onText(text) {
           rawText += text;
+          maybeEmitReasoning(rawText);
           const visible = extractVisibleText(rawText);
           setTryState((prev) => {
             if (prev.status !== "running") return prev;
@@ -274,7 +299,10 @@ export function BlockForm({
         )}
         <SplitTryButton
           mode={tryMode}
-          onModeChange={setTryMode}
+          onModeChange={(mode) => {
+            setTryMode(mode);
+            localStorage.setItem("floudeck:tryMode", mode);
+          }}
           onRun={handleTry}
           disabled={isPending}
           running={isTrying}
