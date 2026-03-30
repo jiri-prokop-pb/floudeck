@@ -307,8 +307,8 @@ export function createStreamingTryRunner(
       );
     }
 
-    let fullStdout = "";
     let buffer = "";
+    let sentDone = false;
 
     return new ReadableStream<TryStreamEvent>({
       async pull(controller) {
@@ -321,7 +321,6 @@ export function createStreamingTryRunner(
             if (done) break;
 
             const chunk = decoder.decode(value, { stream: true });
-            fullStdout += chunk;
             buffer += chunk;
 
             const lines = buffer.split("\n");
@@ -330,6 +329,7 @@ export function createStreamingTryRunner(
             for (const line of lines) {
               const event = parseNdjsonLine(line, options.debug);
               if (event) {
+                if (event.type === "done") sentDone = true;
                 controller.enqueue(event);
               }
             }
@@ -339,6 +339,7 @@ export function createStreamingTryRunner(
           if (buffer.trim()) {
             const event = parseNdjsonLine(buffer, options.debug);
             if (event) {
+              if (event.type === "done") sentDone = true;
               controller.enqueue(event);
             }
           }
@@ -354,13 +355,9 @@ export function createStreamingTryRunner(
               type: "error",
               error: `Try timed out after ${config.timeout} seconds.`,
             });
-          } else {
-            // Check if we already sent a "done" event via the result NDJSON line
-            const { markdown, reasoning } =
-              extractMarkdownFromOutput(fullStdout);
-            if (markdown) {
-              controller.enqueue({ type: "done", markdown, reasoning });
-            } else if (stderr.trim()) {
+          } else if (!sentDone) {
+            // Fallback: no "done" was emitted from NDJSON — check stderr
+            if (stderr.trim()) {
               const permissionError = detectPermissionError(stderr, config.cwd);
               controller.enqueue({
                 type: "error",
