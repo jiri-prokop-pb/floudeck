@@ -1,5 +1,5 @@
 import type { DebugEvent, PermissionErrorInfo } from "../../types.ts";
-import { renderMarkdown } from "../lib/markdown.ts";
+import { extractTitle, renderMarkdown } from "../lib/markdown.ts";
 import { DebugPanel } from "./DebugPanel.tsx";
 import { PulseSkeleton } from "./PulseSkeleton.tsx";
 
@@ -34,7 +34,7 @@ export function TryPanel({ state }: TryPanelProps) {
         <div className="rounded-lg border border-zinc-200 bg-zinc-50/50 p-4">
           {hasText ? (
             <div
-              className="prose prose-sm max-w-none"
+              className="prose prose-sm max-w-none prose-headings:text-sm prose-headings:font-semibold prose-h1:text-base prose-h2:text-[0.9rem] prose-h3:text-[0.85rem]"
               dangerouslySetInnerHTML={{
                 __html: renderMarkdown(state.partialText),
               }}
@@ -77,14 +77,22 @@ export function TryPanel({ state }: TryPanelProps) {
     );
   }
 
-  // success — render full markdown so heading sizes stay consistent
+  // success
+  const { title, body } = extractTitle(state.markdown);
   return (
     <div className="space-y-2">
       <div className="rounded-lg border border-zinc-200 bg-white p-4">
-        <div
-          className="prose prose-sm max-w-none"
-          dangerouslySetInnerHTML={{ __html: renderMarkdown(state.markdown) }}
-        />
+        {title && (
+          <h3 className="mb-2 text-base font-semibold text-zinc-900">
+            {title}
+          </h3>
+        )}
+        {body && (
+          <div
+            className="prose prose-sm max-w-none prose-headings:text-sm prose-headings:font-semibold prose-h2:text-[0.9rem] prose-h3:text-[0.85rem]"
+            dangerouslySetInnerHTML={{ __html: renderMarkdown(body) }}
+          />
+        )}
       </div>
       <DebugPanel events={state.debugEvents} />
     </div>
