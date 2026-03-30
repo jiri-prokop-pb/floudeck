@@ -176,7 +176,9 @@ function AppContent({
               </div>
             )}
           </div>
-          <div className={`flex items-center gap-2 ${isTauri && !showSettings ? "relative z-[61]" : ""}`}>
+          <div
+            className={`flex items-center gap-2 ${isTauri && !showSettings ? "relative z-[61]" : ""}`}
+          >
             <HeaderClock displaySettings={displaySettings} compact={compact} />
             <button
               type="button"
