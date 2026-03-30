@@ -42,7 +42,7 @@ V1 is implemented. See **[docs/custom-actions-spec.md](docs/custom-actions-spec.
 
 - **Code signing & notarization** — required for clean distribution (no Gatekeeper warnings). Needs Apple Developer Program ($99/year). Configure in `tauri.conf.json` `bundle.macOS.signing`.
 - **Auto-updater** — Tauri has built-in updater support. Only worth adding if app gains traction.
-- **Homebrew tap** — once repo is public
+- **Homebrew tap** — deferred until code signing is in place. See **[docs/homebrew-tap.md](docs/homebrew-tap.md)** for research
 - **Tray icon / background mode** — keep running when window is closed
 - **Windows/Linux builds** — Tauri supports all three platforms
 
@@ -82,7 +82,6 @@ A new block type that doesn't auto-schedule — it only runs on demand with user
   - Could also support "tell me when X happens" style — e.g. "tell me when HiBob is up again". The system figures out how to check (ideally via a generated script; if not, it prepares a prompt for its own `claude` instance). There's an API/contract for reminders to fire notifications (with action support). Could reuse block architecture as "conditional blocks" — always scheduled but only shown when the condition triggers. Extended scheduling: the contract allows reminders to reschedule themselves (change frequency) or stop completely. Needs careful design — braindump for now.
 - **Decks/pages/tabs** — multiple feeds with different card sets; action blocks can be grouped onto a dedicated deck
 - **Notifications** — sound & native notifications, configurable per card. See **[docs/notifications-and-sounds.md](docs/notifications-and-sounds.md)** for implementation notes
-- **CI** — set up CI pipeline with lint, unit tests, and E2E checks
 - **Logging & debugging** — proper structured logging system for development
 - **History** — per-card run history with timestamps and past outputs
 - **Advanced scheduling** — exceptions, start/end dates, self-destroying cards, cron-like expressions
