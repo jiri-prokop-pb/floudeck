@@ -2,7 +2,7 @@ import type { Database } from "bun:sqlite";
 import { beforeEach, describe, expect, test } from "bun:test";
 import { createRouter } from "./api.ts";
 import { initDb } from "./db.ts";
-import { createMockRunner } from "./runner.ts";
+import { createMockRunner, createMockStreamingTryRunner } from "./runner.ts";
 import { createSseBroadcaster, type SseBroadcaster } from "./sse.ts";
 
 let db: Database;
@@ -28,6 +28,14 @@ beforeEach(() => {
       markdown: "# Try Result\n\nTest output.",
       reasoning: null,
     })),
+    streamTry: createMockStreamingTryRunner(() => [
+      { type: "text", text: "Hello" },
+      {
+        type: "done",
+        markdown: "# Try Result\n\nTest output.",
+        reasoning: null,
+      },
+    ]),
   });
 });
 
@@ -421,14 +429,40 @@ describe("POST /api/blocks/reorder", () => {
   });
 });
 
+function parseSseEvents(text: string): Array<{ event: string; data: string }> {
+  const events: Array<{ event: string; data: string }> = [];
+  const blocks = text.split("\n\n").filter((b) => b.trim());
+  for (const block of blocks) {
+    let event = "";
+    let data = "";
+    for (const line of block.split("\n")) {
+      if (line.startsWith("event: ")) event = line.slice(7);
+      if (line.startsWith("data: ")) data = line.slice(6);
+    }
+    if (event) events.push({ event, data });
+  }
+  return events;
+}
+
 describe("POST /api/blocks/try", () => {
-  test("returns markdown for valid prompt", async () => {
+  test("returns SSE stream with text and done events", async () => {
     const res = await router(
       req("POST", "/api/blocks/try", { prompt: "test prompt" }),
     );
-    const data = await jsonBody(res);
-    expect(data.ok).toBe(true);
-    expect(data.markdown).toBe("# Try Result\n\nTest output.");
+    expect(res).not.toBeNull();
+    expect(res?.headers.get("Content-Type")).toBe("text/event-stream");
+
+    const text = await res?.text();
+    if (!text) throw new Error("Expected response text");
+    const events = parseSseEvents(text);
+
+    const textEvents = events.filter((e) => e.event === "text");
+    expect(textEvents.length).toBeGreaterThan(0);
+
+    const doneEvents = events.filter((e) => e.event === "done");
+    expect(doneEvents.length).toBe(1);
+    const doneData = JSON.parse(doneEvents[0].data);
+    expect(doneData.markdown).toBe("# Try Result\n\nTest output.");
   });
 
   test("returns 400 for empty prompt", async () => {
@@ -455,7 +489,7 @@ describe("POST /api/blocks/try", () => {
     expect(res?.status).toBe(400);
   });
 
-  test("passes runnerConfig to runner", async () => {
+  test("passes runnerConfig to streaming runner", async () => {
     let receivedConfig: unknown = null;
     const customRouter = createRouter({
       db,
@@ -466,18 +500,25 @@ describe("POST /api/blocks/try", () => {
         markdown: "",
         reasoning: null,
       })),
-      runTry: async (_prompt, config) => {
+      runTry: createMockRunner(() => ({
+        ok: true,
+        markdown: "",
+        reasoning: null,
+      })),
+      streamTry: createMockStreamingTryRunner((_prompt, config) => {
         receivedConfig = config;
-        return { ok: true, markdown: "# OK\n\nDone.", reasoning: null };
-      },
+        return [{ type: "done", markdown: "# OK\n\nDone.", reasoning: null }];
+      }),
     });
 
-    await customRouter(
+    const res = await customRouter(
       req("POST", "/api/blocks/try", {
         prompt: "test",
         runnerConfig: { model: "opus", timeout: 120 },
       }),
     );
+    // Consume the stream to trigger the runner
+    await res?.text();
 
     if (!receivedConfig || typeof receivedConfig !== "object") {
       throw new Error("Expected receivedConfig to be an object");
@@ -486,7 +527,7 @@ describe("POST /api/blocks/try", () => {
     expect("timeout" in receivedConfig && receivedConfig.timeout).toBe(120);
   });
 
-  test("returns error when runner fails", async () => {
+  test("returns error event when runner fails", async () => {
     const failRouter = createRouter({
       db,
       sse,
@@ -496,18 +537,27 @@ describe("POST /api/blocks/try", () => {
         markdown: "",
         reasoning: null,
       })),
-      runTry: async () => ({
-        ok: false,
-        error: "CLI failed",
-      }),
+      runTry: createMockRunner(() => ({
+        ok: true,
+        markdown: "",
+        reasoning: null,
+      })),
+      streamTry: createMockStreamingTryRunner(() => [
+        { type: "error", error: "CLI failed" },
+      ]),
     });
 
     const res = await failRouter(
       req("POST", "/api/blocks/try", { prompt: "test" }),
     );
-    const data = await jsonBody(res);
-    expect(data.ok).toBe(false);
-    expect(data.error).toBe("CLI failed");
+    const text = await res?.text();
+    if (!text) throw new Error("Expected response text");
+    const events = parseSseEvents(text);
+
+    const errorEvents = events.filter((e) => e.event === "error");
+    expect(errorEvents.length).toBe(1);
+    const errorData = JSON.parse(errorEvents[0].data);
+    expect(errorData.error).toBe("CLI failed");
   });
 });
 

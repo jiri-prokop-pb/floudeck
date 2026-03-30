@@ -169,11 +169,18 @@ export function parseReorderInput(
   return { orderedIds: result.data.orderedIds };
 }
 
-export type TryRunInput = { prompt: string; runnerConfig?: RunnerConfig };
+export type TryRunInput = {
+  prompt: string;
+  runnerConfig?: RunnerConfig;
+  debug?: boolean;
+  blockUuid?: string;
+};
 
 const TryRunInputSchema = z.object({
   prompt: z.string(),
   runnerConfig: z.optional(z.unknown()),
+  debug: z.optional(z.boolean()),
+  blockUuid: z.optional(z.string()),
 });
 
 export function parseTryRunInput(body: unknown): TryRunInput | string {
@@ -186,7 +193,7 @@ export function parseTryRunInput(body: unknown): TryRunInput | string {
     return "prompt is required";
   }
 
-  const { prompt, runnerConfig } = result.data;
+  const { prompt, runnerConfig, debug, blockUuid } = result.data;
   if (!prompt.trim()) {
     return "prompt is required";
   }
@@ -195,6 +202,8 @@ export function parseTryRunInput(body: unknown): TryRunInput | string {
   return {
     prompt: prompt.trim(),
     ...(parsed ? { runnerConfig: parsed } : {}),
+    ...(debug ? { debug } : {}),
+    ...(blockUuid ? { blockUuid } : {}),
   };
 }
 

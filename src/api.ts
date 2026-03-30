@@ -20,7 +20,7 @@ import {
 import { composeActionPrompt } from "./prompts.ts";
 import type { SseBroadcaster } from "./sse.ts";
 import { nowIso } from "./time.ts";
-import type { RunBlockFn } from "./types.ts";
+import type { RunBlockFn, StreamingTryRunFn, TryStreamEvent } from "./types.ts";
 import {
   isBlockInputError,
   parseBlockInput,
@@ -38,7 +38,13 @@ export type RouterDeps = {
   triggerRun: (blockId: number) => void;
   runAction: RunBlockFn;
   runTry: RunBlockFn;
+  streamTry: StreamingTryRunFn;
 };
+
+function omitType(event: TryStreamEvent): Record<string, unknown> {
+  const { type: _, ...rest } = event;
+  return rest;
+}
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, { status });
@@ -141,7 +147,7 @@ function settingsHandlers(
 export function createRouter(
   deps: RouterDeps,
 ): (req: Request) => Promise<Response | null> {
-  const { db, sse, triggerRun, runAction, runTry } = deps;
+  const { db, sse, triggerRun, runAction, streamTry } = deps;
 
   const runnerSettings = settingsHandlers(
     db,
@@ -295,18 +301,39 @@ export function createRouter(
 
         const globalDefaults =
           safeParseRunnerConfig(getSetting(db, "runner_defaults")) ?? null;
-        const tryUuid = crypto.randomUUID();
+        const tryUuid = input.blockUuid ?? crypto.randomUUID();
         const resolvedConfig = resolveRunnerConfig(
           globalDefaults,
           input.runnerConfig ?? null,
           tryUuid,
         );
 
-        const result = await runTry(input.prompt, resolvedConfig);
-        if (result.ok) {
-          return json({ ok: true, markdown: result.markdown });
-        }
-        return json({ ok: false, error: result.error });
+        const debug = input.debug ?? false;
+
+        // Stream mode: return SSE
+        const eventStream = streamTry(input.prompt, resolvedConfig, {
+          debug,
+          signal: req.signal,
+        });
+
+        const sseStream = eventStream.pipeThrough(
+          new TransformStream<TryStreamEvent, string>({
+            transform(event, controller) {
+              const data = JSON.stringify(
+                event.type === "debug" ? event.event : omitType(event),
+              );
+              controller.enqueue(`event: ${event.type}\ndata: ${data}\n\n`);
+            },
+          }),
+        );
+
+        return new Response(sseStream.pipeThrough(new TextEncoderStream()), {
+          headers: {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive",
+          },
+        });
       },
     },
     {
