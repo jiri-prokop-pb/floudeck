@@ -81,6 +81,19 @@ Blocks can include action links in their markdown output. Clicking an action lin
 - **Block staleness:** parent block auto-refreshes when user returns to feed after an action
 - **Cleanup:** action runs expire after 24 hours
 
+### Action blocks
+
+A new block type that doesn't auto-schedule — it's a container for multiple user-triggered actions, each with its own prompt template.
+
+- **Block type:** `"action"` (vs `"scheduled"` for regular blocks). Optional `title` field displayed as card heading.
+- **Actions:** array of `{ name, label, color?, prompt }` stored as JSON. Each action has a URL-safe slug name, display label, optional color, and a prompt template with `{{input}}` placeholders.
+- **Feed rendering:** action blocks appear as cards with colored action pill buttons (same styling as action links in markdown output).
+- **Execution flow:** click pill → navigate to `/action/{blockUuid}/{actionName}` → ActionPage shows input form → user enters free text → submit → Claude runs with `{{input}}` replaced → result displayed.
+- **Scheduling:** action blocks have `interval_value=0`, `next_run_at=NULL`, and are excluded from scheduler. Manual refresh returns 400.
+- **Config resolution:** uses the same three-level merge (global < block). Per-action config is deferred to a future version.
+- **Reuses:** existing action_runs table, ActionPage, SSE notifications, action cleanup.
+- **Block form:** toggle between "Scheduled" and "Action block" in the create form. Action blocks show title field + editable action list (auto-slugified names, color picker, prompt textarea).
+
 ### Error handling
 
 - Error card replaces block content with clear message
