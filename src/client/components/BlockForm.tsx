@@ -1,4 +1,3 @@
-import { Bug, Play } from "@phosphor-icons/react";
 import { useActionState, useEffect, useRef, useState } from "react";
 import type { DebugEvent, RunnerConfig } from "../../types.ts";
 import { tryBlockStreamApi } from "../lib/api.ts";
@@ -8,6 +7,7 @@ import {
   parseEnvEntries,
   RunnerConfigFields,
 } from "./RunnerConfigFields.tsx";
+import { SplitTryButton, type TryMode } from "./SplitTryButton.tsx";
 import { TryPanel, type TryState } from "./TryPanel.tsx";
 
 type BlockFormData = {
@@ -43,7 +43,7 @@ export function BlockForm({
   const [intervalValue, setIntervalValue] = useState(initialIntervalValue);
   const [intervalUnit, setIntervalUnit] = useState(initialIntervalUnit);
   const [tryState, setTryState] = useState<TryState>({ status: "idle" });
-  const [debugMode, setDebugMode] = useState(false);
+  const [tryMode, setTryMode] = useState<TryMode>("try");
   const [showAdvanced, setShowAdvanced] = useState(
     initialRunnerConfig !== undefined,
   );
@@ -122,7 +122,7 @@ export function BlockForm({
     const END_MD = "===END_MARKDOWN===";
 
     function extractVisibleText(raw: string): string {
-      if (debugMode) return raw;
+      if (tryMode === "debug") return raw;
       const startIdx = raw.indexOf(BEGIN_MD);
       if (startIdx === -1) return "";
       const after = raw.slice(startIdx + BEGIN_MD.length);
@@ -134,7 +134,7 @@ export function BlockForm({
       {
         prompt: prompt.trim(),
         ...(runnerConfig ? { runnerConfig } : {}),
-        debug: debugMode,
+        debug: tryMode === "debug",
         blockUuid: generatedUuid,
       },
       {
@@ -170,7 +170,7 @@ export function BlockForm({
             error: errorMsg,
             permissionError,
             debugEvents: [...debugEvents],
-            debugMode,
+            debugMode: tryMode === "debug",
           });
         },
       },
@@ -272,27 +272,13 @@ export function BlockForm({
             Cancel
           </button>
         )}
-        <button
-          type="button"
-          onClick={() => setDebugMode(!debugMode)}
-          className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-sm ${
-            debugMode
-              ? "border-purple-300 bg-purple-50 text-purple-600"
-              : "border-zinc-200 text-zinc-400 hover:text-zinc-600"
-          }`}
-          title={debugMode ? "Debug mode on" : "Debug mode off"}
-        >
-          <Bug size={14} weight="bold" />
-        </button>
-        <button
-          type="button"
-          onClick={handleTry}
-          disabled={isPending || isTrying}
-          className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100 disabled:opacity-50"
-        >
-          <Play size={14} weight="bold" />
-          {isTrying ? "Running..." : "Try"}
-        </button>
+        <SplitTryButton
+          mode={tryMode}
+          onModeChange={setTryMode}
+          onRun={handleTry}
+          disabled={isPending}
+          running={isTrying}
+        />
         <button
           type="submit"
           disabled={isPending || isTrying}

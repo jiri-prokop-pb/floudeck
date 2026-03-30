@@ -32,11 +32,12 @@ export function TryPanel({ state }: TryPanelProps) {
     const partial = hasText ? extractTitle(state.partialText) : null;
     return (
       <div className="space-y-2">
+        <DebugPanel events={state.debugEvents} isStreaming />
         <div className="rounded-lg border border-zinc-200 bg-zinc-50/50 p-4">
           {partial ? (
             <>
               {partial.title && (
-                <h1 className="mb-2 text-base font-semibold text-zinc-900">
+                <h1 className="-mt-0.5 mb-1.5 text-base font-semibold text-zinc-900">
                   {partial.title}
                 </h1>
               )}
@@ -53,7 +54,6 @@ export function TryPanel({ state }: TryPanelProps) {
             <PulseSkeleton />
           )}
         </div>
-        <DebugPanel events={state.debugEvents} />
       </div>
     );
   }
@@ -61,6 +61,7 @@ export function TryPanel({ state }: TryPanelProps) {
   if (state.status === "error") {
     return (
       <div className="space-y-2">
+        <DebugPanel events={state.debugEvents} />
         <div className="rounded-lg border border-red-200 bg-red-50 p-4">
           <p className="text-sm text-red-600">{state.error}</p>
           {state.permissionError && state.debugMode && (
@@ -82,7 +83,6 @@ export function TryPanel({ state }: TryPanelProps) {
             </p>
           )}
         </div>
-        <DebugPanel events={state.debugEvents} />
       </div>
     );
   }
@@ -91,9 +91,10 @@ export function TryPanel({ state }: TryPanelProps) {
   const { title, body } = extractTitle(state.markdown);
   return (
     <div className="space-y-2">
+      <DebugPanel events={state.debugEvents} />
       <div className="rounded-lg border border-zinc-200 bg-white p-4">
         {title && (
-          <h1 className="mb-2 text-base font-semibold text-zinc-900">
+          <h1 className="-mt-0.5 mb-1.5 text-base font-semibold text-zinc-900">
             {title}
           </h1>
         )}
@@ -104,7 +105,6 @@ export function TryPanel({ state }: TryPanelProps) {
           />
         )}
       </div>
-      <DebugPanel events={state.debugEvents} />
     </div>
   );
 }

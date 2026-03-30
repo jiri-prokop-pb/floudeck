@@ -19,7 +19,7 @@ function MarkdownContent({
   return (
     <>
       <h1
-        className={`font-semibold text-zinc-900 ${compact ? "text-base mb-1" : "text-lg mb-2"}`}
+        className={`font-semibold text-zinc-900 ${compact ? "text-base -mt-0.5 mb-1" : "text-lg -mt-0.5 mb-1.5"}`}
       >
         {title}
       </h1>
