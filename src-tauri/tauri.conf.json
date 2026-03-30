@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/nicedoc/tauri/v2/crates/tauri-cli/schema.json",
   "productName": "Floudeck",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "identifier": "com.floudeck.app",
   "build": {
     "beforeDevCommand": "bun run build:server",
