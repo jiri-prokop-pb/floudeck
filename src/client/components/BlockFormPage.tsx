@@ -8,6 +8,7 @@ import { ErrorBoundary } from "./ErrorBoundary.tsx";
 
 type BlockFormPageProps = {
   blockId?: number;
+  compact?: boolean;
   onNavigateHome: () => void;
   onCreate: (block: BlockRecord) => void;
   onUpdate: (block: BlockRecord) => void;
@@ -15,6 +16,7 @@ type BlockFormPageProps = {
 
 export function BlockFormPage({
   blockId,
+  compact,
   onNavigateHome,
   onCreate,
   onUpdate,
@@ -24,17 +26,19 @@ export function BlockFormPage({
 
   return (
     <div className="min-h-screen bg-zinc-50">
-      <div className="mx-auto max-w-3xl px-4 py-10">
-        <header className="mb-6">
+      <div className={`mx-auto max-w-3xl px-4 ${compact ? "py-4" : "py-10"}`}>
+        <header className={compact ? "mb-3" : "mb-6"}>
           <button
             type="button"
             onClick={onNavigateHome}
-            className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-700 mb-3 cursor-pointer"
+            className={`flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-700 cursor-pointer ${compact ? "mb-1.5" : "mb-3"}`}
           >
             <ArrowLeft size={14} weight="bold" />
             Back to feed
           </button>
-          <h1 className="text-xl font-bold text-zinc-900">
+          <h1
+            className={`font-bold text-zinc-900 ${compact ? "text-base" : "text-xl"}`}
+          >
             {isEdit ? "Edit block" : "Create block"}
           </h1>
         </header>

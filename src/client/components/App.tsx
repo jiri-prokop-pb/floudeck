@@ -97,6 +97,8 @@ function AppContent({
     }
   }, [route.page, refreshStaleBlocks]);
 
+  const compact = displaySettings.compactMode === true;
+
   if (route.page === "action") {
     return (
       <ActionPage
@@ -113,6 +115,7 @@ function AppContent({
   if (route.page === "block-new") {
     return (
       <BlockFormPage
+        compact={compact}
         onNavigateHome={navigateHome}
         onCreate={handleCreate}
         onUpdate={handleUpdate}
@@ -124,6 +127,7 @@ function AppContent({
     return (
       <BlockFormPage
         key={route.blockId}
+        compact={compact}
         blockId={route.blockId}
         onNavigateHome={navigateHome}
         onCreate={handleCreate}
@@ -135,13 +139,12 @@ function AppContent({
   if (route.page === "settings") {
     return (
       <SettingsPage
+        compact={compact}
         onNavigateHome={navigateHome}
         onDisplaySettingsChanged={refetchDisplaySettings}
       />
     );
   }
-
-  const compact = displaySettings.compactMode === true;
 
   return (
     <div className="min-h-screen bg-zinc-50">
