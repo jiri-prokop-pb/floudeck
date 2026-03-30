@@ -34,7 +34,7 @@ export function TryPanel({ state }: TryPanelProps) {
         <div className="rounded-lg border border-zinc-200 bg-zinc-50/50 p-4">
           {hasText ? (
             <div
-              className="prose prose-sm max-w-none prose-headings:text-sm prose-headings:font-semibold prose-h1:text-base prose-h2:text-[0.9rem] prose-h3:text-[0.85rem]"
+              className="prose prose-sm max-w-none"
               dangerouslySetInnerHTML={{
                 __html: renderMarkdown(state.partialText),
               }}
@@ -89,7 +89,7 @@ export function TryPanel({ state }: TryPanelProps) {
         )}
         {body && (
           <div
-            className="prose prose-sm max-w-none prose-headings:text-sm prose-headings:font-semibold prose-h2:text-[0.9rem] prose-h3:text-[0.85rem]"
+            className="prose prose-sm max-w-none"
             dangerouslySetInnerHTML={{ __html: renderMarkdown(body) }}
           />
         )}

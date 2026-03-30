@@ -29,6 +29,18 @@ a[href] {
   background-color: var(--color-zinc-50);
 }
 
+/* Scale headings inside prose-sm so they sit below the extracted card title.
+   prose-sm base text is 14px; headings step down from 15px. */
+.prose-sm :where(h2) {
+  font-size: 0.9375rem; /* 15px */
+}
+.prose-sm :where(h3) {
+  font-size: 0.875rem; /* 14px */
+}
+.prose-sm :where(h4, h5, h6) {
+  font-size: 0.8125rem; /* 13px */
+}
+
 .prose-compact :where(ul, ol) {
   margin-top: 0.25em;
   margin-bottom: 0.25em;
