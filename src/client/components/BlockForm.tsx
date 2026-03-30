@@ -1,7 +1,7 @@
-import { Play } from "@phosphor-icons/react";
-import { useActionState, useEffect, useState } from "react";
-import type { RunnerConfig } from "../../types.ts";
-import { tryBlockApi } from "../lib/api.ts";
+import { Bug, Play } from "@phosphor-icons/react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import type { DebugEvent, RunnerConfig } from "../../types.ts";
+import { tryBlockStreamApi } from "../lib/api.ts";
 import { buildRunnerConfig } from "../lib/runnerConfig.ts";
 import {
   type EnvEntry,
@@ -43,9 +43,14 @@ export function BlockForm({
   const [intervalValue, setIntervalValue] = useState(initialIntervalValue);
   const [intervalUnit, setIntervalUnit] = useState(initialIntervalUnit);
   const [tryState, setTryState] = useState<TryState>({ status: "idle" });
+  const [debugMode, setDebugMode] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(
     initialRunnerConfig !== undefined,
   );
+  const abortRef = useRef<AbortController | null>(null);
+
+  // Generate a stable UUID for new blocks so CWD is predictable
+  const [generatedUuid] = useState(() => blockUuid ?? crypto.randomUUID());
 
   // Advanced fields
   const [model, setModel] = useState(initialRunnerConfig?.model ?? "");
@@ -59,6 +64,13 @@ export function BlockForm({
   const [envEntries, setEnvEntries] = useState<EnvEntry[]>(
     parseEnvEntries(initialRunnerConfig?.env),
   );
+
+  // Cleanup abort on unmount
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
 
   const [error, submitAction, isPending] = useActionState(
     async (_prev: string | null) => {
@@ -87,12 +99,14 @@ export function BlockForm({
     null,
   );
 
-  async function handleTry() {
-    if (!prompt.trim()) {
-      return;
-    }
+  function handleTry() {
+    if (!prompt.trim()) return;
 
-    setTryState({ status: "running" });
+    // Abort any previous try
+    abortRef.current?.abort();
+
+    const debugEvents: DebugEvent[] = [];
+    setTryState({ status: "running", partialText: "", debugEvents });
 
     const runnerConfig = buildRunnerConfig({
       model,
@@ -102,16 +116,51 @@ export function BlockForm({
       cwd,
     });
 
-    const result = await tryBlockApi({
-      prompt: prompt.trim(),
-      ...(runnerConfig ? { runnerConfig } : {}),
-    });
+    const controller = tryBlockStreamApi(
+      {
+        prompt: prompt.trim(),
+        ...(runnerConfig ? { runnerConfig } : {}),
+        debug: debugMode,
+        blockUuid: generatedUuid,
+      },
+      {
+        onText(text) {
+          setTryState((prev) => {
+            if (prev.status !== "running") return prev;
+            return {
+              ...prev,
+              partialText: prev.partialText + text,
+            };
+          });
+        },
+        onDebug(event) {
+          debugEvents.push(event);
+          setTryState((prev) => {
+            if (prev.status !== "running") return prev;
+            return { ...prev, debugEvents: [...debugEvents] };
+          });
+        },
+        onDone(markdown, reasoning) {
+          setTryState({
+            status: "success",
+            markdown,
+            reasoning,
+            debugEvents: [...debugEvents],
+          });
+        },
+        onError(errorMsg, permissionError) {
+          setTryState({
+            status: "error",
+            error: errorMsg,
+            permissionError,
+            debugEvents: [...debugEvents],
+            debugMode,
+          });
+        },
+      },
+    );
 
-    if (result.ok) {
-      setTryState({ status: "success", markdown: result.markdown });
-    } else {
-      setTryState({ status: "error", error: result.error });
-    }
+    abortRef.current = controller;
   }
 
   useEffect(() => {
@@ -186,11 +235,7 @@ export function BlockForm({
               type="text"
               value={cwd}
               onChange={(e) => setCwd(e.target.value)}
-              placeholder={
-                blockUuid
-                  ? `~/.floudeck/blocks-workspace/${blockUuid}`
-                  : "Will be auto-generated"
-              }
+              placeholder={`~/.floudeck/blocks-workspace/${generatedUuid}`}
               className="w-full rounded border border-zinc-200 bg-white px-2 py-1.5 text-sm placeholder:text-zinc-300 focus:border-zinc-400 focus:outline-none"
             />
           </label>
@@ -211,6 +256,18 @@ export function BlockForm({
             Cancel
           </button>
         )}
+        <button
+          type="button"
+          onClick={() => setDebugMode(!debugMode)}
+          className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-sm ${
+            debugMode
+              ? "border-purple-300 bg-purple-50 text-purple-600"
+              : "border-zinc-200 text-zinc-400 hover:text-zinc-600"
+          }`}
+          title={debugMode ? "Debug mode on" : "Debug mode off"}
+        >
+          <Bug size={14} weight="bold" />
+        </button>
         <button
           type="button"
           onClick={handleTry}
