@@ -137,6 +137,45 @@ export async function tryBlockApi(input: {
   });
 }
 
+// --- Database Recovery ---
+
+export type DbBackupInfo = {
+  version: number;
+  path: string;
+  size: number;
+  createdAt: string;
+};
+
+export type DbStatus = {
+  healthy: boolean;
+  version: number;
+  backups: DbBackupInfo[];
+};
+
+export async function fetchDbStatus(): Promise<ApiResponse<DbStatus>> {
+  return apiFetch("/api/settings/db-status");
+}
+
+export async function resetDatabaseApi(): Promise<
+  ApiResponse<{ message: string }>
+> {
+  return apiFetch("/api/settings/reset-database", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ confirm: true }),
+  });
+}
+
+export async function restoreDatabaseApi(
+  version: number,
+): Promise<ApiResponse<{ message: string }>> {
+  return apiFetch("/api/settings/restore-database", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ confirm: true, version }),
+  });
+}
+
 // --- Actions ---
 
 export async function runActionApi(input: {
