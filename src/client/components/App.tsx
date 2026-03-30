@@ -11,7 +11,7 @@ import { BlockFormPage } from "./BlockFormPage.tsx";
 import { ErrorBoundary } from "./ErrorBoundary.tsx";
 import { Feed } from "./Feed.tsx";
 import { HeaderClock } from "./HeaderClock.tsx";
-import { SettingsModal } from "./SettingsModal.tsx";
+import { SettingsPage } from "./SettingsPage.tsx";
 
 export function App() {
   const [blocksPromise] = useState(() => fetchBlocks());
@@ -50,8 +50,13 @@ function AppContent({
   blocksPromise: Promise<BlockRecord[]>;
   displaySettingsPromise: Promise<DisplaySettings | null>;
 }) {
-  const { route, navigateHome, navigateToNewBlock, navigateToEditBlock } =
-    useRouter();
+  const {
+    route,
+    navigateHome,
+    navigateToNewBlock,
+    navigateToEditBlock,
+    navigateToSettings,
+  } = useRouter();
   const {
     blocks,
     refetchBlocks,
@@ -64,7 +69,6 @@ function AppContent({
     refreshStaleBlocks,
   } = useBlocks(blocksPromise);
 
-  const [showSettings, setShowSettings] = useState(false);
   const initialDisplaySettings = use(displaySettingsPromise);
   const [displaySettings, setDisplaySettings] = useState<DisplaySettings>(
     initialDisplaySettings ?? {
@@ -128,6 +132,15 @@ function AppContent({
     );
   }
 
+  if (route.page === "settings") {
+    return (
+      <SettingsPage
+        onNavigateHome={navigateHome}
+        onDisplaySettingsChanged={refetchDisplaySettings}
+      />
+    );
+  }
+
   const compact = displaySettings.compactMode === true;
 
   return (
@@ -177,12 +190,12 @@ function AppContent({
             )}
           </div>
           <div
-            className={`flex items-center gap-2 ${isTauri && !showSettings ? "relative z-[61]" : ""}`}
+            className={`flex items-center gap-2 ${isTauri ? "relative z-[61]" : ""}`}
           >
             <HeaderClock displaySettings={displaySettings} compact={compact} />
             <button
               type="button"
-              onClick={() => setShowSettings(true)}
+              onClick={navigateToSettings}
               className={`flex items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-200 hover:text-zinc-600 ${compact ? "h-6 w-6" : "h-8 w-8"}`}
               title="Settings"
             >
@@ -207,13 +220,6 @@ function AppContent({
         >
           + Add another block
         </button>
-
-        {showSettings && (
-          <SettingsModal
-            onClose={() => setShowSettings(false)}
-            onDisplaySettingsChanged={refetchDisplaySettings}
-          />
-        )}
       </div>
     </div>
   );
