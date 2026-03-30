@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   buildCliArgs,
+  buildStreamingCliArgs,
   formatCliCommand,
   resolveRunnerConfig,
 } from "./config.ts";
@@ -190,6 +191,41 @@ describe("buildCliArgs with custom system prompt", () => {
     expect(dashDashIdx).toBeGreaterThan(-1);
     expect(args[dashDashIdx + 1]).toBe(prompt);
     expect(args[args.length - 1]).toBe(prompt);
+  });
+});
+
+describe("buildStreamingCliArgs", () => {
+  const baseConfig: ResolvedRunnerConfig = {
+    cwd: "/tmp/test",
+    model: "sonnet",
+    permissions: "default",
+    env: {},
+    timeout: 60,
+  };
+
+  test("includes streaming flags", () => {
+    const args = buildStreamingCliArgs(baseConfig, "test");
+    expect(args).toContain("--output-format");
+    expect(args).toContain("stream-json");
+    expect(args).toContain("--verbose");
+  });
+
+  test("includes --print flag", () => {
+    const args = buildStreamingCliArgs(baseConfig, "test");
+    expect(args).toContain("--print");
+  });
+
+  test("includes model and system prompt", () => {
+    const args = buildStreamingCliArgs(baseConfig, "test");
+    expect(args).toContain("--model");
+    expect(args).toContain("sonnet");
+    expect(args).toContain("--append-system-prompt");
+  });
+
+  test("prompt is last argument after --", () => {
+    const args = buildStreamingCliArgs(baseConfig, "my prompt");
+    expect(args[args.length - 1]).toBe("my prompt");
+    expect(args[args.length - 2]).toBe("--");
   });
 });
 

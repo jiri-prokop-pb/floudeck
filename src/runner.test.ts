@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { createMockRunner, processCliOutput } from "./runner.ts";
+import {
+  createMockRunner,
+  detectPermissionError,
+  parseNdjsonLine,
+  processCliOutput,
+} from "./runner.ts";
 
 describe("processCliOutput", () => {
   test("valid output extracts markdown", () => {
@@ -94,5 +99,94 @@ describe("createMockRunner", () => {
     });
     await runner("my prompt");
     expect(receivedPrompt).toBe("my prompt");
+  });
+});
+
+describe("parseNdjsonLine", () => {
+  test("parses text_delta as text event", () => {
+    const line = JSON.stringify({
+      type: "content_block_delta",
+      delta: { type: "text_delta", text: "Hello" },
+    });
+    const result = parseNdjsonLine(line, false);
+    expect(result).toEqual({ type: "text", text: "Hello" });
+  });
+
+  test("parses thinking_delta only in debug mode", () => {
+    const line = JSON.stringify({
+      type: "content_block_delta",
+      delta: { type: "thinking_delta", thinking: "Let me think..." },
+    });
+    expect(parseNdjsonLine(line, false)).toBeNull();
+    const result = parseNdjsonLine(line, true);
+    expect(result).toEqual({
+      type: "debug",
+      event: { kind: "thinking", text: "Let me think..." },
+    });
+  });
+
+  test("parses tool_use only in debug mode", () => {
+    const line = JSON.stringify({
+      type: "content_block_start",
+      content_block: { type: "tool_use", name: "Read", input: "file.ts" },
+    });
+    expect(parseNdjsonLine(line, false)).toBeNull();
+    const result = parseNdjsonLine(line, true);
+    expect(result).toEqual({
+      type: "debug",
+      event: { kind: "tool_use", tool: "Read", input: "file.ts" },
+    });
+  });
+
+  test("parses result message as done event", () => {
+    const line = JSON.stringify({
+      type: "result",
+      result:
+        "===BEGIN_REASONING===\nThinking\n===END_REASONING===\n===BEGIN_MARKDOWN===\n# Title\n\nContent\n===END_MARKDOWN===",
+    });
+    const result = parseNdjsonLine(line, false);
+    expect(result).toEqual({
+      type: "done",
+      markdown: "# Title\n\nContent",
+      reasoning: "Thinking",
+    });
+  });
+
+  test("returns null for empty lines", () => {
+    expect(parseNdjsonLine("", false)).toBeNull();
+    expect(parseNdjsonLine("  ", false)).toBeNull();
+  });
+
+  test("returns null for invalid JSON", () => {
+    expect(parseNdjsonLine("not json", false)).toBeNull();
+  });
+
+  test("returns null for unknown event types", () => {
+    const line = JSON.stringify({ type: "ping" });
+    expect(parseNdjsonLine(line, false)).toBeNull();
+  });
+});
+
+describe("detectPermissionError", () => {
+  test("detects 'permission denied'", () => {
+    const result = detectPermissionError("Error: permission denied", "/tmp");
+    expect(result).toBeDefined();
+    if (result) {
+      expect(result.cwd).toBe("/tmp");
+      expect(result.instructions).toContain("settings.local.json");
+    }
+  });
+
+  test("detects EPERM", () => {
+    const result = detectPermissionError(
+      "EPERM: operation not permitted",
+      "/tmp",
+    );
+    expect(result).toBeDefined();
+  });
+
+  test("returns undefined for non-permission errors", () => {
+    const result = detectPermissionError("syntax error", "/tmp");
+    expect(result).toBeUndefined();
   });
 });
