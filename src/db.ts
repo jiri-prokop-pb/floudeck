@@ -1,6 +1,5 @@
 import { Database } from "bun:sqlite";
 import { copyFileSync, existsSync, mkdirSync, readdirSync } from "node:fs";
-import { getBackupPath } from "./paths.ts";
 import { addInterval, nowIso } from "./time.ts";
 import type {
   ActionRun,
@@ -46,7 +45,8 @@ export function backupDatabase(
 ): string | null {
   if (dbPath === ":memory:" || !existsSync(dbPath)) return null;
   db.run("PRAGMA wal_checkpoint(TRUNCATE)");
-  const dest = getBackupPath(version, suffix);
+  const tag = suffix ? `-${suffix}` : "";
+  const dest = `${dbPath}.backup-v${version}${tag}`;
   copyFileSync(dbPath, dest);
   return dest;
 }
