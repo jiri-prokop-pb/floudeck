@@ -2,16 +2,15 @@
  * Generates the DMG background image for the macOS installer.
  * Run: bun run scripts/generate-dmg-bg.ts
  *
- * Produces a 2x retina image (1320x800) that displays at 660x400 logical pixels.
+ * Produces a 660x400 image matching the DMG window size.
  * The image shows subtle chevron arrows between the app and Applications icon positions.
  */
 
 import { writeFileSync } from "node:fs";
 import { createCanvas } from "@napi-rs/canvas";
 
-const SCALE = 2; // retina
-const W = 660 * SCALE;
-const H = 400 * SCALE;
+const W = 660;
+const H = 400;
 
 const canvas = createCanvas(W, H);
 const ctx = canvas.getContext("2d");
@@ -24,17 +23,17 @@ ctx.fillStyle = bg;
 ctx.fillRect(0, 0, W, H);
 
 // Chevron arrows between app (x=180) and Applications (x=480), vertically centered at y=170
-const centerX = ((180 + 480) / 2) * SCALE;
-const centerY = 170 * SCALE;
+const centerX = (180 + 480) / 2;
+const centerY = 170;
 
 ctx.strokeStyle = "#a8a29e"; // stone-400
-ctx.lineWidth = 3 * SCALE;
+ctx.lineWidth = 3;
 ctx.lineCap = "round";
 ctx.lineJoin = "round";
 
-const chevronH = 14 * SCALE;
-const chevronW = 8 * SCALE;
-const gap = 6 * SCALE;
+const chevronH = 14;
+const chevronW = 8;
+const gap = 6;
 
 for (const offset of [-gap, gap]) {
   const x = centerX + offset - chevronW / 2;
