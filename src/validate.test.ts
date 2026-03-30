@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import {
+  isActionBlockInputError,
   isBlockInputError,
+  parseActionBlockInput,
   parseBlockInput,
   parseDisplaySettings,
   parseReorderInput,
@@ -292,5 +294,93 @@ describe("parseDisplaySettings", () => {
 
   test("returns null for invalid enum values", () => {
     expect(parseDisplaySettings({ dateFormat: "nope" })).toBeNull();
+  });
+});
+
+describe("parseActionBlockInput", () => {
+  test("accepts valid input", () => {
+    const result = parseActionBlockInput({
+      blockType: "action",
+      title: "My Block",
+      actions: [
+        { name: "deploy", label: "Deploy", prompt: "Deploy {{input}}" },
+      ],
+    });
+    if (isActionBlockInputError(result)) throw new Error(result.message);
+    expect(result.blockType).toBe("action");
+    expect(result.title).toBe("My Block");
+    expect(result.actions).toHaveLength(1);
+    expect(result.actions[0]?.name).toBe("deploy");
+  });
+
+  test("rejects empty actions array", () => {
+    const result = parseActionBlockInput({
+      blockType: "action",
+      actions: [],
+    });
+    expect(isActionBlockInputError(result)).toBe(true);
+    if (isActionBlockInputError(result)) {
+      expect(result.message).toContain("At least one action");
+    }
+  });
+
+  test("rejects duplicate action names", () => {
+    const result = parseActionBlockInput({
+      blockType: "action",
+      actions: [
+        { name: "deploy", label: "Deploy", prompt: "P1" },
+        { name: "deploy", label: "Deploy Again", prompt: "P2" },
+      ],
+    });
+    expect(isActionBlockInputError(result)).toBe(true);
+    if (isActionBlockInputError(result)) {
+      expect(result.message).toContain("Duplicate");
+    }
+  });
+
+  test("rejects non-URL-safe names", () => {
+    const result = parseActionBlockInput({
+      blockType: "action",
+      actions: [{ name: "Deploy Prod", label: "Deploy", prompt: "P" }],
+    });
+    expect(isActionBlockInputError(result)).toBe(true);
+    if (isActionBlockInputError(result)) {
+      expect(result.message).toContain("URL-safe");
+    }
+  });
+
+  test("rejects empty label", () => {
+    const result = parseActionBlockInput({
+      blockType: "action",
+      actions: [{ name: "deploy", label: "", prompt: "P" }],
+    });
+    expect(isActionBlockInputError(result)).toBe(true);
+  });
+
+  test("rejects empty prompt", () => {
+    const result = parseActionBlockInput({
+      blockType: "action",
+      actions: [{ name: "deploy", label: "Deploy", prompt: "" }],
+    });
+    expect(isActionBlockInputError(result)).toBe(true);
+  });
+
+  test("title is optional", () => {
+    const result = parseActionBlockInput({
+      blockType: "action",
+      actions: [{ name: "run", label: "Run", prompt: "Go" }],
+    });
+    if (isActionBlockInputError(result)) throw new Error(result.message);
+    expect(result.title).toBeUndefined();
+  });
+
+  test("parses runner config", () => {
+    const result = parseActionBlockInput({
+      blockType: "action",
+      actions: [{ name: "run", label: "Run", prompt: "Go" }],
+      runnerConfig: { model: "claude-3-opus" },
+    });
+    if (isActionBlockInputError(result)) throw new Error(result.message);
+    expect(result.runnerConfig?.model).toBe("claude-3-opus");
   });
 });

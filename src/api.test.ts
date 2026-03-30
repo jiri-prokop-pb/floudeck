@@ -511,6 +511,110 @@ describe("POST /api/blocks/try", () => {
   });
 });
 
+describe("action blocks", () => {
+  test("POST /api/blocks creates action block", async () => {
+    const res = await router(
+      req("POST", "/api/blocks", {
+        blockType: "action",
+        title: "Tools",
+        actions: [
+          { name: "deploy", label: "Deploy", prompt: "Deploy {{input}}" },
+        ],
+      }),
+    );
+    const data = await jsonBody(res);
+    expect(data.ok).toBe(true);
+    expect(data.block.block_type).toBe("action");
+    expect(data.block.title).toBe("Tools");
+    // Should NOT trigger a run
+    expect(triggeredIds).toHaveLength(0);
+  });
+
+  test("POST /api/blocks rejects action block with empty actions", async () => {
+    const res = await router(
+      req("POST", "/api/blocks", {
+        blockType: "action",
+        actions: [],
+      }),
+    );
+    const data = await jsonBody(res);
+    expect(data.ok).toBe(false);
+  });
+
+  test("POST /api/blocks/:id/update updates action block", async () => {
+    const createRes = await router(
+      req("POST", "/api/blocks", {
+        blockType: "action",
+        title: "Original",
+        actions: [{ name: "a", label: "A", prompt: "P" }],
+      }),
+    );
+    const createData = await jsonBody(createRes);
+    const id = createData.block.id;
+
+    const updateRes = await router(
+      req("POST", `/api/blocks/${id}/update`, {
+        blockType: "action",
+        title: "Updated",
+        actions: [
+          { name: "a", label: "A", prompt: "New P" },
+          { name: "b", label: "B", color: "blue", prompt: "P2" },
+        ],
+      }),
+    );
+    const updateData = await jsonBody(updateRes);
+    expect(updateData.ok).toBe(true);
+    expect(updateData.block.title).toBe("Updated");
+  });
+
+  test("POST /api/blocks/:id/refresh returns 400 for action blocks", async () => {
+    const createRes = await router(
+      req("POST", "/api/blocks", {
+        blockType: "action",
+        actions: [{ name: "a", label: "A", prompt: "P" }],
+      }),
+    );
+    const createData = await jsonBody(createRes);
+    const id = createData.block.id;
+
+    const refreshRes = await router(req("POST", `/api/blocks/${id}/refresh`));
+    expect(refreshRes?.status).toBe(400);
+    const data = await jsonBody(refreshRes);
+    expect(data.error).toContain("cannot be refreshed");
+  });
+
+  test("GET /api/blocks/uuid/:uuid returns block with parsed actions", async () => {
+    const createRes = await router(
+      req("POST", "/api/blocks", {
+        blockType: "action",
+        title: "UUID Test",
+        actions: [
+          {
+            name: "deploy",
+            label: "Deploy",
+            color: "red",
+            prompt: "Deploy {{input}}",
+          },
+        ],
+      }),
+    );
+    const createData = await jsonBody(createRes);
+    const uuid = createData.block.uuid;
+
+    const getRes = await router(req("GET", `/api/blocks/uuid/${uuid}`));
+    const data = await jsonBody(getRes);
+    expect(data.ok).toBe(true);
+    expect(data.block.block_type).toBe("action");
+    expect(data.parsedActions).toHaveLength(1);
+    expect(data.parsedActions[0].name).toBe("deploy");
+  });
+
+  test("GET /api/blocks/uuid/:uuid returns 404 for unknown UUID", async () => {
+    const res = await router(req("GET", "/api/blocks/uuid/nonexistent"));
+    expect(res?.status).toBe(404);
+  });
+});
+
 describe("unknown routes", () => {
   test("returns null for unmatched route", async () => {
     const res = await router(req("GET", "/unknown"));

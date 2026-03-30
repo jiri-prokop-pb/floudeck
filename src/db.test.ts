@@ -3,20 +3,24 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import {
+  createActionBlock,
   createBlock,
   deleteBlock,
   findDueBlocks,
   getBlock,
+  getSchemaVersion,
   getSetting,
   initDb,
   listBlocks,
   markBlockError,
   markBlockRunning,
   markBlockSuccess,
+  parseBlockActions,
   parseBlockRunnerConfig,
   reorderBlocks,
   resetStaleRunningBlocks,
   setSetting,
+  updateActionBlock,
   updateBlock,
 } from "./db.ts";
 
@@ -517,5 +521,130 @@ describe("settings", () => {
     setSetting(db, "key", "first");
     setSetting(db, "key", "second");
     expect(getSetting(db, "key")).toBe("second");
+  });
+});
+
+describe("action blocks", () => {
+  test("schema version is 2 for fresh DB", () => {
+    expect(getSchemaVersion(db)).toBe(2);
+  });
+
+  test("createActionBlock sets correct defaults", () => {
+    const block = createActionBlock(db, {
+      blockType: "action",
+      title: "My Actions",
+      actions: [
+        { name: "deploy", label: "Deploy", prompt: "Deploy {{input}}" },
+      ],
+    });
+
+    expect(block.block_type).toBe("action");
+    expect(block.title).toBe("My Actions");
+    expect(block.prompt).toBe("");
+    expect(block.interval_value).toBe(0);
+    expect(block.next_run_at).toBeNull();
+    expect(block.status).toBe("idle");
+
+    const actions = parseBlockActions(block);
+    expect(actions).toHaveLength(1);
+    expect(actions[0]?.name).toBe("deploy");
+  });
+
+  test("createActionBlock with no title", () => {
+    const block = createActionBlock(db, {
+      blockType: "action",
+      actions: [{ name: "test", label: "Test", prompt: "Test prompt" }],
+    });
+    expect(block.title).toBeNull();
+  });
+
+  test("updateActionBlock updates title and actions", () => {
+    const block = createActionBlock(db, {
+      blockType: "action",
+      title: "Original",
+      actions: [{ name: "a", label: "A", prompt: "Prompt A" }],
+    });
+
+    const updated = updateActionBlock(db, block.id, {
+      blockType: "action",
+      title: "Updated",
+      actions: [
+        { name: "a", label: "A", prompt: "New prompt" },
+        { name: "b", label: "B", color: "red", prompt: "Prompt B" },
+      ],
+    });
+
+    if (!updated) throw new Error("updateActionBlock returned null");
+    expect(updated.title).toBe("Updated");
+
+    const actions = parseBlockActions(updated);
+    expect(actions).toHaveLength(2);
+    expect(actions[1]?.color).toBe("red");
+  });
+
+  test("updateActionBlock returns null for non-action block", () => {
+    const block = createBlock(db, {
+      prompt: "scheduled",
+      intervalValue: 5,
+      intervalUnit: "minutes",
+    });
+    const result = updateActionBlock(db, block.id, {
+      blockType: "action",
+      actions: [{ name: "x", label: "X", prompt: "P" }],
+    });
+    expect(result).toBeNull();
+  });
+
+  test("findDueBlocks excludes action blocks", () => {
+    createBlock(db, {
+      prompt: "scheduled",
+      intervalValue: 5,
+      intervalUnit: "minutes",
+    });
+    createActionBlock(db, {
+      blockType: "action",
+      actions: [{ name: "x", label: "X", prompt: "P" }],
+    });
+
+    const far = new Date(Date.now() + 86400000).toISOString();
+    const due = findDueBlocks(db, far, 10);
+    expect(due).toHaveLength(1);
+    expect(due[0]?.block_type).toBe("scheduled");
+  });
+
+  test("resetStaleRunningBlocks ignores action blocks", () => {
+    const block = createActionBlock(db, {
+      blockType: "action",
+      actions: [{ name: "x", label: "X", prompt: "P" }],
+    });
+    // Manually set to running (shouldn't happen normally)
+    db.run("UPDATE blocks SET status = 'running' WHERE id = ?", block.id);
+
+    const now = new Date().toISOString();
+    const count = resetStaleRunningBlocks(db, now);
+    expect(count).toBe(0);
+
+    const reloaded = mustGetBlock(db, block.id);
+    expect(reloaded.status).toBe("running");
+  });
+
+  test("parseBlockActions returns empty array for null actions", () => {
+    const block = createBlock(db, {
+      prompt: "test",
+      intervalValue: 5,
+      intervalUnit: "minutes",
+    });
+    expect(parseBlockActions(block)).toEqual([]);
+  });
+
+  test("parseBlockActions returns empty array for invalid JSON", () => {
+    const block = createBlock(db, {
+      prompt: "test",
+      intervalValue: 5,
+      intervalUnit: "minutes",
+    });
+    db.run("UPDATE blocks SET actions = 'invalid' WHERE id = ?", block.id);
+    const reloaded = mustGetBlock(db, block.id);
+    expect(parseBlockActions(reloaded)).toEqual([]);
   });
 });
