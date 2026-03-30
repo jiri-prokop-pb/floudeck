@@ -7,8 +7,11 @@ A local feed of scheduled blocks that run prompts through [Claude Code CLI](http
 ## Install
 
 ```bash
-brew install --no-quarantine --cask jiri-prokop-pb/tap/floudeck
+brew install --cask jiri-prokop-pb/tap/floudeck
+xattr -dr com.apple.quarantine /Applications/Floudeck.app
 ```
+
+The app is not yet code-signed, so the `xattr` step is needed to remove macOS quarantine.
 
 Requires [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) (`claude` in your PATH).
 
