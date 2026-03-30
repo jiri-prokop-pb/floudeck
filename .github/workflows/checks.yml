@@ -97,7 +97,7 @@ jobs:
           restore-keys: cargo-${{ runner.os }}-
 
       - name: Install Tauri CLI
-        run: cargo install tauri-cli
+        run: command -v cargo-tauri || cargo install tauri-cli
 
       - name: Build
         run: bun install --frozen-lockfile && bun run build
