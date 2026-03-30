@@ -1,13 +1,18 @@
 import type { Database } from "bun:sqlite";
+import { copyFileSync, existsSync, statSync, unlinkSync } from "node:fs";
 import { z } from "zod/mini";
 import { formatCliCommand, resolveRunnerConfig } from "./config.ts";
 import {
+  backupDatabase,
+  checkDatabaseIntegrity,
   createActionRun,
   createBlock,
   deleteBlock,
+  findBackups,
   getActionRun,
   getBlock,
   getBlockByUuid,
+  getSchemaVersion,
   getSetting,
   listBlocks,
   markActionCompleted,
@@ -34,6 +39,7 @@ import {
 
 export type RouterDeps = {
   db: Database;
+  dbPath?: string;
   sse: SseBroadcaster;
   triggerRun: (blockId: number) => void;
   runAction: RunBlockFn;
@@ -141,7 +147,7 @@ function settingsHandlers(
 export function createRouter(
   deps: RouterDeps,
 ): (req: Request) => Promise<Response | null> {
-  const { db, sse, triggerRun, runAction, runTry } = deps;
+  const { db, dbPath, sse, triggerRun, runAction, runTry } = deps;
 
   const runnerSettings = settingsHandlers(
     db,
@@ -343,6 +349,131 @@ export function createRouter(
       method: "POST",
       pattern: "/api/settings/display",
       handler: (req) => displaySettings.post(req),
+    },
+    {
+      method: "GET",
+      pattern: "/api/settings/db-status",
+      handler: () => {
+        const healthy = checkDatabaseIntegrity(db);
+        const version = getSchemaVersion(db);
+        const rawBackups = dbPath ? findBackups(dbPath) : [];
+        const backups = rawBackups.map((b) => {
+          const stat = existsSync(b.path) ? statSync(b.path) : null;
+          return {
+            version: b.version,
+            path: b.path,
+            size: stat?.size ?? 0,
+            createdAt: stat?.mtime.toISOString() ?? "",
+          };
+        });
+        return json({ ok: true, healthy, version, backups });
+      },
+    },
+    {
+      method: "POST",
+      pattern: "/api/settings/reset-database",
+      handler: async (req) => {
+        const parsed = await parseJsonBody(req);
+        if (parsed instanceof Response) return parsed;
+        const body = parsed.body;
+        if (
+          !body ||
+          typeof body !== "object" ||
+          !("confirm" in body) ||
+          body.confirm !== true
+        ) {
+          return json({ ok: false, error: "Must send { confirm: true }" }, 400);
+        }
+        if (!dbPath || dbPath === ":memory:") {
+          return json(
+            { ok: false, error: "Cannot reset in-memory database" },
+            400,
+          );
+        }
+
+        // Backup current before reset
+        const version = getSchemaVersion(db);
+        backupDatabase(db, dbPath, version, "pre-reset");
+
+        db.close();
+        // Delete main DB and WAL/SHM files
+        for (const suffix of ["", "-wal", "-shm"]) {
+          const file = `${dbPath}${suffix}`;
+          if (existsSync(file)) unlinkSync(file);
+        }
+
+        setTimeout(() => process.exit(0), 100);
+        return json({
+          ok: true,
+          message: "Database reset. Server restarting.",
+        });
+      },
+    },
+    {
+      method: "POST",
+      pattern: "/api/settings/restore-database",
+      handler: async (req) => {
+        const parsed = await parseJsonBody(req);
+        if (parsed instanceof Response) return parsed;
+        const body = parsed.body;
+        if (
+          !body ||
+          typeof body !== "object" ||
+          !("confirm" in body) ||
+          body.confirm !== true
+        ) {
+          return json({ ok: false, error: "Must send { confirm: true }" }, 400);
+        }
+        if (
+          !body ||
+          typeof body !== "object" ||
+          !("version" in body) ||
+          typeof body.version !== "number"
+        ) {
+          return json(
+            { ok: false, error: "Must send { version: number }" },
+            400,
+          );
+        }
+        if (!dbPath || dbPath === ":memory:") {
+          return json(
+            { ok: false, error: "Cannot restore in-memory database" },
+            400,
+          );
+        }
+
+        const targetVersion = body.version;
+        const backups = findBackups(dbPath);
+        const backup = backups.find((b) => b.version === targetVersion);
+        if (!backup || !existsSync(backup.path)) {
+          return json(
+            {
+              ok: false,
+              error: `No backup found for version ${targetVersion}`,
+            },
+            404,
+          );
+        }
+
+        // Backup current before restore
+        const currentVersion = getSchemaVersion(db);
+        backupDatabase(db, dbPath, currentVersion, "pre-restore");
+
+        db.close();
+        // Replace DB with backup
+        copyFileSync(backup.path, dbPath);
+        // Clean WAL/SHM since we're restoring a different file
+        for (const suffix of ["-wal", "-shm"]) {
+          const file = `${dbPath}${suffix}`;
+          if (existsSync(file)) unlinkSync(file);
+        }
+
+        setTimeout(() => process.exit(0), 100);
+        return json({
+          ok: true,
+          message: `Database restored to v${targetVersion}. Server restarting.`,
+        });
+      },
     },
     {
       method: "POST",
