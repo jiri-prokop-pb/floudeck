@@ -1,0 +1,75 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  checks:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lockb') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - run: bun install --frozen-lockfile
+
+      - run: bun run lint
+
+      - run: bun run test
+
+      - name: Install Playwright browsers
+        run: bun playwright install chromium
+
+      - run: bun run e2e
+
+  release-pr-validation:
+    if: startsWith(github.event.pull_request.title, 'Release v')
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate release PR
+        run: |
+          # Check only version files are changed
+          CHANGED=$(git diff --name-only origin/main...HEAD | sort)
+          EXPECTED=$(printf "package.json\nsrc-tauri/Cargo.toml\nsrc-tauri/tauri.conf.json")
+
+          if [ "$CHANGED" != "$EXPECTED" ]; then
+            echo "::error::Release PR must only change version files."
+            echo "Expected:"
+            echo "$EXPECTED"
+            echo "Got:"
+            echo "$CHANGED"
+            exit 1
+          fi
+
+          # Extract versions from all 3 files
+          PKG_VERSION=$(jq -r .version package.json)
+          TAURI_VERSION=$(jq -r .version src-tauri/tauri.conf.json)
+          CARGO_VERSION=$(grep -m1 '^version = ' src-tauri/Cargo.toml | sed 's/version = "\(.*\)"/\1/')
+
+          if [ "$PKG_VERSION" != "$TAURI_VERSION" ] || [ "$PKG_VERSION" != "$CARGO_VERSION" ]; then
+            echo "::error::Version mismatch: package.json=$PKG_VERSION, tauri.conf.json=$TAURI_VERSION, Cargo.toml=$CARGO_VERSION"
+            exit 1
+          fi
+
+          # Extract version from PR title
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          TITLE_VERSION="${PR_TITLE#Release v}"
+
+          if [ "$PKG_VERSION" != "$TITLE_VERSION" ]; then
+            echo "::error::PR title version ($TITLE_VERSION) doesn't match file version ($PKG_VERSION)"
+            exit 1
+          fi
+
+          echo "Release PR validated: v$PKG_VERSION"
