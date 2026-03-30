@@ -307,78 +307,81 @@ export function createStreamingTryRunner(
       );
     }
 
-    let buffer = "";
-    let sentDone = false;
-
     return new ReadableStream<TryStreamEvent>({
-      async pull(controller) {
+      start(controller) {
+        let buffer = "";
+        let sentDone = false;
+        const decoder = new TextDecoder();
         const reader = proc.stdout.getReader();
 
-        try {
-          const decoder = new TextDecoder();
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
+        void (async () => {
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
 
-            const chunk = decoder.decode(value, { stream: true });
-            buffer += chunk;
+              const chunk = decoder.decode(value, { stream: true });
+              buffer += chunk;
 
-            const lines = buffer.split("\n");
-            buffer = lines.pop() ?? "";
+              const lines = buffer.split("\n");
+              buffer = lines.pop() ?? "";
 
-            for (const line of lines) {
-              const event = parseNdjsonLine(line, options.debug);
+              for (const line of lines) {
+                const event = parseNdjsonLine(line, options.debug);
+                if (event) {
+                  if (event.type === "done") sentDone = true;
+                  controller.enqueue(event);
+                }
+              }
+            }
+
+            // Process remaining buffer
+            if (buffer.trim()) {
+              const event = parseNdjsonLine(buffer, options.debug);
               if (event) {
                 if (event.type === "done") sentDone = true;
                 controller.enqueue(event);
               }
             }
-          }
 
-          // Process remaining buffer
-          if (buffer.trim()) {
-            const event = parseNdjsonLine(buffer, options.debug);
-            if (event) {
-              if (event.type === "done") sentDone = true;
-              controller.enqueue(event);
-            }
-          }
+            // Wait for process exit and handle final state
+            const stderr = await new Response(proc.stderr).text();
+            await proc.exited;
 
-          // Wait for process exit and handle final state
-          const stderr = await new Response(proc.stderr).text();
-          await proc.exited;
+            clearTimeout(timer);
 
-          clearTimeout(timer);
-
-          if (timedOut) {
-            controller.enqueue({
-              type: "error",
-              error: `Try timed out after ${config.timeout} seconds.`,
-            });
-          } else if (!sentDone) {
-            // Fallback: no "done" was emitted from NDJSON — check stderr
-            if (stderr.trim()) {
-              const permissionError = detectPermissionError(stderr, config.cwd);
+            if (timedOut) {
               controller.enqueue({
                 type: "error",
-                error: stderr.trim().slice(0, 500),
-                ...(permissionError ? { permissionError } : {}),
+                error: `Try timed out after ${config.timeout} seconds.`,
               });
-            } else {
-              controller.enqueue({
-                type: "error",
-                error: "No output received from CLI.",
-              });
+            } else if (!sentDone) {
+              if (stderr.trim()) {
+                const permissionError = detectPermissionError(
+                  stderr,
+                  config.cwd,
+                );
+                controller.enqueue({
+                  type: "error",
+                  error: stderr.trim().slice(0, 500),
+                  ...(permissionError ? { permissionError } : {}),
+                });
+              } else {
+                controller.enqueue({
+                  type: "error",
+                  error: "No output received from CLI.",
+                });
+              }
             }
+          } catch (err: unknown) {
+            clearTimeout(timer);
+            const message =
+              err instanceof Error ? err.message : "Streaming error";
+            controller.enqueue({ type: "error", error: message });
+          } finally {
+            controller.close();
           }
-        } catch (err: unknown) {
-          clearTimeout(timer);
-          const message =
-            err instanceof Error ? err.message : "Streaming error";
-          controller.enqueue({ type: "error", error: message });
-        } finally {
-          controller.close();
-        }
+        })();
       },
     });
   };
