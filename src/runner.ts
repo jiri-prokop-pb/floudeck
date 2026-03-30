@@ -150,6 +150,13 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
+/**
+ * Parse a single NDJSON line from the Claude CLI `--output-format stream-json` output.
+ *
+ * The CLI wraps Anthropic API streaming events in an envelope:
+ *   { "type": "stream_event", "event": { "type": "content_block_delta", ... } }
+ * Top-level types like "result" and "system" are NOT wrapped.
+ */
 export function parseNdjsonLine(
   line: string,
   debug: boolean,
@@ -165,66 +172,21 @@ export function parseNdjsonLine(
   }
 
   if (!isRecord(parsed)) return null;
-  const type = typeof parsed.type === "string" ? parsed.type : undefined;
+  const topType = typeof parsed.type === "string" ? parsed.type : undefined;
 
-  // Text content delta
-  if (type === "content_block_delta") {
-    const delta = isRecord(parsed.delta) ? parsed.delta : undefined;
-    if (delta?.type === "text_delta" && typeof delta.text === "string") {
-      return { type: "text", text: delta.text };
-    }
+  // Unwrap stream_event envelope → inner event
+  if (topType === "stream_event") {
+    const inner = isRecord(parsed.event) ? parsed.event : undefined;
+    if (!inner) return null;
+    return parseStreamEvent(inner, debug);
   }
 
-  // Thinking content
-  if (type === "content_block_delta" && debug) {
-    const delta = isRecord(parsed.delta) ? parsed.delta : undefined;
-    if (
-      delta?.type === "thinking_delta" &&
-      typeof delta.thinking === "string"
-    ) {
-      const event: DebugEvent = { kind: "thinking", text: delta.thinking };
-      return { type: "debug", event };
-    }
-  }
-
-  // Tool use
-  if (type === "content_block_start" && debug) {
-    const contentBlock = isRecord(parsed.content_block)
-      ? parsed.content_block
-      : undefined;
-    if (contentBlock?.type === "tool_use") {
-      const tool =
-        typeof contentBlock.name === "string" ? contentBlock.name : "unknown";
-      const input =
-        typeof contentBlock.input === "string"
-          ? contentBlock.input
-          : JSON.stringify(contentBlock.input ?? "");
-      const event: DebugEvent = { kind: "tool_use", tool, input };
-      return { type: "debug", event };
-    }
-  }
-
-  // Tool result (from subprocesses in verbose mode)
-  if (type === "content_block_start" && debug) {
-    const contentBlock = isRecord(parsed.content_block)
-      ? parsed.content_block
-      : undefined;
-    if (contentBlock?.type === "tool_result") {
-      const tool =
-        typeof contentBlock.tool_use_id === "string"
-          ? contentBlock.tool_use_id
-          : "unknown";
-      const output =
-        typeof contentBlock.content === "string"
-          ? contentBlock.content.slice(0, 500)
-          : JSON.stringify(contentBlock.content ?? "").slice(0, 500);
-      const event: DebugEvent = { kind: "tool_result", tool, output };
-      return { type: "debug", event };
-    }
-  }
-
-  // System messages
-  if (type === "system" && debug) {
+  // Top-level system message (init, etc.)
+  if (topType === "system" && debug) {
+    const subtype =
+      typeof parsed.subtype === "string" ? parsed.subtype : undefined;
+    // Skip the verbose init message
+    if (subtype === "init") return null;
     const message =
       typeof parsed.message === "string"
         ? parsed.message
@@ -238,10 +200,68 @@ export function parseNdjsonLine(
   }
 
   // Result message (final)
-  if (type === "result" && typeof parsed.result === "string") {
+  if (topType === "result" && typeof parsed.result === "string") {
     const { markdown, reasoning } = extractMarkdownFromOutput(parsed.result);
     if (markdown) {
       return { type: "done", markdown, reasoning };
+    }
+  }
+
+  return null;
+}
+
+function parseStreamEvent(
+  event: Record<string, unknown>,
+  debug: boolean,
+): TryStreamEvent | null {
+  const type = typeof event.type === "string" ? event.type : undefined;
+
+  // Text content delta
+  if (type === "content_block_delta") {
+    const delta = isRecord(event.delta) ? event.delta : undefined;
+    if (delta?.type === "text_delta" && typeof delta.text === "string") {
+      return { type: "text", text: delta.text };
+    }
+    // Thinking content
+    if (
+      debug &&
+      delta?.type === "thinking_delta" &&
+      typeof delta.thinking === "string"
+    ) {
+      const debugEvent: DebugEvent = {
+        kind: "thinking",
+        text: delta.thinking,
+      };
+      return { type: "debug", event: debugEvent };
+    }
+  }
+
+  // Tool use start
+  if (type === "content_block_start" && debug) {
+    const contentBlock = isRecord(event.content_block)
+      ? event.content_block
+      : undefined;
+    if (contentBlock?.type === "tool_use") {
+      const tool =
+        typeof contentBlock.name === "string" ? contentBlock.name : "unknown";
+      const input =
+        typeof contentBlock.input === "string"
+          ? contentBlock.input
+          : JSON.stringify(contentBlock.input ?? "");
+      const debugEvent: DebugEvent = { kind: "tool_use", tool, input };
+      return { type: "debug", event: debugEvent };
+    }
+    if (contentBlock?.type === "tool_result") {
+      const tool =
+        typeof contentBlock.tool_use_id === "string"
+          ? contentBlock.tool_use_id
+          : "unknown";
+      const output =
+        typeof contentBlock.content === "string"
+          ? contentBlock.content.slice(0, 500)
+          : JSON.stringify(contentBlock.content ?? "").slice(0, 500);
+      const debugEvent: DebugEvent = { kind: "tool_result", tool, output };
+      return { type: "debug", event: debugEvent };
     }
   }
 

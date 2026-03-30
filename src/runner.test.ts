@@ -103,8 +103,13 @@ describe("createMockRunner", () => {
 });
 
 describe("parseNdjsonLine", () => {
-  test("parses text_delta as text event", () => {
-    const line = JSON.stringify({
+  // Helper: wrap an API event in the CLI's stream_event envelope
+  function streamEvent(event: Record<string, unknown>): string {
+    return JSON.stringify({ type: "stream_event", event });
+  }
+
+  test("parses text_delta from stream_event envelope", () => {
+    const line = streamEvent({
       type: "content_block_delta",
       delta: { type: "text_delta", text: "Hello" },
     });
@@ -113,7 +118,7 @@ describe("parseNdjsonLine", () => {
   });
 
   test("parses thinking_delta only in debug mode", () => {
-    const line = JSON.stringify({
+    const line = streamEvent({
       type: "content_block_delta",
       delta: { type: "thinking_delta", thinking: "Let me think..." },
     });
@@ -126,7 +131,7 @@ describe("parseNdjsonLine", () => {
   });
 
   test("parses tool_use only in debug mode", () => {
-    const line = JSON.stringify({
+    const line = streamEvent({
       type: "content_block_start",
       content_block: { type: "tool_use", name: "Read", input: "file.ts" },
     });
@@ -138,7 +143,7 @@ describe("parseNdjsonLine", () => {
     });
   });
 
-  test("parses result message as done event", () => {
+  test("parses top-level result message as done event", () => {
     const line = JSON.stringify({
       type: "result",
       result:
@@ -150,6 +155,15 @@ describe("parseNdjsonLine", () => {
       markdown: "# Title\n\nContent",
       reasoning: "Thinking",
     });
+  });
+
+  test("skips system init message", () => {
+    const line = JSON.stringify({
+      type: "system",
+      subtype: "init",
+      tools: [],
+    });
+    expect(parseNdjsonLine(line, true)).toBeNull();
   });
 
   test("returns null for empty lines", () => {
