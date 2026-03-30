@@ -53,20 +53,10 @@ V1 is implemented. See **[docs/custom-actions-spec.md](docs/custom-actions-spec.
 See **[docs/design-block-runners.md](docs/design-block-runners.md)** for the full design document.
 
 Phases:
-1. ~~Interactive "Try" mode (foundation)~~ ✓ done
-2. CLI streaming (Try panel + feed)
+1. CLI streaming (Try panel + feed)
 3. Runner type system + bun-script runner
 4. Claude Agent SDK runner
 5. API & external AI tools (deferred)
-
-## Compact UI mode
-
-- Setting in Settings > Display tab (`compactMode` boolean)
-- Header collapses to a thin bar (logo + clock/date + essential controls only)
-- Block card padding and margins reduced
-- Font sizes tightened throughout
-
----
 
 ## Action blocks
 

@@ -5,16 +5,27 @@ import { PulseSkeleton } from "./PulseSkeleton.tsx";
 
 type BlockBodyProps = {
   block: BlockRecord;
+  compact?: boolean;
 };
 
-function MarkdownContent({ markdown }: { markdown: string }) {
+function MarkdownContent({
+  markdown,
+  compact,
+}: {
+  markdown: string;
+  compact?: boolean;
+}) {
   const { title, body } = extractTitle(markdown);
   return (
     <>
-      <h2 className="text-lg font-semibold text-zinc-900 mb-2">{title}</h2>
+      <h2
+        className={`font-semibold text-zinc-900 ${compact ? "text-base mb-1" : "text-lg mb-2"}`}
+      >
+        {title}
+      </h2>
       {body && (
         <div
-          className="prose prose-sm max-w-none"
+          className={`prose prose-sm max-w-none ${compact ? "prose-compact" : ""}`}
           dangerouslySetInnerHTML={{ __html: renderMarkdown(body) }}
         />
       )}
@@ -22,10 +33,12 @@ function MarkdownContent({ markdown }: { markdown: string }) {
   );
 }
 
-export function BlockBody({ block }: BlockBodyProps) {
+export function BlockBody({ block, compact }: BlockBodyProps) {
   if (block.status === "running") {
     if (block.output_markdown) {
-      return <MarkdownContent markdown={block.output_markdown} />;
+      return (
+        <MarkdownContent markdown={block.output_markdown} compact={compact} />
+      );
     }
     if (block.error_text) {
       return (
@@ -45,7 +58,9 @@ export function BlockBody({ block }: BlockBodyProps) {
   }
 
   if (block.status === "success" && block.output_markdown) {
-    return <MarkdownContent markdown={block.output_markdown} />;
+    return (
+      <MarkdownContent markdown={block.output_markdown} compact={compact} />
+    );
   }
 
   if (block.status === "idle") {

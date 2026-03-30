@@ -14,6 +14,7 @@ import { Modal } from "./Modal.tsx";
 
 type BlockCardProps = {
   block: BlockRecord;
+  compact?: boolean;
   onUpdate: (block: BlockRecord) => void;
   onDelete: (id: number) => void;
   onEdit: (id: number) => void;
@@ -21,6 +22,7 @@ type BlockCardProps = {
 
 export function BlockCard({
   block,
+  compact,
   onUpdate,
   onDelete,
   onEdit,
@@ -51,7 +53,7 @@ export function BlockCard({
 
   return (
     <div
-      className={`relative rounded-2xl border border-zinc-200 bg-white shadow-sm ${showMenu || showInfo ? "z-30" : ""}`}
+      className={`relative ${compact ? "rounded-xl" : "rounded-2xl"} border border-zinc-200 bg-white shadow-sm ${showMenu || showInfo ? "z-30" : ""}`}
     >
       <div className="absolute right-3 top-3 flex items-center gap-1 z-10">
         {/* Info button */}
@@ -150,8 +152,8 @@ export function BlockCard({
       </div>
 
       {/* Body */}
-      <div className="px-5 py-4">
-        <BlockBody block={block} />
+      <div className={compact ? "px-4 py-3" : "px-5 py-4"}>
+        <BlockBody block={block} compact={compact} />
       </div>
 
       {confirmingDelete && (
@@ -207,7 +209,7 @@ export function SortableBlockCard(props: BlockCardProps) {
       className={`group/sortable relative ${isDragging ? "z-50" : ""}`}
     >
       <div
-        className={`relative rounded-2xl transition-[transform,box-shadow] duration-200 ${isDragging ? "scale-105 shadow-xl" : ""}`}
+        className={`relative ${props.compact ? "rounded-xl" : "rounded-2xl"} transition-[transform,box-shadow] duration-200 ${isDragging ? "scale-105 shadow-xl" : ""}`}
       >
         <button
           type="button"

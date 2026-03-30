@@ -27,7 +27,7 @@ bun run dev        # http://localhost:3000
 - **Try mode** — test a prompt before saving (runs through CLI and shows result inline)
 - Per-block and global runner configuration (model, timeout, permissions, cwd, env vars)
 - Live date/time clock in header with calendar popover on hover
-- Tabbed settings modal (Runner defaults, Display preferences)
+- Tabbed settings modal (Runner defaults, Display preferences including compact mode)
 
 ## Build from source
 

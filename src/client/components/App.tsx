@@ -67,7 +67,11 @@ function AppContent({
   const [showSettings, setShowSettings] = useState(false);
   const initialDisplaySettings = use(displaySettingsPromise);
   const [displaySettings, setDisplaySettings] = useState<DisplaySettings>(
-    initialDisplaySettings ?? { dateFormat: "D. M.", timeFormat: "24h" },
+    initialDisplaySettings ?? {
+      dateFormat: "D. M.",
+      timeFormat: "24h",
+      compactMode: false,
+    },
   );
 
   const refetchDisplaySettings = useCallback(async () => {
@@ -124,6 +128,8 @@ function AppContent({
     );
   }
 
+  const compact = displaySettings.compactMode === true;
+
   return (
     <div className="min-h-screen bg-zinc-50">
       {isTauri && (
@@ -137,39 +143,55 @@ function AppContent({
         />
       )}
       <div
-        className="mx-auto max-w-3xl px-4 py-10"
-        style={isTauri ? { paddingTop: "2.5rem" } : undefined}
+        className={`mx-auto max-w-3xl px-4 ${compact ? "py-4" : "py-10"}`}
+        style={
+          isTauri ? { paddingTop: compact ? "1.5rem" : "2.5rem" } : undefined
+        }
       >
-        <header className="mb-8 flex items-start justify-between">
-          <div className="flex items-center gap-3">
+        <header
+          className={`flex items-center justify-between ${compact ? "mb-3" : "mb-8"}`}
+        >
+          <div className={`flex items-center ${compact ? "gap-2" : "gap-3"}`}>
             <img
               src="/logo.png"
               srcSet="/logo@2x.png 2x, /logo@3x.png 3x"
               alt=""
-              className="h-10 w-auto"
+              className={`${compact ? "h-5" : "h-10"} w-auto`}
             />
-            <div>
-              <h1 className="text-2xl font-bold text-zinc-900">Floudeck</h1>
-              <p className="text-sm text-zinc-500">
-                Your deck of signals and actions
-              </p>
-            </div>
+            {compact ? (
+              <div className="flex items-baseline gap-1.5">
+                <h1 className="text-sm font-semibold text-zinc-900">
+                  Floudeck
+                </h1>
+                <p className="text-xs text-zinc-400">
+                  Your deck of signals and actions
+                </p>
+              </div>
+            ) : (
+              <div>
+                <h1 className="text-2xl font-bold text-zinc-900">Floudeck</h1>
+                <p className="text-sm text-zinc-500">
+                  Your deck of signals and actions
+                </p>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2">
-            <HeaderClock displaySettings={displaySettings} />
+            <HeaderClock displaySettings={displaySettings} compact={compact} />
             <button
               type="button"
               onClick={() => setShowSettings(true)}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-200 hover:text-zinc-600"
+              className={`flex items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-200 hover:text-zinc-600 ${compact ? "h-6 w-6" : "h-8 w-8"}`}
               title="Settings"
             >
-              <Gear size={16} weight="bold" />
+              <Gear size={compact ? 14 : 16} weight="bold" />
             </button>
           </div>
         </header>
 
         <Feed
           blocks={blocks}
+          compact={compact}
           onUpdate={handleUpdate}
           onDelete={handleDelete}
           onReorder={handleReorder}
@@ -179,7 +201,7 @@ function AppContent({
         <button
           type="button"
           onClick={navigateToNewBlock}
-          className="mt-6 w-full rounded-2xl border border-dashed border-zinc-300 py-3 text-sm font-medium text-zinc-500 hover:border-zinc-400 hover:text-zinc-700 hover:bg-zinc-100/50"
+          className={`w-full rounded-2xl border border-dashed border-zinc-300 text-sm font-medium text-zinc-500 hover:border-zinc-400 hover:text-zinc-700 hover:bg-zinc-100/50 ${compact ? "mt-3 py-2" : "mt-6 py-3"}`}
         >
           + Add another block
         </button>

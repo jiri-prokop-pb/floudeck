@@ -66,7 +66,8 @@ The feed is ordered by user-defined position (drag-and-drop reorderable), keepin
 - **Header clock** — live date & time display (day name + date + time); calendar popover on hover showing current month with today highlighted
 - **Settings modal** — tabbed layout (Runner, Display) with gear icon in header
   - Runner tab: global runner defaults (model, permissions, timeout, env)
-  - Display tab: date format and time format (24h/12h) preferences
+  - Display tab: date format, time format (24h/12h), compact mode
+- **Compact mode** — toggle in Display settings. Collapses header to a single slim line (small logo + title + motto inline, date/time on right), reduces page padding, card spacing, and card padding
 - Block info popover with schedule, resolved config, and CLI command
 
 ### Custom actions

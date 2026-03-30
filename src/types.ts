@@ -65,6 +65,7 @@ export type RunResult =
 export const DisplaySettingsSchema = z.object({
   dateFormat: z.optional(z.enum(["D. M.", "MM-DD", "DD/MM", "MM/DD"])),
   timeFormat: z.optional(z.enum(["24h", "12h"])),
+  compactMode: z.optional(z.boolean()),
 });
 
 export type DisplaySettings = z.infer<typeof DisplaySettingsSchema>;
