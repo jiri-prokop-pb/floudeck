@@ -56,6 +56,7 @@ bun run bump <version>     # bump version in all 3 files (package.json, tauri.co
 - **Prefer React 19 patterns** (`use()`, `useActionState`, `<Suspense>`) over `useEffect`+`useState` for data fetching and form submission state. Consult the frontend-dev skill when in doubt.
 - **Git: rebase, not merge.** PR merge strategy is "Rebase and merge". When resolving conflicts with main, use `git rebase origin/main` + force push (with lease), never `git merge`.
 - **Lefthook pre-commit hook** runs `bun run lint` on every commit. Installed automatically via `postinstall`. If the hook fails, run `bun run format` to fix, then re-commit.
+- **Pin all dependency versions** — no `^` or `~` ranges in `package.json`. `bunfig.toml` has `exact = true` so `bun add` defaults to exact versions. Caret ranges cause version drift between local and CI.
 
 ### Packaging / Tauri
 
