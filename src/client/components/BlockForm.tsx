@@ -1,8 +1,10 @@
 import { Play } from "@phosphor-icons/react";
 import { useActionState, useEffect, useState } from "react";
-import type { RunnerConfig } from "../../types.ts";
+import type { ActionDefinition, BlockType, RunnerConfig } from "../../types.ts";
+import type { ActionBlockFormInput, BlockFormInput } from "../lib/api.ts";
 import { tryBlockApi } from "../lib/api.ts";
 import { buildRunnerConfig } from "../lib/runnerConfig.ts";
+import { ActionListEditor } from "./ActionListEditor.tsx";
 import {
   type EnvEntry,
   parseEnvEntries,
@@ -10,19 +12,16 @@ import {
 } from "./RunnerConfigFields.tsx";
 import { TryPanel, type TryState } from "./TryPanel.tsx";
 
-type BlockFormData = {
-  prompt: string;
-  intervalValue: number;
-  intervalUnit: string;
-  runnerConfig?: RunnerConfig;
-  tryResult?: string;
-};
+type BlockFormData = BlockFormInput | ActionBlockFormInput;
 
 type BlockFormProps = {
+  initialBlockType?: BlockType;
   initialPrompt?: string;
   initialIntervalValue?: number;
   initialIntervalUnit?: string;
   initialRunnerConfig?: RunnerConfig;
+  initialTitle?: string;
+  initialActions?: ActionDefinition[];
   blockUuid?: string;
   submitLabel: string;
   onSubmit: (data: BlockFormData) => Promise<{ error?: string }>;
@@ -30,18 +29,26 @@ type BlockFormProps = {
 };
 
 export function BlockForm({
+  initialBlockType = "scheduled",
   initialPrompt = "",
   initialIntervalValue = 15,
   initialIntervalUnit = "minutes",
   initialRunnerConfig,
+  initialTitle = "",
+  initialActions,
   blockUuid,
   submitLabel,
   onSubmit,
   onCancel,
 }: BlockFormProps) {
+  const [blockType, setBlockType] = useState<BlockType>(initialBlockType);
   const [prompt, setPrompt] = useState(initialPrompt);
   const [intervalValue, setIntervalValue] = useState(initialIntervalValue);
   const [intervalUnit, setIntervalUnit] = useState(initialIntervalUnit);
+  const [title, setTitle] = useState(initialTitle);
+  const [actions, setActions] = useState<ActionDefinition[]>(
+    initialActions ?? [{ name: "", label: "", prompt: "" }],
+  );
   const [tryState, setTryState] = useState<TryState>({ status: "idle" });
   const [showAdvanced, setShowAdvanced] = useState(
     initialRunnerConfig !== undefined,
@@ -62,10 +69,6 @@ export function BlockForm({
 
   const [error, submitAction, isPending] = useActionState(
     async (_prev: string | null) => {
-      if (!prompt.trim()) return "Prompt is required";
-      if (!Number.isInteger(intervalValue) || intervalValue <= 0)
-        return "Interval must be a positive integer";
-
       const runnerConfig = buildRunnerConfig({
         model,
         permissions,
@@ -73,6 +76,23 @@ export function BlockForm({
         envEntries,
         cwd,
       });
+
+      if (blockType === "action") {
+        if (actions.some((a) => !a.label.trim() || !a.prompt.trim()))
+          return "All actions must have a label and prompt";
+        const result = await onSubmit({
+          blockType: "action",
+          ...(title.trim() ? { title: title.trim() } : {}),
+          actions,
+          ...(runnerConfig ? { runnerConfig } : {}),
+        });
+        return result.error ?? null;
+      }
+
+      if (!prompt.trim()) return "Prompt is required";
+      if (!Number.isInteger(intervalValue) || intervalValue <= 0)
+        return "Interval must be a positive integer";
+
       const tryMarkdown =
         tryState.status === "success" ? tryState.markdown : undefined;
       const result = await onSubmit({
@@ -127,34 +147,90 @@ export function BlockForm({
 
   const isTrying = tryState.status === "running";
 
+  const isEditing = initialBlockType !== "scheduled" || blockUuid;
+  const showTypeToggle = !isEditing;
+
   return (
     <form action={submitAction} className="space-y-3">
-      <textarea
-        value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
-        placeholder="What should this block do?"
-        className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none"
-        rows={3}
-      />
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-zinc-600">Every</span>
-        <input
-          type="number"
-          min={1}
-          value={intervalValue}
-          onChange={(e) => setIntervalValue(Number(e.target.value))}
-          className="w-20 rounded-lg border border-zinc-200 px-2 py-1.5 text-sm focus:border-zinc-400 focus:outline-none"
-        />
-        <select
-          value={intervalUnit}
-          onChange={(e) => setIntervalUnit(e.target.value)}
-          className="h-9 rounded-lg border border-zinc-200 px-2 py-1.5 text-sm focus:border-zinc-400 focus:outline-none"
-        >
-          <option value="minutes">minutes</option>
-          <option value="hours">hours</option>
-          <option value="days">days</option>
-        </select>
-      </div>
+      {/* Block type toggle */}
+      {showTypeToggle && (
+        <div className="flex rounded-lg border border-zinc-200 p-0.5 w-fit">
+          <button
+            type="button"
+            onClick={() => setBlockType("scheduled")}
+            className={`px-3 py-1 text-sm rounded-md transition-colors ${
+              blockType === "scheduled"
+                ? "bg-zinc-800 text-white"
+                : "text-zinc-500 hover:text-zinc-700"
+            }`}
+          >
+            Scheduled
+          </button>
+          <button
+            type="button"
+            onClick={() => setBlockType("action")}
+            className={`px-3 py-1 text-sm rounded-md transition-colors ${
+              blockType === "action"
+                ? "bg-zinc-800 text-white"
+                : "text-zinc-500 hover:text-zinc-700"
+            }`}
+          >
+            Action block
+          </button>
+        </div>
+      )}
+
+      {blockType === "action" ? (
+        <>
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-zinc-500">
+              Title (optional)
+            </span>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="My action block"
+              className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none"
+            />
+          </label>
+          <div>
+            <span className="mb-2 block text-xs font-medium text-zinc-500">
+              Actions
+            </span>
+            <ActionListEditor actions={actions} onChange={setActions} />
+          </div>
+        </>
+      ) : (
+        <>
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="What should this block do?"
+            className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none"
+            rows={3}
+          />
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-zinc-600">Every</span>
+            <input
+              type="number"
+              min={1}
+              value={intervalValue}
+              onChange={(e) => setIntervalValue(Number(e.target.value))}
+              className="w-20 rounded-lg border border-zinc-200 px-2 py-1.5 text-sm focus:border-zinc-400 focus:outline-none"
+            />
+            <select
+              value={intervalUnit}
+              onChange={(e) => setIntervalUnit(e.target.value)}
+              className="h-9 rounded-lg border border-zinc-200 px-2 py-1.5 text-sm focus:border-zinc-400 focus:outline-none"
+            >
+              <option value="minutes">minutes</option>
+              <option value="hours">hours</option>
+              <option value="days">days</option>
+            </select>
+          </div>
+        </>
+      )}
 
       {/* Advanced toggle */}
       <button
@@ -197,7 +273,7 @@ export function BlockForm({
         </div>
       )}
 
-      <TryPanel state={tryState} />
+      {blockType === "scheduled" && <TryPanel state={tryState} />}
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
@@ -211,15 +287,17 @@ export function BlockForm({
             Cancel
           </button>
         )}
-        <button
-          type="button"
-          onClick={handleTry}
-          disabled={isPending || isTrying}
-          className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100 disabled:opacity-50"
-        >
-          <Play size={14} weight="bold" />
-          {isTrying ? "Running..." : "Try"}
-        </button>
+        {blockType === "scheduled" && (
+          <button
+            type="button"
+            onClick={handleTry}
+            disabled={isPending || isTrying}
+            className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100 disabled:opacity-50"
+          >
+            <Play size={14} weight="bold" />
+            {isTrying ? "Running..." : "Try"}
+          </button>
+        )}
         <button
           type="submit"
           disabled={isPending || isTrying}

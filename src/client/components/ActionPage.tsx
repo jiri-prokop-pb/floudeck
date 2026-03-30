@@ -1,7 +1,7 @@
 import { ArrowLeft, CaretDown, CaretRight } from "@phosphor-icons/react";
-import { useEffect, useRef, useState } from "react";
-import type { ActionRun } from "../../types.ts";
-import { fetchActionRun, runActionApi } from "../lib/api.ts";
+import { useActionState, useEffect, useRef, useState } from "react";
+import type { ActionDefinition, ActionRun } from "../../types.ts";
+import { fetchActionRun, fetchBlockByUuid, runActionApi } from "../lib/api.ts";
 import { renderMarkdown } from "../lib/markdown.ts";
 import { PulseSkeleton } from "./PulseSkeleton.tsx";
 
@@ -24,31 +24,70 @@ export function ActionPage({
   onNavigateHome,
   onBlockStale,
 }: ActionPageProps) {
+  const [blockType, setBlockType] = useState<string | null>(null);
+  const [actionDef, setActionDef] = useState<ActionDefinition | null>(null);
   const [actionRun, setActionRun] = useState<ActionRun | null>(null);
   const [blockTitle, setBlockTitle] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
-  // params is a new object each render but stable per mount (parent uses key prop).
-  // Use a ref to avoid re-triggering the effect.
+  const [userInput, setUserInput] = useState("");
   const paramsRef = useRef(params);
 
-  const [clickId] = useState(() => {
+  const [clickId, setClickId] = useState(() => {
     const url = new URL(window.location.href);
     const existing = url.searchParams.get("_cid");
     if (existing) return existing;
-    const id = crypto.randomUUID();
-    url.searchParams.set("_cid", id);
-    window.history.replaceState(null, "", url.toString());
-    return id;
+    return null;
   });
 
+  // For action blocks: fetch block info first to determine mode
   useEffect(() => {
     let cancelled = false;
+    async function loadBlockInfo() {
+      const data = await fetchBlockByUuid(blockUuid);
+      if (cancelled) return;
+      if (!data) {
+        setError("Block not found");
+        return;
+      }
+      setBlockType(data.block.block_type);
+      if (data.block.title) setBlockTitle(data.block.title);
+      if (data.block.block_type === "action") {
+        const def = data.parsedActions.find((a) => a.name === actionName);
+        if (!def) {
+          setError(`Action "${actionName}" not found`);
+          return;
+        }
+        setActionDef(def);
+      }
+    }
+    void loadBlockInfo();
+    return () => {
+      cancelled = true;
+    };
+  }, [blockUuid, actionName]);
+
+  // For scheduled blocks: auto-run on mount (existing behavior)
+  useEffect(() => {
+    if (blockType !== "scheduled") return;
+
+    // Generate or reuse clickId
+    let cid = clickId;
+    if (!cid) {
+      cid = crypto.randomUUID();
+      const url = new URL(window.location.href);
+      url.searchParams.set("_cid", cid);
+      window.history.replaceState(null, "", url.toString());
+      setClickId(cid);
+    }
+
+    let cancelled = false;
     let es: EventSource | null = null;
+    const currentClickId = cid;
 
     async function startAction() {
       const result = await runActionApi({
-        clickId,
+        clickId: currentClickId,
         blockUuid,
         actionName,
         params: paramsRef.current,
@@ -69,17 +108,16 @@ export function ActionPage({
         return;
       }
 
-      // Listen for SSE completion
       es = new EventSource("/api/events");
       es.addEventListener("action-updated", async (event) => {
         const payload = JSON.parse((event as MessageEvent).data);
-        if (payload.clickId !== clickId) return;
+        if (payload.clickId !== currentClickId) return;
 
         es?.close();
         es = null;
         if (cancelled) return;
 
-        const updated = await fetchActionRun(clickId);
+        const updated = await fetchActionRun(currentClickId);
         if (updated && !cancelled) {
           setActionRun(updated.actionRun);
           if (updated.blockTitle) setBlockTitle(updated.blockTitle);
@@ -87,9 +125,7 @@ export function ActionPage({
         }
       });
 
-      // Poll once after SSE connects to catch results that completed
-      // before the EventSource was established (race condition)
-      const updated = await fetchActionRun(clickId);
+      const updated = await fetchActionRun(currentClickId);
       if (cancelled) return;
       if (updated && isTerminal(updated.actionRun)) {
         es?.close();
@@ -106,7 +142,47 @@ export function ActionPage({
       cancelled = true;
       es?.close();
     };
-  }, [clickId, blockUuid, actionName, onBlockStale]);
+  }, [blockType, clickId, blockUuid, actionName, onBlockStale]);
+
+  // Action block submission
+  const [submitError, submitAction, isSubmitting] = useActionState(
+    async (_prev: string | null) => {
+      const cid = crypto.randomUUID();
+      const url = new URL(window.location.href);
+      url.searchParams.set("_cid", cid);
+      window.history.replaceState(null, "", url.toString());
+
+      const result = await runActionApi({
+        clickId: cid,
+        blockUuid,
+        actionName,
+        input: userInput,
+      });
+
+      if (!result.ok) return result.error;
+
+      setActionRun(result.actionRun);
+      if (result.blockTitle) setBlockTitle(result.blockTitle);
+      setClickId(cid);
+
+      if (!isTerminal(result.actionRun)) {
+        // Listen for SSE completion
+        const es = new EventSource("/api/events");
+        es.addEventListener("action-updated", async (event) => {
+          const payload = JSON.parse((event as MessageEvent).data);
+          if (payload.clickId !== cid) return;
+          es.close();
+          const updated = await fetchActionRun(cid);
+          if (updated) {
+            setActionRun(updated.actionRun);
+            if (updated.blockTitle) setBlockTitle(updated.blockTitle);
+          }
+        });
+      }
+      return null;
+    },
+    null,
+  );
 
   const isLoading =
     !actionRun ||
@@ -115,13 +191,20 @@ export function ActionPage({
   const hasError =
     error ?? (actionRun?.status === "error" ? actionRun.error_text : null);
 
-  const composedPrompt = `--- Block Context ---\n(block output loaded at runtime)\n\n--- Action ---\nAction: ${actionName}${
-    Object.keys(paramsRef.current).length > 0
-      ? `\nParameters:\n${Object.entries(paramsRef.current)
-          .map(([k, v]) => `${k}=${v}`)
-          .join("\n")}`
-      : ""
-  }`;
+  const composedPrompt =
+    blockType === "action" && actionDef
+      ? actionDef.prompt
+      : `--- Block Context ---\n(block output loaded at runtime)\n\n--- Action ---\nAction: ${actionName}${
+          Object.keys(paramsRef.current).length > 0
+            ? `\nParameters:\n${Object.entries(paramsRef.current)
+                .map(([k, v]) => `${k}=${v}`)
+                .join("\n")}`
+            : ""
+        }`;
+
+  // Show input form for action blocks before submission
+  const showInputForm =
+    blockType === "action" && actionDef && !actionRun && !error;
 
   return (
     <div className="min-h-screen bg-zinc-50">
@@ -150,14 +233,43 @@ export function ActionPage({
 
         <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
           <div className="px-5 py-4">
-            {hasError && (
+            {showInputForm && (
+              <form action={submitAction} className="space-y-3">
+                <textarea
+                  value={userInput}
+                  onChange={(e) => setUserInput(e.target.value)}
+                  placeholder="Enter your input..."
+                  rows={4}
+                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none"
+                />
+                {submitError && (
+                  <p className="text-sm text-red-600">{submitError}</p>
+                )}
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="rounded-lg bg-zinc-800 px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50"
+                  >
+                    {isSubmitting ? "Running..." : "Run"}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Loading state while fetching block info */}
+            {blockType === null && !error && (
+              <PulseSkeleton widths={["w-2/3", "w-1/2"]} />
+            )}
+
+            {hasError && !showInputForm && (
               <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-700">
                 <p className="font-medium mb-1">Action failed</p>
                 <p>{hasError}</p>
               </div>
             )}
 
-            {isLoading && !hasError && (
+            {actionRun && isLoading && !hasError && (
               <PulseSkeleton widths={["w-2/3", "w-1/2", "w-5/6", "w-3/4"]} />
             )}
 

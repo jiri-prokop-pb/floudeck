@@ -9,6 +9,7 @@ import {
   formatTimeAgo,
   formatTimeUntil,
 } from "../lib/format.ts";
+import { ActionBlockBody } from "./ActionBlockBody.tsx";
 import { BlockBody } from "./BlockBody.tsx";
 import { Modal } from "./Modal.tsx";
 
@@ -75,30 +76,43 @@ export function BlockCard({
           </button>
           {showInfo && (
             <div className="absolute right-0 top-8 w-56 rounded-lg border border-zinc-200 bg-white p-3 shadow-lg text-xs text-zinc-600 space-y-1 z-20">
-              {block.status === "running" && (
-                <div className="flex items-center gap-1.5 text-green-600 font-medium">
-                  <span className="inline-block h-3 w-3 animate-spin rounded-full border border-green-300 border-t-green-600" />
-                  Refreshing...
+              {block.block_type === "action" ? (
+                <div>
+                  <span className="font-medium text-zinc-500">Schedule: </span>
+                  Manual — runs on demand
                 </div>
+              ) : (
+                <>
+                  {block.status === "running" && (
+                    <div className="flex items-center gap-1.5 text-green-600 font-medium">
+                      <span className="inline-block h-3 w-3 animate-spin rounded-full border border-green-300 border-t-green-600" />
+                      Refreshing...
+                    </div>
+                  )}
+                  <div>
+                    <span className="font-medium text-zinc-500">Refresh: </span>
+                    {formatSchedule(block.interval_value, block.interval_unit)}
+                  </div>
+                  <div>
+                    <span className="font-medium text-zinc-500">
+                      Last run:{" "}
+                    </span>
+                    {block.last_run_at
+                      ? formatTimeAgo(block.last_run_at)
+                      : "Not yet run"}
+                  </div>
+                  <div>
+                    <span className="font-medium text-zinc-500">
+                      Next run:{" "}
+                    </span>
+                    {block.status === "running"
+                      ? "Running now"
+                      : block.next_run_at
+                        ? formatTimeUntil(block.next_run_at)
+                        : "\u2014"}
+                  </div>
+                </>
               )}
-              <div>
-                <span className="font-medium text-zinc-500">Refresh: </span>
-                {formatSchedule(block.interval_value, block.interval_unit)}
-              </div>
-              <div>
-                <span className="font-medium text-zinc-500">Last run: </span>
-                {block.last_run_at
-                  ? formatTimeAgo(block.last_run_at)
-                  : "Not yet run"}
-              </div>
-              <div>
-                <span className="font-medium text-zinc-500">Next run: </span>
-                {block.status === "running"
-                  ? "Running now"
-                  : block.next_run_at
-                    ? formatTimeUntil(block.next_run_at)
-                    : "\u2014"}
-              </div>
             </div>
           )}
         </div>
@@ -118,14 +132,16 @@ export function BlockCard({
           </button>
           {showMenu && (
             <div className="absolute right-0 top-8 w-36 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg">
-              <button
-                type="button"
-                onClick={handleRefresh}
-                disabled={loading || block.status === "running"}
-                className="w-full px-3 py-1.5 text-left text-sm text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
-              >
-                Refresh
-              </button>
+              {block.block_type !== "action" && (
+                <button
+                  type="button"
+                  onClick={handleRefresh}
+                  disabled={loading || block.status === "running"}
+                  className="w-full px-3 py-1.5 text-left text-sm text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+                >
+                  Refresh
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {
@@ -153,7 +169,11 @@ export function BlockCard({
 
       {/* Body */}
       <div className={compact ? "px-4 py-3" : "px-5 py-4"}>
-        <BlockBody block={block} compact={compact} />
+        {block.block_type === "action" ? (
+          <ActionBlockBody block={block} compact={compact} />
+        ) : (
+          <BlockBody block={block} compact={compact} />
+        )}
       </div>
 
       {confirmingDelete && (
