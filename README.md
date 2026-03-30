@@ -4,6 +4,14 @@ A local feed of scheduled blocks that run prompts through [Claude Code CLI](http
 
 ![Floudeck screenshot](docs/screenshot.png)
 
+## Install
+
+```bash
+brew install --no-quarantine --cask jiri-prokop-pb/tap/floudeck
+```
+
+Requires [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) (`claude` in your PATH).
+
 ## Prerequisites
 
 - [Bun](https://bun.sh/) (runtime, bundler, package manager)

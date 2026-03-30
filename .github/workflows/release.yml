@@ -69,3 +69,10 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           DMG="src-tauri/target/release/bundle/dmg/Floudeck_${VERSION}_aarch64.dmg"
           gh release create "v${VERSION}" "$DMG" --title "v${VERSION}" --generate-notes
+
+      - name: Update Homebrew tap
+        if: steps.version.outputs.changed == 'true'
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: bash scripts/update-homebrew-tap.sh
