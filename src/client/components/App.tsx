@@ -138,7 +138,7 @@ function AppContent({
           aria-label="Window controls"
           onMouseDown={startDrag}
           onDoubleClick={toggleMaximize}
-          className="fixed top-0 left-0 right-0 h-8 z-50"
+          className="fixed top-0 left-0 right-0 h-8 z-[60]"
           style={{ cursor: "default" }}
         />
       )}
@@ -176,7 +176,7 @@ function AppContent({
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className={`flex items-center gap-2 ${isTauri && !showSettings ? "relative z-[61]" : ""}`}>
             <HeaderClock displaySettings={displaySettings} compact={compact} />
             <button
               type="button"
