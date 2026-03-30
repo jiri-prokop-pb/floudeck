@@ -29,16 +29,26 @@ export function TryPanel({ state }: TryPanelProps) {
 
   if (state.status === "running") {
     const hasText = state.partialText.length > 0;
+    const partial = hasText ? extractTitle(state.partialText) : null;
     return (
       <div className="space-y-2">
         <div className="rounded-lg border border-zinc-200 bg-zinc-50/50 p-4">
-          {hasText ? (
-            <div
-              className="prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{
-                __html: renderMarkdown(state.partialText),
-              }}
-            />
+          {partial ? (
+            <>
+              {partial.title && (
+                <h3 className="mb-2 text-base font-semibold text-zinc-900">
+                  {partial.title}
+                </h3>
+              )}
+              {partial.body && (
+                <div
+                  className="prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{
+                    __html: renderMarkdown(partial.body),
+                  }}
+                />
+              )}
+            </>
           ) : (
             <PulseSkeleton />
           )}
