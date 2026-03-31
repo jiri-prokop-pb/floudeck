@@ -1,0 +1,23 @@
+{
+  "name": "floudeck-promo",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "studio": "remotionb studio src/index.ts",
+    "render": "remotionb render src/index.ts Promo out/promo.mp4",
+    "capture": "bun run capture/scenarios.ts",
+    "pipeline": "bun run capture && bun run render"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.261",
+    "@remotion/tailwind": "4.0.261",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "remotion": "4.0.261",
+    "tailwindcss": "4.2.1"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.14",
+    "typescript": "5.9.3"
+  }
+}
