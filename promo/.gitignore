@@ -1,3 +1,5 @@
 node_modules/
 out/
-public/captured/
+public/captures/
+public/voiceover-tests/
+public/voiceover/

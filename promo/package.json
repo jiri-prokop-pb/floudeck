@@ -5,7 +5,7 @@
   "scripts": {
     "studio": "remotionb studio src/index.ts",
     "render": "remotionb render src/index.ts Promo out/promo.mp4",
-    "capture": "bun run capture/scenarios.ts",
+    "capture": "cd .. && bun run promo:capture",
     "pipeline": "bun run capture && bun run render"
   },
   "dependencies": {
