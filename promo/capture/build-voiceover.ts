@@ -33,8 +33,8 @@ type SegmentDef = {
 };
 
 const SEGMENTS: SegmentDef[] = [
-  // 01 Cold Open: "You open your laptop..." → "What if your AI already handled it?"
-  { id: "01", name: "cold-open", start: 0, end: 13.2, speed: 1.0, silenceAfter: 0.5 },
+  // 01 Cold Open: "You open your laptop..." → "What if your morning briefing was already there?"
+  { id: "01", name: "cold-open", start: 0, end: 13.8, speed: 1.0, silenceAfter: 0.5 },
 
   // 02 Title Drop: "Flowdeck. Claude Code on autopilot."
   { id: "02", name: "title-drop", start: 13.2, end: 17.0, speed: 1.0, silenceAfter: 0.4 },

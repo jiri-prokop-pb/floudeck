@@ -32,7 +32,7 @@ const SEGMENTS: Segment[] = [
     name: "cold-open",
     chunks: [
       { text: "You open your laptop. 47 Slack messages. 12 PRs to review. 3 incidents. And it's only Monday." },
-      { text: "What if your AI already handled it?" },
+      { text: "What if your morning briefing was already there?" },
     ],
   },
   {

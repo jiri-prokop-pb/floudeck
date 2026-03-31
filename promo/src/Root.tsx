@@ -1,4 +1,5 @@
 import { Composition } from "remotion";
+import { FPS, TOTAL_FRAMES } from "./constants";
 import { Promo } from "./Promo.tsx";
 
 export const RemotionRoot: React.FC = () => {
@@ -6,8 +7,8 @@ export const RemotionRoot: React.FC = () => {
     <Composition
       id="Promo"
       component={Promo}
-      durationInFrames={180}
-      fps={30}
+      durationInFrames={TOTAL_FRAMES}
+      fps={FPS}
       width={1920}
       height={1080}
     />
