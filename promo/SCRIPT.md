@@ -1,16 +1,17 @@
 # Floudeck Promo Video — Production Script
 
-**Total duration:** ~90 seconds | **Resolution:** 1920x1080 | **FPS:** 30 | **Total frames:** 2700
+**Total duration:** ~2:10 | **Resolution:** 1920x1080 | **FPS:** 30 | **Total frames:** ~3798
 
 ---
 
 ## Audio Plan
 
-### Voiceover (ElevenLabs)
+### Voiceover (Kyutai Pocket TTS)
 
-- **Voice:** Deep, confident male narrator. Movie-trailer energy but self-aware.
+- **Voice:** Stuart Bell (`hf://kyutai/tts-voices/voice-zero/stuart_bell.wav`). Deep, confident male narrator.
+- **Engine:** `uvx pocket-tts generate` (local, free). Requires HF auth + accepted terms at huggingface.co/kyutai/pocket-tts.
 - **Style:** Slightly dramatic, knows it's a bit ridiculous and leans into it.
-- **Pacing:** Varies — slow/dramatic for cold open, rapid-fire for features, whisper for danger zone, fast-talk for caveats.
+- **Pacing:** Varies — slow/dramatic for cold open, rapid-fire for features, whisper for danger zone, fast-talk for caveats (achieved via variable `atempo` speedup in post-processing).
 
 ### Music
 
@@ -41,15 +42,15 @@
 
 ---
 
-### 1. COLD OPEN — 0:00–0:12 (12s, 360 frames)
+### 1. COLD OPEN — 0:00–0:14 (13.8s, 414 frames)
 
 **Voiceover:**
 > You open your laptop. 47 Slack messages. 12 PRs to review. 3 incidents.
 > And it's only Monday.
 > *(beat)*
-> What if your AI already handled it?
+> What if your morning briefing was already there?
 
-**Visuals:** Dark screen. Each pain point types in, monospace font, centered. Slight screen flicker. Final line fades in with a glow.
+**Visuals:** Full-screen background image (`monday-scene.png`) fades in over first second at 75% opacity. No typewriter text or pain points on screen. "What if your morning briefing was already there?" fades in with indigo glow at ~10.6s.
 
 **Music:** Low rumble, building tension.
 
@@ -88,7 +89,7 @@
 > This isn't for beginners. This is for people who dream in system prompts.
 > Who have strong opinions about token efficiency.
 
-**Visuals:** Text flies in with each phrase, styled like "hacker aesthetic" — green-on-black terminal font, then morphs into the clean Floudeck UI. Quick transition.
+**Visuals:** Green-on-black terminal showing actual Claude CLI commands typing out: `$ claude`, `> /context add "morning briefing"`, `> /insights --since yesterday`. Bridge text "Here's what it can do for you." fades in at bottom before scene fade-out.
 
 **Music:** Steady driving beat continues.
 
@@ -102,13 +103,13 @@
 > Try mode to debug your prompts. Per-block config. Real-time updates.
 > If there's an API, MCP, or CLI for it — you can automate it.
 
-**Visuals:** Rapid feature cards (2s each), captured via **Playwright scripts** with demo data:
-- 0:38–0:40: Block creation form → schedule config
-- 0:40–0:42: Rich markdown output card with action link pills
-- 0:42–0:44: Action link click → nested action page
-- 0:44–0:46: Try mode in action (prompt being tested)
-- 0:46–0:48: Settings / runner config panel
-- 0:48–0:50: Quick montage — "API? MCP? CLI?" text with checkmarks appearing (Remotion-generated)
+**Visuals:** Rapid feature cards (~2.8s each), full-screen screenshots on dark background with title overlay strip at bottom. Last card (API/MCP/CLI) uses white background with centered animated checkmarks. Cards spring in from right, exit to left:
+- Scheduled prompts (form screenshot)
+- Markdown + Action links (block card screenshot)
+- Try mode (try mode screenshot)
+- Per-block config (settings screenshot)
+- Real-time updates (feed screenshot)
+- API? MCP? CLI? (animated checkmarks, white background)
 
 **Music:** Energetic, each card transition has a subtle whoosh.
 
@@ -211,48 +212,28 @@ github.com/jiri-prokop-pb/floudeck
 
 ## Production Checklist
 
-### Claude handles
-
-- [ ] Record voiceover segments on ElevenLabs (split by segment for timing control)
-- [ ] Generate/source music track (synthwave, ~90s, with arc described above)
-- [ ] Source/generate sound effects (bass hit, record scratch, explosion, angelic choir, whooshes)
-- [ ] Build Remotion scenes for all 11 segments (text animations, transitions, layout)
-- [ ] Integrate voiceover + music + SFX into Remotion timeline
-- [ ] Build Playwright capture scripts for UI recordings (segments 3 + 5)
-- [ ] Generate pharmaceutical disclaimer text animation in Remotion (segment 8)
-- [ ] Composite all assets into final video
-
-### Jiri handles (2 assets)
-
-Only two external assets needed. Everything else is generated via Remotion + Playwright.
-
-#### Asset 1: "Vibe-coding" photo (Segment 9, 1:18–1:22)
-
-AI-generated image of the author at a laptop, vibe-coding with Claude. See **Image generation prompt** below.
-
-- **Format:** PNG or JPG, at least 1920x1080
-- **Placement:** Slides in from right, holds for ~3 seconds with slow Ken Burns zoom
-- **Save to:** `promo/public/vibecoding.png`
-
-#### Asset 2: "This is fine" meme (Segment 6, 0:54–0:58)
-
-Custom version of the classic "This is Fine" meme. See **Image generation prompt** below.
-
-- **Format:** PNG or JPG, at least 1920x1080
-- **Placement:** Fades in behind the `--dangerously-skip-permissions` text, ~4 seconds on screen
-- **Save to:** `promo/public/this-is-fine.png`
+- [x] Generate voiceover via Pocket TTS (Stuart Bell) — 11 segment WAVs in `promo/public/voiceover/`
+- [x] Generate/source music track — `promo/public/music.mp3` (Gemini, synthwave, 2:26)
+- [x] Source sound effects — 5 CC0 effects from Freesound in `promo/public/sfx/`
+- [x] Build Remotion scenes for all 11 segments
+- [x] Integrate voiceover + music + SFX into Remotion timeline
+- [x] Build Playwright capture scripts for UI screenshots (`promo/capture/scenarios.ts`)
+- [x] Asset: "Vibe-coding" photo → `promo/public/vibecoding.png`
+- [x] Asset: "This is fine" meme → `promo/public/this-is-fine.png`
+- [x] Asset: Monday scene background → `promo/public/monday-scene.png`
+- [ ] Final render and review
 
 ---
 
-## Voiceover Script (clean, for ElevenLabs)
+## Voiceover Script (clean)
 
-Copy-paste this into ElevenLabs. Pause markers noted as `[pause]`.
+Full script text. Pause markers noted as `[pause]`.
 
 ```
 You open your laptop. 47 Slack messages. 12 PRs to review. 3 incidents.
 And it's only Monday.
 [pause 1.5s]
-What if your AI already handled it?
+What if your morning briefing was already there?
 [pause 0.8s]
 
 Floudeck. Claude Code — on autopilot.
