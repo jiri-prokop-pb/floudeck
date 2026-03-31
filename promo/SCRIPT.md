@@ -327,8 +327,62 @@ If the generator struggles with the original meme style, you can also try: find/
 
 ---
 
-## Music Generation Prompt
+## Music Generation Guide
 
-For Suno/Udio or similar:
+### Platform choice: Use Suno (not Udio)
 
-> Synthwave instrumental, 90 seconds. Starts dark and atmospheric with low pad and rumble (0-12s). Bass drop at 12s, driving beat kicks in at 20s. Energetic and confident through middle section. Brief ominous breakdown at 50s (record scratch energy). Builds to crescendo at 58-68s. Comedic shift to generic corporate hold music at 68-76s. Warm sincere synth at 76-82s. Resolves to clean confident synth chord at 82-90s, fade out. No vocals. 120 BPM.
+Neither platform supports exact timestamp control, but Suno has section tags that give approximate structural control. Udio has better audio fidelity but almost no structure control.
+
+### Recommended approach: 3-segment stitch
+
+Generate 3 separate segments and stitch in Remotion (or a DAW like Audacity/Logic). This gives exact timestamp control for mood transitions.
+
+**Segment A — "Dark Intro + Driving Beat" (~50s)**
+```
+Style: cinematic electronic, synthwave, dark, instrumental, 120 BPM
+[Intro: dark atmospheric pad, low rumble, mysterious, 12 seconds]
+[Drop: bass hit impact, synth bass, energy rises]
+[Main: driving confident synth beat, energetic montage music, steady groove]
+[Break: sudden stop, ominous single piano notes, eerie, 8 seconds]
+```
+
+**Segment B — "Hype + Corporate Muzak" (~22s)**
+```
+Style: electronic, synthwave, instrumental, 120 BPM
+[Build: rising hype energy, cinematic synth crescendo, triumphant]
+[Switch: generic corporate hold music, cheesy, pharmaceutical ad muzak, comedic contrast]
+[Warm: sincere, emotional synth pad, reflective, brief]
+```
+
+**Segment C — "Clean Outro" (~18s)**
+```
+Style: synthwave, clean, confident, instrumental, 120 BPM
+[Resolution: clean confident synth chord, satisfying, professional]
+[Fade: ambient pad, gentle fade out, 3 seconds]
+```
+
+### Alternative: single generation (faster, less control)
+
+If stitching feels like too much work, try generating the full thing in one shot. Generate 5-10 variants and pick the best one:
+
+```
+Style: cinematic synthwave instrumental, dynamic, varied moods, 120 BPM
+
+[Intro: dark ambient drone, mysterious, atmospheric, 12 seconds]
+[Drop: bass impact, energy builds, synth bass enters]
+[Main: driving confident beat, montage energy, steady groove]
+[Break: record scratch, ominous piano, eerie quiet, 8 seconds]
+[Build: rising hype crescendo, triumphant, features flying in]
+[Shift: suddenly corporate hold music, cheesy pharmaceutical ad, comedic]
+[Warm: sincere emotional synth, brief reflective moment]
+[Outro: clean confident resolution chord, professional, fade out]
+```
+
+**Timing won't be exact** — Suno interprets section durations loosely. Pick the variant where mood shifts land closest to the video timing, then trim in post.
+
+### Post-processing tips
+
+- Trim/stretch sections in Audacity or a DAW to hit exact timestamps
+- Add 0.5s crossfades between stitched segments
+- Normalize volume levels across segments
+- In Remotion, we can also duck the music volume under voiceover sections
