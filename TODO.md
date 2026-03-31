@@ -57,20 +57,14 @@ Phases:
 4. Claude Agent SDK runner
 5. API & external AI tools (deferred)
 
-## Action blocks
+## Action blocks — future improvements
 
-A new block type that doesn't auto-schedule — it only runs on demand with user input. Essentially a container for multiple user-triggered actions.
+V1 is implemented: action blocks with free-text input per action.
 
-- A block with `schedule: "manual"` — never auto-runs, no timer, no output of its own
-- Each action block contains **multiple actions**, each with:
-  - Name & label (displayed as a button)
-  - Its own prompt template with `{{input}}` placeholders (or structured form schema)
-  - Its own runner config (model, cwd, permissions, timeout, env) — like a block inside a block
-- When an action button is clicked: shows an input form (free text or structured fields), substitutes into prompt, runs, shows result on the action page
-- Lives in the feed alongside regular blocks (rendered as a card with action buttons instead of markdown output)
-- Existing action infrastructure (action page, caching, cleanup) reused for execution & display
-- Will likely need `actionUUID` (instead of current `blockUUID`-based routing) to identify individual actions within a block — to be figured out during planning
-- Start simple: single free-text input per action, extend to structured fields later
+- Per-action runner config (model, cwd, permissions, timeout, env) — currently block-level only
+- Structured input fields (dropdowns, checkboxes) instead of just free text
+- Shared context prompt across actions within a block
+- Action block templates / presets
 
 ---
 

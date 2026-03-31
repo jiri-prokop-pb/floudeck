@@ -75,6 +75,30 @@ REMEMBER: Your entire output MUST contain ===BEGIN_MARKDOWN=== and ===END_MARKDO
 
 ${ACTION_LINKS}`;
 
+export const ACTION_BLOCK_SYSTEM_PROMPT = `CRITICAL: You MUST wrap your final answer in delimiters. No exceptions.
+
+You are executing a user-triggered action. The user provided input for this action. Perform the task and return your result.
+
+${OUTPUT_FORMAT}
+
+The markdown section MUST contain valid GitHub Flavored Markdown (GFM).
+The FIRST line of the markdown section MUST be a level-1 heading (# Title).
+Keep it compact, readable, and actionable.
+Do NOT include raw HTML in the markdown section.
+
+REMEMBER: Your entire output MUST contain ===BEGIN_MARKDOWN=== and ===END_MARKDOWN=== delimiters or it will be rejected.
+
+${ACTION_LINKS}`;
+
+export function composeActionBlockPrompt(
+  promptTemplate: string,
+  userInput: string,
+  blockUuid: string,
+): string {
+  const expanded = promptTemplate.replace(/\{\{input\}\}/g, userInput);
+  return `${expanded}\n\n[Block UUID: ${blockUuid}]`;
+}
+
 export function composeActionPrompt(
   blockOutputMarkdown: string,
   actionName: string,

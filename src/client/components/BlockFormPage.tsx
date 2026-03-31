@@ -1,6 +1,6 @@
 import { ArrowLeft } from "@phosphor-icons/react";
 import { Suspense, use, useState } from "react";
-import type { BlockRecord } from "../../types.ts";
+import type { ActionDefinition, BlockRecord, BlockType } from "../../types.ts";
 import { safeParseRunnerConfig } from "../../validate.ts";
 import { createBlockApi, fetchBlock, updateBlockApi } from "../lib/api.ts";
 import { BlockForm } from "./BlockForm.tsx";
@@ -83,6 +83,17 @@ export function BlockFormPage({
   );
 }
 
+function parseBlockActionsClient(block: BlockRecord): ActionDefinition[] {
+  if (!block.actions) return [];
+  try {
+    const parsed: unknown = JSON.parse(block.actions);
+    if (!Array.isArray(parsed)) return [];
+    return parsed as ActionDefinition[];
+  } catch {
+    return [];
+  }
+}
+
 function EditBlockFormLoader({
   blockPromise,
   onNavigateHome,
@@ -98,13 +109,22 @@ function EditBlockFormLoader({
     return <p className="text-sm text-red-600">Block not found</p>;
   }
 
+  const parsedActions = parseBlockActionsClient(block);
+
   return (
     <BlockForm
       key={block.id}
+      initialBlockType={block.block_type as BlockType}
       initialPrompt={block.prompt}
       initialIntervalValue={block.interval_value}
       initialIntervalUnit={block.interval_unit}
       initialRunnerConfig={safeParseRunnerConfig(block.runner_config)}
+      initialTitle={block.title ?? ""}
+      initialActions={
+        parsedActions.length > 0
+          ? parsedActions
+          : [{ name: "", label: "", prompt: "" }]
+      }
       blockUuid={block.uuid}
       submitLabel="Save"
       onCancel={onNavigateHome}

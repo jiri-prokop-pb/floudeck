@@ -1,4 +1,5 @@
 import type {
+  ActionDefinition,
   ActionRun,
   BlockRecord,
   DisplaySettings,
@@ -34,8 +35,15 @@ export type BlockFormInput = {
   tryResult?: string;
 };
 
+export type ActionBlockFormInput = {
+  blockType: "action";
+  title?: string;
+  actions: ActionDefinition[];
+  runnerConfig?: RunnerConfig;
+};
+
 export async function createBlockApi(
-  input: BlockFormInput,
+  input: BlockFormInput | ActionBlockFormInput,
 ): Promise<ApiResponse<{ block: BlockRecord }>> {
   return apiFetch("/api/blocks", {
     method: "POST",
@@ -46,7 +54,7 @@ export async function createBlockApi(
 
 export async function updateBlockApi(
   id: number,
-  input: BlockFormInput,
+  input: BlockFormInput | ActionBlockFormInput,
 ): Promise<ApiResponse<{ block: BlockRecord }>> {
   return apiFetch(`/api/blocks/${id}/update`, {
     method: "POST",
@@ -143,13 +151,27 @@ export async function runActionApi(input: {
   clickId: string;
   blockUuid: string;
   actionName: string;
-  params: Record<string, string>;
+  params?: Record<string, string>;
+  input?: string;
 }): Promise<ApiResponse<{ actionRun: ActionRun; blockTitle: string | null }>> {
   return apiFetch("/api/actions/run", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });
+}
+
+export async function fetchBlockByUuid(uuid: string): Promise<{
+  block: BlockRecord;
+  parsedActions: ActionDefinition[];
+} | null> {
+  const data = await apiFetch<{
+    block: BlockRecord;
+    parsedActions: ActionDefinition[];
+  }>(`/api/blocks/uuid/${uuid}`);
+  return data.ok
+    ? { block: data.block, parsedActions: data.parsedActions }
+    : null;
 }
 
 export async function fetchActionRun(
