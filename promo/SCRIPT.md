@@ -210,21 +210,6 @@ github.com/jiri-prokop-pb/floudeck
 
 ---
 
-## Production Checklist
-
-- [x] Generate voiceover via Pocket TTS (Stuart Bell) — 11 segment WAVs in `promo/public/voiceover/`
-- [x] Generate/source music track — `promo/public/music.mp3` (Gemini, synthwave, 2:26)
-- [x] Source sound effects — 5 CC0 effects from Freesound in `promo/public/sfx/`
-- [x] Build Remotion scenes for all 11 segments
-- [x] Integrate voiceover + music + SFX into Remotion timeline
-- [x] Build Playwright capture scripts for UI screenshots (`promo/capture/scenarios.ts`)
-- [x] Asset: "Vibe-coding" photo → `promo/public/vibecoding.png`
-- [x] Asset: "This is fine" meme → `promo/public/this-is-fine.png`
-- [x] Asset: Monday scene background → `promo/public/monday-scene.png`
-- [ ] Final render and review
-
----
-
 ## Voiceover Script (clean)
 
 Full script text. Pause markers noted as `[pause]`.
