@@ -74,6 +74,21 @@ A new block type that doesn't auto-schedule — it only runs on demand with user
 
 ---
 
+## Promo video — fully automated pipeline
+
+Goal: `bun run promo:generate` regenerates the entire video from script to MP4 with no manual steps. Used for release videos (full + short feature-only variants). Target: ~2 minutes, current music stays.
+
+See **[promo/PIPELINE.md](promo/PIPELINE.md)** for full architecture, current state, and tooling details.
+
+Phases:
+1. **Unify voiceover** — single command, auto-normalize, auto-update `constants.ts` durations, per-segment generation (drop Whisper dependency)
+2. **SFX generation** — local text-to-SFX via Stable Audio Open Small, prompts defined in script, fallback to curated CC0 library
+3. **Music** — keep manual for now, add `--skip-music` flag; explore Suno API or Stable Audio Open 1.0 later
+4. **Script-driven generation** — single typed script file drives all content; scenes become generic templates
+5. **One-command pipeline** — `promo:generate [--short] [--skip-music] [--segment N]`, optional CI integration
+
+---
+
 ## Post-PoC
 
 - **React Router v7** — adopt loaders for route-level data fetching, route-level code splitting; replaces manual pushState routing in useRouter.ts
