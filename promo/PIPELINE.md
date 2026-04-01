@@ -92,24 +92,62 @@ promo/
 └── out/                         # rendered output (gitignored)
 ```
 
-## Voiceover details
+## Voiceover pipeline
+
+### Engine & voice
 
 - **Engine:** Kyutai Pocket TTS (local, free) via `uvx pocket-tts generate`
 - **Voice:** Stuart Bell — `hf://kyutai/tts-voices/voice-zero/stuart_bell.wav`
 - **Note:** voiceover says "Flowdeck" (not "Floudeck") — intentional branding pronunciation
 - **Script text** lives in `generate-voiceover.ts` SEGMENTS array (chunked for quality)
-- **Speed adjustments** in `build-voiceover.ts` — 1.0x for short, 1.2–1.3x for medium, 2.2x for fine-print comedy effect
-- **Volume normalization:** EBU R128 broadcast loudness (`loudnorm=I=-16:TP=-1:LRA=11`)
 
-### Two generation approaches
+### Full pipeline (current workflow)
 
-**Approach A — Full script (current):** Generate entire script as one WAV, transcribe with Whisper for word timestamps, split at segment boundaries, apply per-segment speedup. Best for consistent voice continuity.
+1. **Generate full script as one WAV** — `uvx pocket-tts generate --text "..." --voice "..." --output-path full-script.wav`. Generates the entire voiceover as a single continuous recording (~2:40 at natural pace). This preserves voice continuity across segments.
 
-**Approach B — Per-segment:** Generate each segment independently. Faster iteration but may have slight voice inconsistencies between segments. Good for re-recording a single segment.
+2. **Analyze with Whisper for word timestamps** — `uvx mlx_whisper full-script.wav --model mlx-community/whisper-large-v3-turbo --word_timestamps True --output_format json`. Produces per-word start/end times. We map known segment boundary phrases to Whisper word timestamps to find exact split points.
+
+3. **Split at segment boundaries** — `build-voiceover.ts` extracts each segment from the full WAV using ffmpeg `-ss`/`-to` at the Whisper-detected boundaries. Segment boundary timestamps are hardcoded in `build-voiceover.ts` after Whisper analysis.
+
+4. **Apply per-segment speed adjustment** — each segment gets a different `atempo` filter to control pacing:
+
+   | Segment | Output duration | Speed | Notes |
+   |---------|----------------|-------|-------|
+   | 01 cold-open | 13.2s | 1.0x | Full natural pace |
+   | 02 title-drop | 3.8s | 1.0x | Full natural pace |
+   | 03 problem-solution | 21.6s | 1.3x | Mild speedup |
+   | 04 power-users | 7.0s | 1.2x | Mild speedup |
+   | 05 features | 16.5s | 1.3x | Mild speedup |
+   | 06 danger-zone | 10.0s | 1.1x | Nearly natural |
+   | 07 coming-soon | 16.2s | 1.3x | Mild speedup |
+   | 08 fine-print | 10.7s | 2.2x | Pharmaceutical disclaimer comedy effect |
+   | 09 vibe-coding | 12.5s | 1.2x | Mild speedup |
+   | 10 install-cta | 6.5s | 1.0x | Full natural pace |
+   | 11 outro | 8.0s | 1.0x | Full natural pace |
+
+   For speeds > 2.0x, multiple `atempo` filters are chained (ffmpeg limits each to 0.5–100.0 range, but quality degrades above 2.0x per step).
+
+5. **Normalize volume** — EBU R128 broadcast loudness per segment:
+   ```bash
+   ffmpeg -y -i input.wav -af "loudnorm=I=-16:TP=-1:LRA=11" output.wav
+   ```
+   All segments hit -1.0 dB peak with consistent perceived loudness.
+
+### Visual-audio sync
+
+Whisper word timestamps enable precise visual sync. The workflow:
+
+1. After generating + splitting voiceover, Whisper timestamps tell us exactly when each word/phrase is spoken within a segment
+2. Scene components use these timestamps (converted to frame numbers at 30fps) to trigger visual events — text appearing, transitions, emphasis effects
+3. Currently, keyframe timings in scene components are manually derived from Whisper output. The automation goal is to export a `timing.json` per segment that scenes read at render time, so visual keyframes automatically match the voiceover.
+
+### Alternative: per-segment generation
+
+Generate each segment independently (faster iteration, good for re-recording one segment). May have slight voice inconsistencies between segments. Useful for quick fixes but full-script approach is preferred for final renders.
 
 ## SFX
 
-5 CC0 effects from [Freesound](https://freesound.org/) in `promo/public/sfx/`:
+Currently **manually sourced** — 5 CC0 effects downloaded from [Freesound](https://freesound.org/):
 
 | File | Use | Source |
 |------|-----|--------|
@@ -119,7 +157,19 @@ promo/
 | `angelic-choir.wav` | Rust Rewrite reveal | Freesound CC0 |
 | `whoosh.wav` | Fine print lines flying in | Freesound CC0 |
 
-Post-processing applied: trimmed silence, normalized with `loudnorm` + `alimiter`.
+Post-processing applied: trimmed leading/trailing silence, normalized with `loudnorm` + `alimiter`, converted non-WAV formats to WAV.
+
+### AI SFX generation (planned)
+
+Goal: generate effects from text prompts instead of manual downloads. Two viable free local options for macOS:
+
+**Stable Audio Open Small (recommended)** — 341M params, Arm CPU optimized (~7s for 10s audio on M-series), Stability AI Community License (commercial OK under conditions). Gated on HuggingFace. Best for short foley, impacts, textures, whooshes. Install via `stable-audio-tools` or Diffusers `StableAudioPipeline`.
+
+**Audio-MAGNeT small (AudioCraft)** — 300M params, 10s sound effects, very strong for discrete event SFX. But **CC-BY-NC license** (non-commercial only). Install via `pip install audiocraft`.
+
+**ElevenLabs Sound Effects** — cloud API, free tier with limitations (attribution required). Good fallback when local generation quality is insufficient.
+
+Strategy: define SFX prompts in the script config, generate locally with Stable Audio Open Small, fall back to curated CC0 library when AI output doesn't meet quality bar.
 
 ## Music
 
@@ -144,11 +194,14 @@ Goal: `bun run promo:generate` regenerates the entire video from script to MP4.
 
 ### Phase 1 — Unify voiceover pipeline
 
-- [ ] Combine `generate-voiceover.ts` and `build-voiceover.ts` into a single `bun run promo:voiceover` command
+- [ ] Single `bun run promo:voiceover` command that runs: generate full-script → Whisper analyze → split → speed adjust → normalize
+- [ ] Auto-run Whisper and parse word timestamps to determine segment split points (currently manually read from Whisper JSON)
 - [ ] Auto-normalize each segment after generation (integrate ffmpeg `loudnorm` into the script)
-- [ ] Auto-detect segment durations from WAV files and update `constants.ts` programmatically
-- [ ] Remove dependency on Whisper for segment splitting — generate segments individually (Approach B) instead of splitting a full-script WAV
+- [ ] Auto-detect segment durations from final WAV files and update `constants.ts` programmatically
+- [ ] Export `timing.json` per segment with word-level timestamps (frame numbers at 30fps) for visual sync
+- [ ] Scene components read `timing.json` to auto-align visual keyframes with spoken words
 - [ ] Add `--voice` flag to switch TTS voice without editing code
+- [ ] Support per-segment regeneration as a fast-iteration fallback (`--segment N`)
 
 ### Phase 2 — SFX generation
 
