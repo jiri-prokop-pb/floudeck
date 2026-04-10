@@ -1,6 +1,11 @@
 import { createRouter } from "./api.ts";
 import homepage from "./client/index.html";
-import { initDb, resetStaleRunningBlocks } from "./db.ts";
+import {
+  checkDatabaseIntegrity,
+  findBackups,
+  initDb,
+  resetStaleRunningBlocks,
+} from "./db.ts";
 import {
   ensureDataDir,
   getClientAssetsDir,
@@ -79,6 +84,13 @@ export function createApp(options: AppOptions = {}): App {
   } = options;
 
   const db = initDb(dbPath);
+
+  if (!checkDatabaseIntegrity(db)) {
+    console.warn(
+      "server:startup database integrity check failed — UI will show recovery options",
+    );
+  }
+
   const resetCount = resetStaleRunningBlocks(db, nowIso());
   if (resetCount > 0) {
     console.log(`db:init reset ${resetCount} stale running blocks`);
@@ -95,6 +107,7 @@ export function createApp(options: AppOptions = {}): App {
 
   const router = createRouter({
     db,
+    dbPath,
     sse,
     triggerRun: () => {
       scheduler.tick().catch((err) => {
@@ -208,10 +221,36 @@ if (import.meta.main) {
   ensureDataDir();
 
   const port = args.port ?? (args.clientDir ? 0 : 3000);
+  const resolvedDbPath = getDbPath();
 
-  createApp({
-    dbPath: getDbPath(),
-    port,
-    clientDir: args.clientDir,
-  });
+  try {
+    createApp({
+      dbPath: resolvedDbPath,
+      port,
+      clientDir: args.clientDir,
+    });
+  } catch (err: unknown) {
+    console.error("server:startup failed to open database:", err);
+
+    // Check for backups
+    const backups = findBackups(resolvedDbPath);
+    if (backups.length > 0) {
+      console.error(
+        `server:startup found ${backups.length} backup(s). Latest: v${backups[0].version}`,
+      );
+    }
+
+    // Start fresh as last resort
+    console.error("server:startup starting with fresh database");
+    const { unlinkSync, existsSync } = await import("node:fs");
+    for (const suffix of ["", "-wal", "-shm"]) {
+      const file = `${resolvedDbPath}${suffix}`;
+      if (existsSync(file)) unlinkSync(file);
+    }
+    createApp({
+      dbPath: resolvedDbPath,
+      port,
+      clientDir: args.clientDir,
+    });
+  }
 }

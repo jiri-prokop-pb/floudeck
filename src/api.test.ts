@@ -511,6 +511,59 @@ describe("POST /api/blocks/try", () => {
   });
 });
 
+describe("GET /api/settings/db-status", () => {
+  test("returns health and version info", async () => {
+    const res = await router(req("GET", "/api/settings/db-status"));
+    const data = await jsonBody(res);
+    expect(data.ok).toBe(true);
+    expect(data.healthy).toBe(true);
+    expect(data.version).toBe(1);
+    expect(Array.isArray(data.backups)).toBe(true);
+  });
+});
+
+describe("POST /api/settings/reset-database", () => {
+  test("rejects without confirm: true", async () => {
+    const res = await router(
+      req("POST", "/api/settings/reset-database", { confirm: false }),
+    );
+    expect(res?.status).toBe(400);
+    const data = await jsonBody(res);
+    expect(data.ok).toBe(false);
+  });
+
+  test("rejects in-memory database", async () => {
+    // Default router has no dbPath (in-memory)
+    const res = await router(
+      req("POST", "/api/settings/reset-database", { confirm: true }),
+    );
+    expect(res?.status).toBe(400);
+    const data = await jsonBody(res);
+    expect(data.error).toContain("in-memory");
+  });
+});
+
+describe("POST /api/settings/restore-database", () => {
+  test("rejects without valid version", async () => {
+    const res = await router(
+      req("POST", "/api/settings/restore-database", { confirm: true }),
+    );
+    expect(res?.status).toBe(400);
+  });
+
+  test("rejects in-memory database", async () => {
+    const res = await router(
+      req("POST", "/api/settings/restore-database", {
+        confirm: true,
+        version: 1,
+      }),
+    );
+    expect(res?.status).toBe(400);
+    const data = await jsonBody(res);
+    expect(data.error).toContain("in-memory");
+  });
+});
+
 describe("unknown routes", () => {
   test("returns null for unmatched route", async () => {
     const res = await router(req("GET", "/unknown"));

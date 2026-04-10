@@ -4,10 +4,16 @@ import type { BlockRecord, DisplaySettings } from "../../types.ts";
 import { useBlocks } from "../hooks/useBlocks.ts";
 import { useRouter } from "../hooks/useRouter.ts";
 import { useSse } from "../hooks/useSse.ts";
-import { fetchBlocks, fetchDisplaySettings } from "../lib/api.ts";
+import {
+  type DbBackupInfo,
+  fetchBlocks,
+  fetchDbStatus,
+  fetchDisplaySettings,
+} from "../lib/api.ts";
 import { isTauri, startDrag, toggleMaximize } from "../lib/tauri.ts";
 import { ActionPage } from "./ActionPage.tsx";
 import { BlockFormPage } from "./BlockFormPage.tsx";
+import { DatabaseErrorBanner } from "./DatabaseErrorBanner.tsx";
 import { ErrorBoundary } from "./ErrorBoundary.tsx";
 import { Feed } from "./Feed.tsx";
 import { HeaderClock } from "./HeaderClock.tsx";
@@ -16,6 +22,7 @@ import { SettingsPage } from "./SettingsPage.tsx";
 export function App() {
   const [blocksPromise] = useState(() => fetchBlocks());
   const [displaySettingsPromise] = useState(() => fetchDisplaySettings());
+  const [dbStatusPromise] = useState(() => fetchDbStatus());
 
   return (
     <ErrorBoundary
@@ -37,18 +44,29 @@ export function App() {
         <AppContent
           blocksPromise={blocksPromise}
           displaySettingsPromise={displaySettingsPromise}
+          dbStatusPromise={dbStatusPromise}
         />
       </Suspense>
     </ErrorBoundary>
   );
 }
 
+type DbStatusResult =
+  | ({ ok: true } & {
+      healthy: boolean;
+      version: number;
+      backups: DbBackupInfo[];
+    })
+  | { ok: false; error: string };
+
 function AppContent({
   blocksPromise,
   displaySettingsPromise,
+  dbStatusPromise,
 }: {
   blocksPromise: Promise<BlockRecord[]>;
   displaySettingsPromise: Promise<DisplaySettings | null>;
+  dbStatusPromise: Promise<DbStatusResult>;
 }) {
   const {
     route,
@@ -68,6 +86,10 @@ function AppContent({
     handleBlockStale,
     refreshStaleBlocks,
   } = useBlocks(blocksPromise);
+
+  const dbStatus = use(dbStatusPromise);
+  const dbUnhealthy = dbStatus.ok && !dbStatus.healthy;
+  const dbBackups = dbStatus.ok ? dbStatus.backups : [];
 
   const initialDisplaySettings = use(displaySettingsPromise);
   const [displaySettings, setDisplaySettings] = useState<DisplaySettings>(
@@ -206,6 +228,8 @@ function AppContent({
             </button>
           </div>
         </header>
+
+        {dbUnhealthy && <DatabaseErrorBanner backups={dbBackups} />}
 
         <Feed
           blocks={blocks}

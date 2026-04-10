@@ -1,12 +1,16 @@
-import type { Database } from "bun:sqlite";
-import { beforeEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
+import { Database } from "bun:sqlite";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import {
+  backupDatabase,
+  checkDatabaseIntegrity,
   createBlock,
   deleteBlock,
+  findBackups,
   findDueBlocks,
   getBlock,
+  getSchemaVersion,
   getSetting,
   initDb,
   listBlocks,
@@ -16,6 +20,7 @@ import {
   parseBlockRunnerConfig,
   reorderBlocks,
   resetStaleRunningBlocks,
+  setSchemaVersion,
   setSetting,
   updateBlock,
 } from "./db.ts";
@@ -517,5 +522,137 @@ describe("settings", () => {
     setSetting(db, "key", "first");
     setSetting(db, "key", "second");
     expect(getSetting(db, "key")).toBe("second");
+  });
+});
+
+describe("migration transactions", () => {
+  test("successful migration advances version", () => {
+    // Create a fresh :memory: DB at version 1
+    const testDb = initDb();
+    expect(getSchemaVersion(testDb)).toBe(1);
+
+    // Simulate a migration that adds a column
+    testDb.transaction(() => {
+      testDb.run("ALTER TABLE blocks ADD COLUMN test_col TEXT");
+      setSchemaVersion(testDb, 2);
+    })();
+
+    expect(getSchemaVersion(testDb)).toBe(2);
+    // Verify column exists
+    const info = testDb.query("PRAGMA table_info(blocks)").all() as Array<{
+      name: string;
+    }>;
+    const colNames = info.map((c) => c.name);
+    expect(colNames).toContain("test_col");
+  });
+
+  test("failing migration rolls back version and schema", () => {
+    const testDb = initDb();
+    expect(getSchemaVersion(testDb)).toBe(1);
+
+    try {
+      testDb.transaction(() => {
+        testDb.run("ALTER TABLE blocks ADD COLUMN rollback_col TEXT");
+        setSchemaVersion(testDb, 2);
+        throw new Error("simulated failure");
+      })();
+    } catch {
+      // expected
+    }
+
+    // Version should not have changed
+    expect(getSchemaVersion(testDb)).toBe(1);
+    // Column should not exist
+    const info = testDb.query("PRAGMA table_info(blocks)").all() as Array<{
+      name: string;
+    }>;
+    const colNames = info.map((c) => c.name);
+    expect(colNames).not.toContain("rollback_col");
+  });
+});
+
+describe("backupDatabase", () => {
+  let tempRoot: string;
+
+  afterEach(() => {
+    if (tempRoot) rmSync(tempRoot, { recursive: true, force: true });
+  });
+
+  test("creates backup for file-backed DB", () => {
+    tempRoot = mkdtempSync(`${tmpdir()}/floudeck-backup-`);
+    const dbPath = `${tempRoot}/floudeck.sqlite`;
+    const fileDb = initDb(dbPath);
+    createBlock(fileDb, {
+      prompt: "backup test",
+      intervalValue: 1,
+      intervalUnit: "hours",
+    });
+
+    const backupPath = backupDatabase(fileDb, dbPath, 1);
+    expect(backupPath).not.toBeNull();
+    if (!backupPath) throw new Error("backupPath should not be null");
+    expect(existsSync(backupPath)).toBe(true);
+
+    // Verify backup is a valid SQLite DB
+    fileDb.close();
+    const backupDb = new Database(backupPath);
+    const blocks = backupDb.query("SELECT * FROM blocks").all();
+    expect(blocks).toHaveLength(1);
+    backupDb.close();
+  });
+
+  test("returns null for :memory: DB", () => {
+    const memDb = initDb();
+    expect(backupDatabase(memDb, ":memory:", 1)).toBeNull();
+  });
+});
+
+describe("checkDatabaseIntegrity", () => {
+  test("returns true for healthy DB", () => {
+    expect(checkDatabaseIntegrity(db)).toBe(true);
+  });
+});
+
+describe("findBackups", () => {
+  let tempRoot: string;
+
+  afterEach(() => {
+    if (tempRoot) rmSync(tempRoot, { recursive: true, force: true });
+  });
+
+  test("finds and sorts backup files", () => {
+    tempRoot = mkdtempSync(`${tmpdir()}/floudeck-find-`);
+    const dbPath = `${tempRoot}/floudeck.sqlite`;
+
+    // Create fake backup files
+    writeFileSync(`${tempRoot}/floudeck.sqlite.backup-v1`, "fake");
+    writeFileSync(`${tempRoot}/floudeck.sqlite.backup-v3`, "fake");
+    writeFileSync(`${tempRoot}/floudeck.sqlite.backup-v2`, "fake");
+    writeFileSync(`${tempRoot}/unrelated-file.txt`, "nope");
+
+    const backups = findBackups(dbPath);
+    expect(backups).toHaveLength(3);
+    // Sorted descending by version
+    expect(backups[0].version).toBe(3);
+    expect(backups[1].version).toBe(2);
+    expect(backups[2].version).toBe(1);
+  });
+
+  test("returns empty for :memory:", () => {
+    expect(findBackups(":memory:")).toEqual([]);
+  });
+
+  test("finds backup files with suffix", () => {
+    tempRoot = mkdtempSync(`${tmpdir()}/floudeck-suffix-`);
+    const dbPath = `${tempRoot}/floudeck.sqlite`;
+
+    writeFileSync(`${tempRoot}/floudeck.sqlite.backup-v1`, "fake");
+    writeFileSync(`${tempRoot}/floudeck.sqlite.backup-v1-pre-restore`, "fake");
+
+    const backups = findBackups(dbPath);
+    expect(backups).toHaveLength(2);
+    // Both have version 1
+    expect(backups[0].version).toBe(1);
+    expect(backups[1].version).toBe(1);
   });
 });

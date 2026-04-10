@@ -1,5 +1,5 @@
 import { Database } from "bun:sqlite";
-import { mkdirSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync } from "node:fs";
 import { addInterval, nowIso } from "./time.ts";
 import type {
   ActionRun,
@@ -37,13 +37,76 @@ const MIGRATIONS: Migration[] = [
   // version 1 = initial schema (created by initDb below)
 ];
 
-function runMigrations(db: Database): void {
+export function backupDatabase(
+  db: Database,
+  dbPath: string,
+  version: number,
+  suffix?: string,
+): string | null {
+  if (dbPath === ":memory:" || !existsSync(dbPath)) return null;
+  db.run("PRAGMA wal_checkpoint(TRUNCATE)");
+  const tag = suffix ? `-${suffix}` : "";
+  const dest = `${dbPath}.backup-v${version}${tag}`;
+  copyFileSync(dbPath, dest);
+  return dest;
+}
+
+export function checkDatabaseIntegrity(db: Database): boolean {
+  const row = db.query("PRAGMA quick_check(1)").get();
+  if (
+    row &&
+    typeof row === "object" &&
+    "quick_check" in row &&
+    row.quick_check === "ok"
+  ) {
+    return true;
+  }
+  return false;
+}
+
+export function findBackups(
+  dbPath: string,
+): Array<{ path: string; version: number }> {
+  if (dbPath === ":memory:") return [];
+  const dir = dbPath.substring(0, dbPath.lastIndexOf("/"));
+  if (!dir || !existsSync(dir)) return [];
+
+  const prefix = "floudeck.sqlite.backup-v";
+  const entries = readdirSync(dir);
+  const backups: Array<{ path: string; version: number }> = [];
+
+  for (const entry of entries) {
+    if (!entry.startsWith(prefix)) continue;
+    const rest = entry.slice(prefix.length);
+    // Extract version number (stops at first non-digit, e.g. "-pre-restore")
+    const match = /^(\d+)/.exec(rest);
+    if (!match) continue;
+    const version = Number.parseInt(match[1], 10);
+    if (Number.isNaN(version)) continue;
+    backups.push({ path: `${dir}/${entry}`, version });
+  }
+
+  return backups.sort((a, b) => b.version - a.version);
+}
+
+function runMigrations(db: Database, dbPath?: string): void {
   const currentVersion = getSchemaVersion(db);
-  for (const migration of MIGRATIONS) {
-    if (migration.version > currentVersion) {
+  const pending = MIGRATIONS.filter((m) => m.version > currentVersion);
+  if (pending.length === 0) return;
+
+  // Auto-backup before running migrations on file-backed DBs
+  if (dbPath && dbPath !== ":memory:") {
+    const backupPath = backupDatabase(db, dbPath, currentVersion);
+    if (backupPath) {
+      console.log(`db:backup created before migration: ${backupPath}`);
+    }
+  }
+
+  for (const migration of pending) {
+    db.transaction(() => {
       migration.up(db);
       setSchemaVersion(db, migration.version);
-    }
+    })();
   }
 }
 
@@ -109,7 +172,7 @@ export function initDb(path?: string): Database {
   }
 
   // Run any pending migrations
-  runMigrations(db);
+  runMigrations(db, path);
 
   return db;
 }
