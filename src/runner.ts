@@ -1,7 +1,15 @@
-import { buildCliArgs, ensureCwd } from "./config.ts";
+import { buildCliArgs, buildStreamingCliArgs, ensureCwd } from "./config.ts";
 import { extractMarkdownFromOutput } from "./extract.ts";
 import { resolveClaudePath } from "./paths.ts";
-import type { ResolvedRunnerConfig, RunBlockFn, RunResult } from "./types.ts";
+import type {
+  DebugEvent,
+  PermissionErrorInfo,
+  ResolvedRunnerConfig,
+  RunBlockFn,
+  RunResult,
+  StreamingTryRunFn,
+  TryStreamEvent,
+} from "./types.ts";
 
 let resolvedClaudePath: string | null = null;
 
@@ -113,5 +121,312 @@ export function createMockRunner(
     config: ResolvedRunnerConfig,
   ): Promise<RunResult> => {
     return handler(prompt, config);
+  };
+}
+
+// --- Streaming Try support ---
+
+const PERMISSION_PATTERNS = [
+  /permission\s+(denied|error)/i,
+  /not\s+allowed/i,
+  /EPERM/,
+  /requires\s+permission/i,
+  /sandbox.*blocked/i,
+];
+
+export function detectPermissionError(
+  stderr: string,
+  cwd: string,
+): PermissionErrorInfo | undefined {
+  const isPermError = PERMISSION_PATTERNS.some((p) => p.test(stderr));
+  if (!isPermError) return undefined;
+  return {
+    instructions: `Permission error detected. You can configure allowed tools in ${cwd}/.claude/settings.local.json`,
+    cwd,
+  };
+}
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+/**
+ * Parse a single NDJSON line from the Claude CLI `--output-format stream-json` output.
+ *
+ * The CLI wraps Anthropic API streaming events in an envelope:
+ *   { "type": "stream_event", "event": { "type": "content_block_delta", ... } }
+ * Top-level types like "result" and "system" are NOT wrapped.
+ */
+export function parseNdjsonLine(
+  line: string,
+  debug: boolean,
+): TryStreamEvent | null {
+  const trimmed = line.trim();
+  if (!trimmed) return null;
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(trimmed);
+  } catch {
+    return null;
+  }
+
+  if (!isRecord(parsed)) return null;
+  const topType = typeof parsed.type === "string" ? parsed.type : undefined;
+
+  // Unwrap stream_event envelope → inner event
+  if (topType === "stream_event") {
+    const inner = isRecord(parsed.event) ? parsed.event : undefined;
+    if (!inner) return null;
+    return parseStreamEvent(inner, debug);
+  }
+
+  // Top-level system message (init, etc.)
+  if (topType === "system" && debug) {
+    const subtype =
+      typeof parsed.subtype === "string" ? parsed.subtype : undefined;
+    // Skip the verbose init message
+    if (subtype === "init") return null;
+    const message =
+      typeof parsed.message === "string"
+        ? parsed.message
+        : typeof parsed.error === "string"
+          ? parsed.error
+          : null;
+    if (message) {
+      const event: DebugEvent = { kind: "system", message };
+      return { type: "debug", event };
+    }
+  }
+
+  // Result message (final)
+  if (topType === "result" && typeof parsed.result === "string") {
+    const { markdown, reasoning } = extractMarkdownFromOutput(parsed.result);
+    if (markdown) {
+      return { type: "done", markdown, reasoning };
+    }
+  }
+
+  return null;
+}
+
+function parseStreamEvent(
+  event: Record<string, unknown>,
+  debug: boolean,
+): TryStreamEvent | null {
+  const type = typeof event.type === "string" ? event.type : undefined;
+
+  // Text content delta
+  if (type === "content_block_delta") {
+    const delta = isRecord(event.delta) ? event.delta : undefined;
+    if (delta?.type === "text_delta" && typeof delta.text === "string") {
+      return { type: "text", text: delta.text };
+    }
+    // Thinking content
+    if (
+      debug &&
+      delta?.type === "thinking_delta" &&
+      typeof delta.thinking === "string"
+    ) {
+      const debugEvent: DebugEvent = {
+        kind: "thinking",
+        text: delta.thinking,
+      };
+      return { type: "debug", event: debugEvent };
+    }
+  }
+
+  // Tool use start
+  if (type === "content_block_start" && debug) {
+    const contentBlock = isRecord(event.content_block)
+      ? event.content_block
+      : undefined;
+    if (contentBlock?.type === "tool_use") {
+      const tool =
+        typeof contentBlock.name === "string" ? contentBlock.name : "unknown";
+      const input =
+        typeof contentBlock.input === "string"
+          ? contentBlock.input
+          : JSON.stringify(contentBlock.input ?? "");
+      const debugEvent: DebugEvent = { kind: "tool_use", tool, input };
+      return { type: "debug", event: debugEvent };
+    }
+    if (contentBlock?.type === "tool_result") {
+      const tool =
+        typeof contentBlock.tool_use_id === "string"
+          ? contentBlock.tool_use_id
+          : "unknown";
+      const output =
+        typeof contentBlock.content === "string"
+          ? contentBlock.content.slice(0, 500)
+          : JSON.stringify(contentBlock.content ?? "").slice(0, 500);
+      const debugEvent: DebugEvent = { kind: "tool_result", tool, output };
+      return { type: "debug", event: debugEvent };
+    }
+  }
+
+  return null;
+}
+
+export function createStreamingTryRunner(
+  systemPrompt: string,
+): StreamingTryRunFn {
+  return (
+    prompt: string,
+    config: ResolvedRunnerConfig,
+    options: { debug: boolean; signal: AbortSignal },
+  ): ReadableStream<TryStreamEvent> => {
+    const args = buildStreamingCliArgs(
+      config,
+      prompt,
+      systemPrompt,
+      getClaudePath(),
+    );
+    const timeoutMs = config.timeout * 1000;
+
+    ensureCwd(config.cwd);
+
+    const spawnEnv = buildSpawnEnv(config);
+    const proc = Bun.spawn(args, {
+      cwd: config.cwd,
+      stdout: "pipe",
+      stderr: "pipe",
+      ...(spawnEnv ? { env: spawnEnv } : {}),
+    });
+
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      try {
+        proc.kill();
+      } catch {
+        // ignore
+      }
+    }, timeoutMs);
+
+    // Abort handling
+    if (options.signal.aborted) {
+      clearTimeout(timer);
+      try {
+        proc.kill();
+      } catch {
+        // ignore
+      }
+    } else {
+      options.signal.addEventListener(
+        "abort",
+        () => {
+          clearTimeout(timer);
+          try {
+            proc.kill();
+          } catch {
+            // ignore
+          }
+        },
+        { once: true },
+      );
+    }
+
+    return new ReadableStream<TryStreamEvent>({
+      start(controller) {
+        let buffer = "";
+        let sentDone = false;
+        const decoder = new TextDecoder();
+        const reader = proc.stdout.getReader();
+
+        void (async () => {
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+
+              const chunk = decoder.decode(value, { stream: true });
+              buffer += chunk;
+
+              const lines = buffer.split("\n");
+              buffer = lines.pop() ?? "";
+
+              for (const line of lines) {
+                const event = parseNdjsonLine(line, options.debug);
+                if (event) {
+                  if (event.type === "done") sentDone = true;
+                  controller.enqueue(event);
+                }
+              }
+            }
+
+            // Process remaining buffer
+            if (buffer.trim()) {
+              const event = parseNdjsonLine(buffer, options.debug);
+              if (event) {
+                if (event.type === "done") sentDone = true;
+                controller.enqueue(event);
+              }
+            }
+
+            // Wait for process exit and handle final state
+            const stderr = await new Response(proc.stderr).text();
+            await proc.exited;
+
+            clearTimeout(timer);
+
+            if (timedOut) {
+              controller.enqueue({
+                type: "error",
+                error: `Try timed out after ${config.timeout} seconds.`,
+              });
+            } else if (!sentDone) {
+              if (stderr.trim()) {
+                const permissionError = detectPermissionError(
+                  stderr,
+                  config.cwd,
+                );
+                controller.enqueue({
+                  type: "error",
+                  error: stderr.trim().slice(0, 500),
+                  ...(permissionError ? { permissionError } : {}),
+                });
+              } else {
+                controller.enqueue({
+                  type: "error",
+                  error: "No output received from CLI.",
+                });
+              }
+            }
+          } catch (err: unknown) {
+            clearTimeout(timer);
+            const message =
+              err instanceof Error ? err.message : "Streaming error";
+            controller.enqueue({ type: "error", error: message });
+          } finally {
+            controller.close();
+          }
+        })();
+      },
+    });
+  };
+}
+
+export function createMockStreamingTryRunner(
+  handler: (
+    prompt: string,
+    config: ResolvedRunnerConfig,
+    options: { debug: boolean; signal: AbortSignal },
+  ) => TryStreamEvent[],
+): StreamingTryRunFn {
+  return (
+    prompt: string,
+    config: ResolvedRunnerConfig,
+    options: { debug: boolean; signal: AbortSignal },
+  ): ReadableStream<TryStreamEvent> => {
+    const events = handler(prompt, config, options);
+    return new ReadableStream<TryStreamEvent>({
+      start(controller) {
+        for (const event of events) {
+          controller.enqueue(event);
+        }
+        controller.close();
+      },
+    });
   };
 }

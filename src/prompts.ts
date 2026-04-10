@@ -60,6 +60,10 @@ ${ACTION_LINKS}
 Color guidance: red = destructive/dangerous, orange = caution, green = safe/constructive, blue = informational/navigation, purple = advanced/settings.
 The color tag syntax also works on regular links: [Open docs|blue](https://example.com) renders as colored underlined text. Action links render as colored pills.`;
 
+export const TRY_SYSTEM_PROMPT = `${SYSTEM_PROMPT}
+
+If you encounter a permission error or cannot use a tool, explain what tool you tried to use and what went wrong in your reasoning section.`;
+
 export const ACTION_SYSTEM_PROMPT = `CRITICAL: You MUST wrap your final answer in delimiters. No exceptions.
 
 You are executing a custom action for a Floudeck block. The block's current output and the action details are provided below. Perform the requested action and return your result.

@@ -18,11 +18,11 @@ function MarkdownContent({
   const { title, body } = extractTitle(markdown);
   return (
     <>
-      <h2
-        className={`font-semibold text-zinc-900 ${compact ? "text-base mb-1" : "text-lg mb-2"}`}
+      <h1
+        className={`font-semibold text-zinc-900 ${compact ? "text-base -mt-0.5 mb-1" : "text-lg -mt-0.5 mb-1.5"}`}
       >
         {title}
-      </h2>
+      </h1>
       {body && (
         <div
           className={`prose prose-sm max-w-none ${compact ? "prose-compact" : ""}`}

@@ -102,3 +102,28 @@ export type RunBlockFn = (
   prompt: string,
   config: ResolvedRunnerConfig,
 ) => Promise<RunResult>;
+
+// --- Streaming Try types ---
+
+export type DebugEvent =
+  | { kind: "tool_use"; tool: string; input: string }
+  | { kind: "tool_result"; tool: string; output: string }
+  | { kind: "thinking"; text: string }
+  | { kind: "system"; message: string };
+
+export type PermissionErrorInfo = {
+  instructions: string;
+  cwd: string;
+};
+
+export type TryStreamEvent =
+  | { type: "text"; text: string }
+  | { type: "debug"; event: DebugEvent }
+  | { type: "done"; markdown: string; reasoning: string | null }
+  | { type: "error"; error: string; permissionError?: PermissionErrorInfo };
+
+export type StreamingTryRunFn = (
+  prompt: string,
+  config: ResolvedRunnerConfig,
+  options: { debug: boolean; signal: AbortSignal },
+) => ReadableStream<TryStreamEvent>;

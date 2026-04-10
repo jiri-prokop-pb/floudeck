@@ -7,12 +7,16 @@ import {
   getDbPath,
   setDataDir,
 } from "./paths.ts";
-import { ACTION_SYSTEM_PROMPT, SYSTEM_PROMPT } from "./prompts.ts";
-import { createRunner } from "./runner.ts";
+import {
+  ACTION_SYSTEM_PROMPT,
+  SYSTEM_PROMPT,
+  TRY_SYSTEM_PROMPT,
+} from "./prompts.ts";
+import { createRunner, createStreamingTryRunner } from "./runner.ts";
 import { createScheduler } from "./scheduler.ts";
 import { createSseBroadcaster } from "./sse.ts";
 import { nowIso } from "./time.ts";
-import type { RunBlockFn } from "./types.ts";
+import type { RunBlockFn, StreamingTryRunFn } from "./types.ts";
 
 export type AppOptions = {
   dbPath?: string;
@@ -21,6 +25,7 @@ export type AppOptions = {
   runBlock?: RunBlockFn;
   runAction?: RunBlockFn;
   runTry?: RunBlockFn;
+  streamTry?: StreamingTryRunFn;
   tickIntervalMs?: number;
   serve?: typeof Bun.serve;
   development?: boolean;
@@ -73,6 +78,7 @@ export function createApp(options: AppOptions = {}): App {
     runBlock = createRunner(SYSTEM_PROMPT),
     runAction = createRunner(ACTION_SYSTEM_PROMPT, "Action"),
     runTry = createRunner(SYSTEM_PROMPT, "Try"),
+    streamTry = createStreamingTryRunner(TRY_SYSTEM_PROMPT),
     tickIntervalMs = 10_000,
     serve = Bun.serve,
     development = !clientDirOverride,
@@ -103,6 +109,7 @@ export function createApp(options: AppOptions = {}): App {
     },
     runAction,
     runTry,
+    streamTry,
   });
 
   // In production, resolve client assets dir (explicit flag or next to binary)

@@ -81,6 +81,29 @@ export function buildCliArgs(
   return args;
 }
 
+export function buildStreamingCliArgs(
+  config: ResolvedRunnerConfig,
+  prompt: string,
+  systemPrompt: string = SYSTEM_PROMPT,
+  claudePath = "claude",
+): string[] {
+  const args = [claudePath, "--print"];
+
+  args.push("--output-format", "stream-json");
+  args.push("--verbose");
+  args.push("--include-partial-messages");
+
+  if (config.permissions === "dangerouslySkipPermissions") {
+    args.push("--dangerously-skip-permissions");
+  }
+
+  args.push("--model", config.model);
+  args.push("--append-system-prompt", systemPrompt);
+  args.push("--", prompt);
+
+  return args;
+}
+
 export function ensureCwd(path: string): void {
   mkdirSync(path, { recursive: true });
 }

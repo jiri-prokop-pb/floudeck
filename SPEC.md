@@ -23,9 +23,11 @@ The feed is ordered by user-defined position (drag-and-drop reorderable), keepin
 
 - "Try" button in the block form lets users test a prompt before saving
 - Runs the prompt through the same CLI runner with the same config resolution
-- Result (markdown or error) is displayed inline below the form
+- Output streams in real time via SSE; rendered markdown appears progressively below the form
+- **Debug mode toggle** — shows raw tool use, thinking, and system events alongside the streamed output
+- Permission errors are detected and surfaced with actionable guidance (CWD path + settings hint)
 - Bypasses scheduler concurrency cap (user-initiated, like actions)
-- Uses a generated UUID for isolated working directory
+- Uses a pre-generated UUID for isolated working directory (consistent before and after save)
 
 ### Scheduling
 
@@ -91,7 +93,7 @@ Blocks can include action links in their markdown output. Clicking an action lin
 
 - Run history or logs
 - Cron syntax or advanced scheduling
-- Real-time output streaming (planned)
+- Real-time output streaming for feed blocks (planned; Try mode streams already)
 - Multiple users or authentication
 - Interactive permission handling (planned via Claude Code SDK)
 - Folders, tags
@@ -102,8 +104,7 @@ Blocks can include action links in their markdown output. Clicking an action lin
 
 See TODO.md for the full list. Key upcoming areas:
 
-- **Try mode streaming** — stream output in real time during Try runs
-- **Real-time output streaming** — watch Claude's output as it runs
+- **Real-time output streaming** — stream feed block output as it runs (Try mode already streams)
 - **Improved scheduling** — time-of-day for daily blocks, smarter queuing
 - **Visibility-based scheduling** — only update when Floudeck is visible
 - **Custom actions improvements** — streaming, user-defined prompts, conversational follow-ups

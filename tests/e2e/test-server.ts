@@ -4,7 +4,10 @@
  * Starts on the port specified by E2E_PORT.
  */
 
-import { createMockRunner } from "../../src/runner.ts";
+import {
+  createMockRunner,
+  createMockStreamingTryRunner,
+} from "../../src/runner.ts";
 import { createApp } from "../../src/server.ts";
 
 const portValue = process.env.E2E_PORT;
@@ -30,11 +33,26 @@ const mockRunner = createMockRunner(async (prompt) => {
   };
 });
 
+// Mock streaming try runner
+const mockStreamTry = createMockStreamingTryRunner((prompt) => {
+  if (prompt.toLowerCase().includes("fail")) {
+    return [
+      { type: "error", error: "Mock runner error: task failed as requested" },
+    ];
+  }
+  const markdown = `# Result\n\nOutput for: ${prompt.slice(0, 100)}`;
+  return [
+    { type: "text", text: `Output for: ${prompt.slice(0, 100)}` },
+    { type: "done", markdown, reasoning: "Mock reasoning" },
+  ];
+});
+
 const app = createApp({
   port: PORT,
   runBlock: mockRunner,
   runAction: mockRunner,
   runTry: mockRunner,
+  streamTry: mockStreamTry,
   tickIntervalMs: 500, // fast ticks for testing
   development: true, // enable HTML import routes for browser navigation
 });
